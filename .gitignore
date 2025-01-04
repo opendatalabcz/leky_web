@@ -4,6 +4,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Vaadin ###
+/frontend
+
 ### STS ###
 .apt_generated
 .classpath
