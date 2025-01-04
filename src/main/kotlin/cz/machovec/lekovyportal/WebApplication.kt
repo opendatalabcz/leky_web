@@ -4,8 +4,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class LekyWebApplication
+class WebApplication
 
 fun main(args: Array<String>) {
-	runApplication<LekyWebApplication>(*args)
+	runApplication<WebApplication>(*args)
 }
