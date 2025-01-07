@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from 'react';
+import DistrictMap from './DistrictMap';
 
 function App() {
-  const [message, setMessage] = useState('');
+    const [geojsonData, setGeojsonData] = useState(null);
 
-  useEffect(() => {
-    fetch('/api/hello')
-        .then(response => response.text())
-        .then(data => setMessage(data));
-  }, []);
+    useEffect(() => {
+        fetch('/okresy.json')
+            .then((response) => response.json())
+            .then((data) => setGeojsonData(data));
+    }, []);
 
-  return (
-      <div className="App">
-        <h1>{message}</h1>
-      </div>
-  );
+    if (!geojsonData) {
+        return <div>Načítám data...</div>;
+    }
+
+    return (
+        <div>
+            <h1>Mapa okresů</h1>
+            <DistrictMap geojsonData={geojsonData} />
+        </div>
+    );
 }
 
 export default App;
