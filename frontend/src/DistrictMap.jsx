@@ -2,43 +2,16 @@ import React from 'react';
 import { MapContainer, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const districtData = {
-    "Kladno": 100,
-    "Beroun": 70,
-    "Prachatice": 50,
-    "Strakonice": 20,
-    "Benešov": 85,
-    "Příbram": 65,
-    "Tábor": 45,
-    "České Budějovice": 90,
-    "Jindřichův Hradec": 60,
-    "Třebíč": 75,
-    "Znojmo": 55,
-    "Hodonín": 35,
-    "Břeclav": 95,
-    "Opava": 40,
-    "Frýdek-Místek": 80,
-    "Olomouc": 70,
-    "Pardubice": 50,
-    "Hradec Králové": 90,
-    "Liberec": 65,
-    "Ústí nad Labem": 75,
-    "Chomutov": 60,
-    "Most": 45,
-    "Karlovy Vary": 85,
-    "Plzeň-město": 95,
-    "Plzeň-sever": 55,
-}
-
 const getColor = (value) => {
-    return value > 80 ? '#800026' :
-        value > 60 ? '#BD0026' :
-            value > 40 ? '#E31A1C' :
-                value > 20 ? '#FC4E2A' :
-                    '#FFEDA0';
+    return value > 90 ? '#800026' :
+        value > 70 ? '#BD0026' :
+            value > 50 ? '#E31A1C' :
+                value > 30 ? '#FC4E2A' :
+                    value > 10 ? '#FFEDA0' :
+                        '#D3E5FF';
 };
 
-const geoJsonStyle = (feature) => {
+const geoJsonStyle = (feature, districtData) => {
     const district = feature.name;
     const value = districtData[district] || 0;
     return {
@@ -51,7 +24,7 @@ const geoJsonStyle = (feature) => {
     };
 };
 
-const onEachFeature = (feature, layer) => {
+const onEachFeature = (feature, layer, districtData) => {
     const district = feature.name;
     const value = districtData[district] || 0;
 
@@ -75,7 +48,7 @@ const onEachFeature = (feature, layer) => {
     });
 };
 
-const HelloDistrictChart = ({ geojsonData }) => {
+const DistrictMap = ({ geojsonData, districtData }) => {
     return (
         <MapContainer
             center={[50.0755, 14.4378]}
@@ -85,9 +58,13 @@ const HelloDistrictChart = ({ geojsonData }) => {
             doubleClickZoom={false}
             dragging={false}
         >
-            <GeoJSON data={geojsonData} style={geoJsonStyle} onEachFeature={onEachFeature} />
+            <GeoJSON
+                data={geojsonData}
+                style={(feature) => geoJsonStyle(feature, districtData)}
+                onEachFeature={(feature, layer) => onEachFeature(feature, layer, districtData)}
+            />
         </MapContainer>
     );
 };
 
-export default HelloDistrictChart;
+export default DistrictMap;
