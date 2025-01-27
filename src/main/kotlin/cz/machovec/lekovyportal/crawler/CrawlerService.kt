@@ -6,21 +6,49 @@ import org.springframework.stereotype.Service
 
 @Service
 class CrawlerService {
+
+    private val PREFIX_OF_SEARCHED_FILES = "https://opendata.sukl.cz/soubory/"
+
+    private val URLS_TO_CRAWL = listOf(
+        "https://opendata.sukl.cz/?q=katalog/predepsane-vydane-lecive-pripravky-ze-systemu-erecept",
+        "https://opendata.sukl.cz/?q=katalog/historie-predepsanych-vydanych-lecivych-pripravku-ze-systemu-erecept",
+        "https://opendata.sukl.cz/?q=katalog/databaze-lecivych-pripravku-dlp",
+        "https://opendata.sukl.cz/?q=katalog/historie-databaze-lecivych-pripravku-dlp",
+        "https://opendata.sukl.cz/?q=katalog/hlaseni-o-uvedeni-preruseni-ukonceni-obnoveni-dodavek-leciveho-pripravku-na-trh",
+        "https://opendata.sukl.cz/?q=katalog/lek-13",
+        "https://opendata.sukl.cz/?q=katalog/dis-13",
+        "https://opendata.sukl.cz/?q=katalog/dis-13-zahranici",
+        "https://opendata.sukl.cz/?q=katalog/reg-13"
+    )
+
     @Scheduled(cron = "0 * * * * ?")
     fun crawlPage() {
-        println("Spouštím crawler pro test...")
+        println("Spouštím crawler pro více stránek...")
 
-        // 1) Stáhnout HTML
-        val url = "https://opendata.sukl.cz/?q=katalog/predepsane-vydane-lecive-pripravky-ze-systemu-erecept"
-        val doc = Jsoup.connect(url).get()
+        for ((index, url) in URLS_TO_CRAWL.withIndex()) {
+            println("----------- Stránka #$index: $url -----------")
 
-        // 2) Najít všechny odkazy
-        val links = doc.select("a[href]")
+            try {
+                val doc = Jsoup.connect(url).get()
 
-        // 3) Vypsat je
-        for ((index, link) in links.withIndex()) {
-            val href = link.attr("abs:href")
-            println("#$index => $href")
+                val links = doc.select("a[href]")
+                println("Na stránce bylo nalezeno ${links.size} odkazů.")
+
+                val relevantLinks = links.filter { link ->
+                    val href = link.attr("abs:href")
+                    href.startsWith(PREFIX_OF_SEARCHED_FILES)
+                }
+
+                println("Relevantní odkazy (${relevantLinks.size}):")
+                for ((linkIndex, link) in relevantLinks.withIndex()) {
+                    val href = link.attr("abs:href")
+                    println("  #$linkIndex => $href")
+                }
+            } catch (e: Exception) {
+                println("Chyba při scrapování stránky: $url")
+            }
+
+            println("--------------------------------------------")
         }
     }
 }
