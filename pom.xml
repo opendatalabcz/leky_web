@@ -99,15 +99,36 @@
 			<plugin>
 				<groupId>org.jetbrains.kotlin</groupId>
 				<artifactId>kotlin-maven-plugin</artifactId>
+				<version>${kotlin.version}</version>
+				<executions>
+					<execution>
+						<id>compile</id>
+						<goals>
+							<goal>compile</goal>
+							<!--<goal>test-compile</goal>-->
+						</goals>
+					</execution>
+				</executions>
 				<configuration>
 					<args>
+						<!-- Enforces strict null-safety checks for Java JSR-305 annotations like @Nullable and @Nonnull -->
 						<arg>-Xjsr305=strict</arg>
 					</args>
 					<compilerPlugins>
 						<plugin>spring</plugin>
+						<plugin>jpa</plugin>
 					</compilerPlugins>
 				</configuration>
 				<dependencies>
+					<!-- Generates no-argument constructors for Kotlin classes (not available by default) -->
+					<!-- Required for JPA/Hibernate, as it mandates a no-arg constructor for entity instantiation -->
+					<dependency>
+						<groupId>org.jetbrains.kotlin</groupId>
+						<artifactId>kotlin-maven-noarg</artifactId>
+						<version>${kotlin.version}</version>
+					</dependency>
+					<!-- Allows Spring-annotated Kotlin classes to be open (by default, Kotlin classes are final) -->
+					<!-- Required for Spring proxies (AOP, lazy initialization, transaction management, etc.) -->
 					<dependency>
 						<groupId>org.jetbrains.kotlin</groupId>
 						<artifactId>kotlin-maven-allopen</artifactId>
