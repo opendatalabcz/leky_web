@@ -17,7 +17,7 @@ class Reg13Scraper(
     fun scrape(): List<NewFileMessage> {
         val newMessages = mutableListOf<NewFileMessage>()
 
-        // 1) Downloads HTML
+        // 1) Download HTML
         val doc = Jsoup.connect(REG13_URL).get()
 
         // 2) Find relevant links
