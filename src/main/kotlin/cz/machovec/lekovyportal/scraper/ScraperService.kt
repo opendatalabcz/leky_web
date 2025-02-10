@@ -28,7 +28,7 @@ class ScraperService(
 
     @Scheduled(cron = "0 * * * * ?")
     fun scrape() {
-        scrapeAll()
+        // scrapeAll()
 
         // scrapePOC()
     }
