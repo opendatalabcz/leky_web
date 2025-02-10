@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component
 
 @Component
 class Reg13Scraper(
-    private val reg13Parser: Reg13Parser,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) {
     private val REG13_URL = "https://opendata.sukl.cz/?q=katalog/reg-13"
@@ -29,7 +28,7 @@ class Reg13Scraper(
 
         // 3) For each link -> parse (year, month), checkDB, prepare NewFileMessage
         for (fileUrl in links) {
-            val parsed = reg13Parser.parseReg13FileName(fileUrl)
+            val parsed = parseFileName(fileUrl)
             if (parsed != null) {
                 val (year, month) = parsed
                 val existing = processedDatasetRepository.findByDatasetTypeAndYearAndMonth(
@@ -48,5 +47,17 @@ class Reg13Scraper(
         }
 
         return newMessages
+    }
+
+    private fun parseFileName(fileUrl: String): Pair<Int, Int>? {
+        val regex = Regex("^REG13_(\\d{4})(\\d{2})v\\d{2}\\.csv\$", RegexOption.IGNORE_CASE)
+
+        val fileName = fileUrl.substringAfterLast("/")
+        val match = regex.matchEntire(fileName) ?: return null
+
+        val year = match.groupValues[1].toIntOrNull() ?: return null
+        val month = match.groupValues[2].toIntOrNull() ?: return null
+
+        return Pair(year, month)
     }
 }
