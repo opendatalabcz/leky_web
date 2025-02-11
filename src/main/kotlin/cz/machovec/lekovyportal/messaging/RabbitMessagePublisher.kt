@@ -1,10 +1,18 @@
 package cz.machovec.lekovyportal.messaging
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.stereotype.Service
 
 @Service
-class RabbitMessagePublisher : MessagePublisher {
+class RabbitMessagePublisher(
+    private val rabbitTemplate: RabbitTemplate
+) : MessagePublisher {
     override fun publish(msg: NewFileMessage) {
-        println("TODO: Sending message to rabbit -> $msg") // TODO
+        rabbitTemplate.convertAndSend(
+            RabbitConfig.EXCHANGE_NAME,
+            RabbitConfig.ROUTING_KEY,
+            msg
+        )
+        println("📨 Message sent to RabbitMQ -> $msg")
     }
 }
