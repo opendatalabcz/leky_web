@@ -11,7 +11,8 @@ class ScraperScheduler(
     private val dis13ZahraniciService: Dis13ZahraniciService,
     private val ereceptService: EreceptService,
     private val ereceptHistoryService: EreceptHistoryService,
-    private val messagePublisher: MessagePublisher
+    private val messagePublisher: MessagePublisher,
+    private val lek13Service: Lek13Service
 ) {
     @Scheduled(cron = "0 * * * * ?")
     fun doScraping() {
@@ -21,6 +22,8 @@ class ScraperScheduler(
         dis13Service.collectNewMessages().forEach { messagePublisher.publish(it) }
 
         dis13ZahraniciService.collectNewMessages().forEach { messagePublisher.publish(it) }
+
+        lek13Service.collectNewMessages().forEach { messagePublisher.publish(it) }
 
         ereceptHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
