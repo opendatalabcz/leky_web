@@ -24,4 +24,3 @@ data class ProcessedDataset(
     @Column(name = "month", nullable = false)
     val month: Int
 )
-
