@@ -13,6 +13,5 @@ class RabbitMessagePublisher(
             RabbitConfig.ROUTING_KEY,
             msg
         )
-        println("📨 Message sent to RabbitMQ -> $msg")
     }
 }

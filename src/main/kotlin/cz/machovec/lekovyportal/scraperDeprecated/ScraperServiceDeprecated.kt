@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.scraper
+package cz.machovec.lekovyportal.scraperDeprecated
 
 import cz.machovec.lekovyportal.messaging.MessagePublisher
 import org.jsoup.Jsoup
@@ -6,10 +6,10 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 
 @Service
-class ScraperService(
-    private val reg13Scraper: Reg13Scraper,
-    private val ereceptScraper: EreceptScraper,
-    private val ereceptHistoryScraper: EreceptHistoryScraper,
+class ScraperServiceDeprecated(
+    private val reg13ScraperDeprecated: Reg13ScraperDeprecated,
+    private val ereceptScraperDeprecated: EreceptScraperDeprecated,
+    private val ereceptHistoryScraperDeprecated: EreceptHistoryScraperDeprecated,
     private val messagePublisher: MessagePublisher
 ) {
     private val PREFIX_OF_SEARCHED_FILES = "https://opendata.sukl.cz/soubory/"
@@ -34,13 +34,13 @@ class ScraperService(
     }
 
     private fun scrapeAll() {
-        val newReg13 = reg13Scraper.scrape()
+        val newReg13 = reg13ScraperDeprecated.scrape()
         newReg13.forEach { messagePublisher.publish(it) }
 
-        val newEreceptHistory = ereceptHistoryScraper.scrape()
+        val newEreceptHistory = ereceptHistoryScraperDeprecated.scrape()
         newEreceptHistory.forEach { messagePublisher.publish(it) }
 
-        val newErecept = ereceptScraper.scrape()
+        val newErecept = ereceptScraperDeprecated.scrape()
         newErecept.forEach { messagePublisher.publish(it) }
     }
 

@@ -33,6 +33,7 @@ class Lek13Service(
                 if (!isMonthProcessed(info.datasetType, info.year, info.month)) {
                     result += NewFileMessage(
                         datasetType = info.datasetType,
+                        fileType = info.fileType,
                         year = info.year,
                         month = info.month,
                         fileUrl = link
@@ -42,6 +43,7 @@ class Lek13Service(
                 if (isYearIncomplete(info.datasetType, info.year)) {
                     result += NewFileMessage(
                         datasetType = info.datasetType,
+                        fileType = info.fileType,
                         year = info.year,
                         month = null,
                         fileUrl = link

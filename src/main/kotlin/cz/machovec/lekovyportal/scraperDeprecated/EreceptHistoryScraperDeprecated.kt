@@ -1,6 +1,7 @@
-package cz.machovec.lekovyportal.scraper
+package cz.machovec.lekovyportal.scraperDeprecated
 
 import cz.machovec.lekovyportal.domain.entity.DatasetType
+import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import org.jsoup.Jsoup
@@ -8,12 +9,16 @@ import org.springframework.stereotype.Component
 import java.time.LocalDate
 
 @Component
-class EreceptHistoryScraper(
+class EreceptHistoryScraperDeprecated(
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) {
+    private val FILE_EXTENSION = FileType.ZIP
     private val ERECEPT_HISTORY_URL =
         "https://opendata.sukl.cz/?q=katalog/historie-predepsanych-vydanych-lecivych-pripravku-ze-systemu-erecept"
     private val PREFIX = "https://opendata.sukl.cz/soubory/ERECEPT_HISTORIE/"
+
+    private val PREDPIS_REGEX = Regex("^erecept_predpis_(\\d{4})${Regex.escape(FILE_EXTENSION.extension)}$", RegexOption.IGNORE_CASE)
+    private val VYDEJ_REGEX = Regex("^erecept_vydej_(\\d{4})${Regex.escape(FILE_EXTENSION.extension)}$", RegexOption.IGNORE_CASE)
 
     fun scrape(): List<NewFileMessage> {
         val newMessages = mutableListOf<NewFileMessage>()
@@ -21,7 +26,7 @@ class EreceptHistoryScraper(
         val doc = Jsoup.connect(ERECEPT_HISTORY_URL).get()
         val links = doc.select("a[href]")
             .map { it.attr("abs:href") }
-            .filter { it.startsWith(PREFIX) && it.endsWith(".zip") }
+            .filter { it.startsWith(PREFIX) && it.endsWith(FILE_EXTENSION.extension) }
 
         for (fileUrl in links) {
             val parsed = parseFileName(fileUrl)
@@ -30,6 +35,7 @@ class EreceptHistoryScraper(
                 if (isYearIncomplete(datasetType, year)) {
                     val msg = NewFileMessage(
                         datasetType = datasetType,
+                        fileType = FILE_EXTENSION,
                         year = year,
                         month = null,
                         fileUrl = fileUrl
@@ -43,14 +49,12 @@ class EreceptHistoryScraper(
 
     private fun parseFileName(fileUrl: String): Pair<DatasetType, Int>? {
         val fileName = fileUrl.substringAfterLast("/")
-        val predpisRegex = Regex("^erecept_predpis_(\\d{4})\\.zip$", RegexOption.IGNORE_CASE)
-        val vydejRegex = Regex("^erecept_vydej_(\\d{4})\\.zip$", RegexOption.IGNORE_CASE)
 
-        predpisRegex.matchEntire(fileName)?.let {
+        PREDPIS_REGEX.matchEntire(fileName)?.let {
             val year = it.groupValues[1].toInt()
             return Pair(DatasetType.ERECEPT_PREDPIS, year)
         }
-        vydejRegex.matchEntire(fileName)?.let {
+        VYDEJ_REGEX.matchEntire(fileName)?.let {
             val year = it.groupValues[1].toInt()
             return Pair(DatasetType.ERECEPT_VYDEJ, year)
         }

@@ -43,6 +43,7 @@ abstract class AbstractDatasetService(
     protected open fun toNewFileMessage(info: ParsedFileInfo, link: String): NewFileMessage {
         return NewFileMessage(
             datasetType = info.datasetType,
+            fileType = info.fileType,
             year = info.year,
             month = info.month,
             fileUrl = link
