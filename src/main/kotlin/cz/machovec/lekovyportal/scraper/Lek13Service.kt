@@ -1,10 +1,10 @@
-package cz.machovec.lekovyportal.scraper2_0
+package cz.machovec.lekovyportal.scraper
 
 import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
-import cz.machovec.lekovyportal.scraper2_0.parsing.Lek13LinkParser
-import cz.machovec.lekovyportal.scraper2_0.scraping.HtmlScraper
+import cz.machovec.lekovyportal.scraper.parsing.Lek13LinkParser
+import cz.machovec.lekovyportal.scraper.scraping.HtmlScraper
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 

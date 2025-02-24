@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.scraper2_0.scraping
+package cz.machovec.lekovyportal.scraper.scraping
 
 import org.jsoup.Jsoup
 import org.springframework.stereotype.Component

@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.scraperDeprecated
 
+/*
 import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
@@ -12,10 +13,11 @@ import java.time.LocalDate
 class EreceptHistoryScraperDeprecated(
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) {
+
     private val FILE_EXTENSION = FileType.ZIP
     private val ERECEPT_HISTORY_URL =
         "https://opendata.sukl.cz/?q=katalog/historie-predepsanych-vydanych-lecivych-pripravku-ze-systemu-erecept"
-    private val PREFIX = "https://opendata.sukl.cz/soubory/ERECEPT_HISTORIE/"
+    private val PREFIX = "https://opendata.sukl.cz/soubory/ERECEPT_HISTOR/"
 
     private val PREDPIS_REGEX = Regex("^erecept_predpis_(\\d{4})${Regex.escape(FILE_EXTENSION.extension)}$", RegexOption.IGNORE_CASE)
     private val VYDEJ_REGEX = Regex("^erecept_vydej_(\\d{4})${Regex.escape(FILE_EXTENSION.extension)}$", RegexOption.IGNORE_CASE)
@@ -87,3 +89,4 @@ class EreceptHistoryScraperDeprecated(
         return false
     }
 }
+ */

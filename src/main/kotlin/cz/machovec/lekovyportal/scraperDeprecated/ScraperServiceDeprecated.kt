@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.scraperDeprecated
 
+/*
 import cz.machovec.lekovyportal.messaging.MessagePublisher
 import org.jsoup.Jsoup
 import org.springframework.scheduling.annotation.Scheduled
@@ -74,3 +75,4 @@ class ScraperServiceDeprecated(
         }
     }
 }
+ */

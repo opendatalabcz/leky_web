@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.scraper2_0
+package cz.machovec.lekovyportal.scraper
 
 import cz.machovec.lekovyportal.messaging.MessagePublisher
 import org.springframework.scheduling.annotation.Scheduled
