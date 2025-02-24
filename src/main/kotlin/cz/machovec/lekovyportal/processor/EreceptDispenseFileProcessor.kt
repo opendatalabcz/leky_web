@@ -21,6 +21,8 @@ class EreceptDispenseFileProcessor(
     private val processedDatasetRepository: ProcessedDatasetRepository,
 ) : DatasetFileProcessor {
 
+    private val PRAGUE_DISTRICT_CODE = "3100"
+
     @Transactional
     override fun processFile(msg: NewFileMessage) {
         val isProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
@@ -72,25 +74,52 @@ class EreceptDispenseFileProcessor(
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
-        return lines.drop(1).mapNotNull { line ->
+        val pragueMap = mutableMapOf<String, EreceptDispense>()
+        val otherRecords = mutableListOf<EreceptDispense>()
 
-            val cols = line.split(",").map { it.trim('"') }
+        lines.drop(1).forEach { line ->
+            parseLine(line)?.let { dispense ->
+                if (dispense.districtCode == PRAGUE_DISTRICT_CODE) {
+                    groupPragueRecord(dispense, pragueMap)
+                } else {
+                    otherRecords.add(dispense)
+                }
+            }
+        }
 
-            if (cols.size < 10) return@mapNotNull null
+        return otherRecords + pragueMap.values
+    }
 
-            val districtCode = cols[0]
-            val year = cols[2].toIntOrNull() ?: return@mapNotNull null
-            val month = cols[3].toIntOrNull() ?: return@mapNotNull null
-            val suklCode = cols[4]
-            val quantity = cols[9].toIntOrNull() ?: return@mapNotNull null
+    private fun parseLine(line: String): EreceptDispense? {
+        val cols = line.split(",").map { it.trim('"') }
+        if (cols.size < 10) return null
 
-            EreceptDispense(
-                districtCode = districtCode,
-                year = year,
-                month = month,
-                suklCode = suklCode,
-                quantity = quantity
-            )
+        val districtCode = cols[0]
+        val year = cols[2].toIntOrNull() ?: return null
+        val month = cols[3].toIntOrNull() ?: return null
+        val suklCode = cols[4]
+        val quantity = cols[9].toIntOrNull() ?: return null
+
+        return EreceptDispense(
+            districtCode = districtCode,
+            year = year,
+            month = month,
+            suklCode = suklCode,
+            quantity = quantity
+        )
+    }
+
+    private fun groupPragueRecord(
+        dispense: EreceptDispense,
+        pragueMap: MutableMap<String, EreceptDispense>
+    ) {
+        val key = "${dispense.districtCode}-${dispense.year}-${dispense.month}-${dispense.suklCode}"
+        val existing = pragueMap[key]
+
+        if (existing != null) {
+            pragueMap[key] = existing.copy(quantity = existing.quantity + dispense.quantity)
+        } else {
+            pragueMap[key] = dispense
         }
     }
 }

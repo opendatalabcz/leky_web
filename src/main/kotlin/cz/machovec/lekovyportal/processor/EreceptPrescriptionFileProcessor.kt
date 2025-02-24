@@ -21,6 +21,8 @@ class EreceptPrescriptionFileProcessor(
     private val processedDatasetRepository: ProcessedDatasetRepository,
 ) : DatasetFileProcessor {
 
+    private val PRAGUE_DISTRICT_CODE = "3100"
+
     @Transactional
     override fun processFile(msg: NewFileMessage) {
         val isProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
@@ -40,7 +42,6 @@ class EreceptPrescriptionFileProcessor(
         }
 
         logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
-
         ereceptPrescriptionRepository.batchInsert(records, batchSize = 50)
 
         val processedDataset = ProcessedDataset(
@@ -72,24 +73,52 @@ class EreceptPrescriptionFileProcessor(
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
-        return lines.drop(1).mapNotNull { line ->
-            val cols = line.split(",").map { it.trim('"') }
+        val pragueMap = mutableMapOf<String, EreceptPrescription>()
+        val otherRecords = mutableListOf<EreceptPrescription>()
 
-            if (cols.size < 10) return@mapNotNull null
+        lines.drop(1).forEach { line ->
+            parseLine(line)?.let { prescription ->
+                if (prescription.districtCode == PRAGUE_DISTRICT_CODE) {
+                    groupPragueRecord(prescription, pragueMap)
+                } else {
+                    otherRecords.add(prescription)
+                }
+            }
+        }
 
-            val districtCode = cols[0]
-            val year = cols[2].toIntOrNull() ?: return@mapNotNull null
-            val month = cols[3].toIntOrNull() ?: return@mapNotNull null
-            val suklCode = cols[4]
-            val quantity = cols[9].toIntOrNull() ?: return@mapNotNull null
+        return otherRecords + pragueMap.values
+    }
 
-            EreceptPrescription(
-                districtCode = districtCode,
-                year = year,
-                month = month,
-                suklCode = suklCode,
-                quantity = quantity
-            )
+    private fun parseLine(line: String): EreceptPrescription? {
+        val cols = line.split(",").map { it.trim('"') }
+        if (cols.size < 10) return null
+
+        val districtCode = cols[0]
+        val year = cols[2].toIntOrNull() ?: return null
+        val month = cols[3].toIntOrNull() ?: return null
+        val suklCode = cols[4]
+        val quantity = cols[9].toIntOrNull() ?: return null
+
+        return EreceptPrescription(
+            districtCode = districtCode,
+            year = year,
+            month = month,
+            suklCode = suklCode,
+            quantity = quantity
+        )
+    }
+
+    private fun groupPragueRecord(
+        prescription: EreceptPrescription,
+        pragueMap: MutableMap<String, EreceptPrescription>
+    ) {
+        val key = "${prescription.districtCode}-${prescription.year}-${prescription.month}-${prescription.suklCode}"
+        val existing = pragueMap[key]
+
+        if (existing != null) {
+            pragueMap[key] = existing.copy(quantity = existing.quantity + prescription.quantity)
+        } else {
+            pragueMap[key] = prescription
         }
     }
 }
