@@ -8,7 +8,7 @@ import jakarta.annotation.PostConstruct
 class FileProcessorResolver(
     private val reg13FileProcessor: Reg13FileProcessor,
     private val ereceptPredpisFileProcessor: EreceptPredpisFileProcessor,
-    private val ereceptVydejFileProcessor: EreceptVydejFileProcessor,
+    private val ereceptDispenseFileProcessor: EreceptDispenseFileProcessor,
 ) {
 
     private val processorMap = mutableMapOf<DatasetType, DatasetFileProcessor>()
@@ -17,7 +17,7 @@ class FileProcessorResolver(
     fun init() {
         processorMap[DatasetType.DISTRIBUCE_REG] = reg13FileProcessor
         processorMap[DatasetType.ERECEPT_PREDPIS] = ereceptPredpisFileProcessor
-        processorMap[DatasetType.ERECEPT_VYDEJ] = ereceptVydejFileProcessor
+        processorMap[DatasetType.ERECEPT_VYDEJ] = ereceptDispenseFileProcessor
     }
 
     fun resolve(datasetType: DatasetType): DatasetFileProcessor? {
