@@ -44,8 +44,8 @@ class EreceptHistoryService(
         }
 
         for (m in 1..lastMonth) {
-            val existing = processedDatasetRepository.findByDatasetTypeAndYearAndMonth(datasetType, year, m)
-            if (existing == null) {
+            val exists = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(datasetType, year, m)
+            if (!exists) {
                 return true
             }
         }

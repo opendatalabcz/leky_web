@@ -2,10 +2,13 @@ package cz.machovec.lekovyportal.processor
 
 import cz.machovec.lekovyportal.domain.entity.EreceptDispense
 import cz.machovec.lekovyportal.domain.entity.FileType
+import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.EreceptDispenseRepository
+import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.io.ByteArrayInputStream
 import java.net.URL
 import java.util.zip.ZipInputStream
@@ -14,10 +17,21 @@ private val logger = KotlinLogging.logger {}
 
 @Service
 class EreceptDispenseFileProcessor(
-    private val ereceptDispenseRepository: EreceptDispenseRepository
+    private val ereceptDispenseRepository: EreceptDispenseRepository,
+    private val processedDatasetRepository: ProcessedDatasetRepository,
 ) : DatasetFileProcessor {
 
+    @Transactional
     override fun processFile(msg: NewFileMessage) {
+        val isProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
+            msg.datasetType, msg.year, msg.month ?: 0
+        )
+
+        if (isProcessed) {
+            logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} already processed. Skipping." }
+            return
+        }
+
         val fileBytes = URL(msg.fileUrl).readBytes()
         val records = if (msg.fileType == FileType.ZIP) {
             parseZip(fileBytes)
@@ -28,6 +42,15 @@ class EreceptDispenseFileProcessor(
         logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
 
         ereceptDispenseRepository.batchInsert(records, batchSize = 50)
+
+        val processedDataset = ProcessedDataset(
+            datasetType = msg.datasetType,
+            year = msg.year,
+            month = msg.month ?: 0
+        )
+        processedDatasetRepository.save(processedDataset)
+
+        logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
     }
 
     private fun parseZip(zipBytes: ByteArray): List<EreceptDispense> {
@@ -70,5 +93,4 @@ class EreceptDispenseFileProcessor(
             )
         }
     }
-
 }

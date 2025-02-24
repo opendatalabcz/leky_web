@@ -36,8 +36,7 @@ abstract class AbstractDatasetService(
         val datasetType = info.datasetType
         val year = info.year
         val month = info.month ?: 0
-        val existing = processedDatasetRepository.findByDatasetTypeAndYearAndMonth(datasetType, year, month)
-        return existing != null
+        return processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(datasetType, year, month)
     }
 
     protected open fun toNewFileMessage(info: ParsedFileInfo, link: String): NewFileMessage {

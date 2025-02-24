@@ -56,7 +56,7 @@ class Lek13Service(
     }
 
     private fun isMonthProcessed(datasetType: DatasetType, year: Int, month: Int): Boolean {
-        return processedDatasetRepository.findByDatasetTypeAndYearAndMonth(datasetType, year, month) != null
+        return processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(datasetType, year, month)
     }
 
     private fun isYearIncomplete(datasetType: DatasetType, year: Int): Boolean {
