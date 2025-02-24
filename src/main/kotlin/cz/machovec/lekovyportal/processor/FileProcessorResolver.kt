@@ -7,7 +7,7 @@ import jakarta.annotation.PostConstruct
 @Component
 class FileProcessorResolver(
     private val reg13FileProcessor: Reg13FileProcessor,
-    private val ereceptPredpisFileProcessor: EreceptPredpisFileProcessor,
+    private val ereceptPrescriptionFileProcessor: EreceptPrescriptionFileProcessor,
     private val ereceptDispenseFileProcessor: EreceptDispenseFileProcessor,
 ) {
 
@@ -16,7 +16,7 @@ class FileProcessorResolver(
     @PostConstruct
     fun init() {
         processorMap[DatasetType.DISTRIBUCE_REG] = reg13FileProcessor
-        processorMap[DatasetType.ERECEPT_PREDPIS] = ereceptPredpisFileProcessor
+        processorMap[DatasetType.ERECEPT_PREDPIS] = ereceptPrescriptionFileProcessor
         processorMap[DatasetType.ERECEPT_VYDEJ] = ereceptDispenseFileProcessor
     }
 
