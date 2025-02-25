@@ -3,8 +3,8 @@ import { MapContainer, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 const getColor = (value, filter) => {
-    const prescribedColors = ["#D3E5FF", "#A4C8FF", "#76ABFF", "#478EFF", "#176AFF", "#0044CC"]; // Modrá škála
-    const dispensedColors = ["#FFD3D3", "#FFA4A4", "#FF7676", "#FF4747", "#FF1717", "#CC0000"]; // Červená škála
+    const prescribedColors = ["#D3E5FF", "#A4C8FF", "#76ABFF", "#478EFF", "#176AFF", "#0044CC"];
+    const dispensedColors = ["#FFD3D3", "#FFA4A4", "#FF7676", "#FF4747", "#FF1717", "#CC0000"];
 
     let colorScale;
     if (filter === "prescribed") {
@@ -25,7 +25,7 @@ const getColor = (value, filter) => {
                 absValue > 25 ? colorScale[2] :
                     absValue > 10 ? colorScale[1] :
                         absValue > 0 ? colorScale[0] :
-                            "#FFFFFF"; // 0 = bez barvy
+                            "#FFFFFF";
 };
 
 const geoJsonStyle = (feature, districtData, filter) => {
