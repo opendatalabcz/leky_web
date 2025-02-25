@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.scraperDeprecated
 
+/*
 import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
@@ -71,3 +72,4 @@ class EreceptScraperDeprecated(
         return null
     }
 }
+ */

@@ -1,10 +1,10 @@
-package cz.machovec.lekovyportal.scraper2_0
+package cz.machovec.lekovyportal.scraper
 
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
-import cz.machovec.lekovyportal.scraper2_0.parsing.LinkParser
-import cz.machovec.lekovyportal.scraper2_0.parsing.ParsedFileInfo
-import cz.machovec.lekovyportal.scraper2_0.scraping.HtmlScraper
+import cz.machovec.lekovyportal.scraper.parsing.LinkParser
+import cz.machovec.lekovyportal.scraper.parsing.ParsedFileInfo
+import cz.machovec.lekovyportal.scraper.scraping.HtmlScraper
 
 abstract class AbstractDatasetService(
     private val htmlScraper: HtmlScraper,
@@ -36,8 +36,7 @@ abstract class AbstractDatasetService(
         val datasetType = info.datasetType
         val year = info.year
         val month = info.month ?: 0
-        val existing = processedDatasetRepository.findByDatasetTypeAndYearAndMonth(datasetType, year, month)
-        return existing != null
+        return processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(datasetType, year, month)
     }
 
     protected open fun toNewFileMessage(info: ParsedFileInfo, link: String): NewFileMessage {

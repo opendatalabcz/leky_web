@@ -1,10 +1,10 @@
-package cz.machovec.lekovyportal.scraper2_0
+package cz.machovec.lekovyportal.scraper
 
 import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.scraper2_0.parsing.EreceptHistoryLinkParser
-import cz.machovec.lekovyportal.scraper2_0.parsing.ParsedFileInfo
-import cz.machovec.lekovyportal.scraper2_0.scraping.HtmlScraper
+import cz.machovec.lekovyportal.scraper.parsing.EreceptHistoryLinkParser
+import cz.machovec.lekovyportal.scraper.parsing.ParsedFileInfo
+import cz.machovec.lekovyportal.scraper.scraping.HtmlScraper
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
@@ -18,7 +18,7 @@ class EreceptHistoryService(
     linkParser = ereceptHistoryParser,
     processedDatasetRepository = processedDatasetRepository,
     pageUrl = "https://opendata.sukl.cz/?q=katalog/historie-predepsanych-vydanych-lecivych-pripravku-ze-systemu-erecept",
-    filePrefix = "https://opendata.sukl.cz/soubory/ERECEPT_HISTORIE/",
+    filePrefix = "https://opendata.sukl.cz/soubory/TODO/",
     fileSuffix = ".zip"
 ) {
 
@@ -44,8 +44,8 @@ class EreceptHistoryService(
         }
 
         for (m in 1..lastMonth) {
-            val existing = processedDatasetRepository.findByDatasetTypeAndYearAndMonth(datasetType, year, m)
-            if (existing == null) {
+            val exists = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(datasetType, year, m)
+            if (!exists) {
                 return true
             }
         }

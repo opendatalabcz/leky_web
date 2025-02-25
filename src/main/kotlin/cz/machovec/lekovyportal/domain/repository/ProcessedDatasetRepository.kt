@@ -7,9 +7,9 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface ProcessedDatasetRepository : JpaRepository<ProcessedDataset, Long> {
-    fun findByDatasetTypeAndYearAndMonth(
+    fun existsByDatasetTypeAndYearAndMonth(
         datasetType: DatasetType,
         year: Int,
         month: Int
-    ): ProcessedDataset?
+    ): Boolean
 }
