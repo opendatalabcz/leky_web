@@ -35,7 +35,7 @@ class EreceptPrescriptionFileProcessor(
         }
 
         val fileBytes = URL(msg.fileUrl).readBytes()
-        val records = if (msg.fileType == FileType.ZIP) {
+        val (records, districtNames) = if (msg.fileType == FileType.ZIP) {
             parseZip(fileBytes)
         } else {
             parseCsv(fileBytes)
@@ -52,60 +52,66 @@ class EreceptPrescriptionFileProcessor(
         processedDatasetRepository.save(processedDataset)
 
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
+
+        printDistricts(districtNames)
     }
 
-    private fun parseZip(zipBytes: ByteArray): List<EreceptPrescription> {
+    private fun parseZip(zipBytes: ByteArray): Pair<List<EreceptPrescription>, Map<String, String>> {
         val result = mutableListOf<EreceptPrescription>()
+        val districtNames = mutableMapOf<String, String>()
+
         ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
                 if (!entry.isDirectory && entry.name.endsWith(".csv", ignoreCase = true)) {
-                    result += parseCsv(zis.readBytes())
+                    val (parsedRecords, parsedDistricts) = parseCsv(zis.readBytes())
+                    result += parsedRecords
+                    districtNames.putAll(parsedDistricts)
                 }
                 zis.closeEntry()
                 entry = zis.nextEntry
             }
         }
-        return result
+        return Pair(result, districtNames)
     }
 
-    private fun parseCsv(csvBytes: ByteArray): List<EreceptPrescription> {
+    private fun parseCsv(csvBytes: ByteArray): Pair<List<EreceptPrescription>, Map<String, String>> {
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
         val pragueMap = mutableMapOf<String, EreceptPrescription>()
         val otherRecords = mutableListOf<EreceptPrescription>()
+        val districtNames = mutableMapOf<String, String>()
 
         lines.drop(1).forEach { line ->
-            parseLine(line)?.let { prescription ->
-                if (prescription.districtCode == PRAGUE_DISTRICT_CODE) {
-                    groupPragueRecord(prescription, pragueMap)
-                } else {
-                    otherRecords.add(prescription)
-                }
+            val cols = line.split(",").map { it.trim('"') }
+            if (cols.size < 10) return@forEach
+
+            val districtCode = cols[0]
+            val districtName = cols[1] // Název okresu
+            val year = cols[2].toIntOrNull() ?: return@forEach
+            val month = cols[3].toIntOrNull() ?: return@forEach
+            val suklCode = cols[4]
+            val quantity = cols[9].toIntOrNull() ?: return@forEach
+
+            districtNames[districtCode] = districtName
+
+            val prescription = EreceptPrescription(
+                districtCode = districtCode,
+                year = year,
+                month = month,
+                suklCode = suklCode,
+                quantity = quantity
+            )
+
+            if (districtCode == PRAGUE_DISTRICT_CODE) {
+                groupPragueRecord(prescription, pragueMap)
+            } else {
+                otherRecords.add(prescription)
             }
         }
 
-        return otherRecords + pragueMap.values
-    }
-
-    private fun parseLine(line: String): EreceptPrescription? {
-        val cols = line.split(",").map { it.trim('"') }
-        if (cols.size < 10) return null
-
-        val districtCode = cols[0]
-        val year = cols[2].toIntOrNull() ?: return null
-        val month = cols[3].toIntOrNull() ?: return null
-        val suklCode = cols[4]
-        val quantity = cols[9].toIntOrNull() ?: return null
-
-        return EreceptPrescription(
-            districtCode = districtCode,
-            year = year,
-            month = month,
-            suklCode = suklCode,
-            quantity = quantity
-        )
+        return Pair(otherRecords + pragueMap.values, districtNames)
     }
 
     private fun groupPragueRecord(
@@ -119,6 +125,13 @@ class EreceptPrescriptionFileProcessor(
             pragueMap[key] = existing.copy(quantity = existing.quantity + prescription.quantity)
         } else {
             pragueMap[key] = prescription
+        }
+    }
+
+    private fun printDistricts(districtNames: Map<String, String>) {
+        println("Seznam okresů pro naplnění tabulky districts:")
+        districtNames.toSortedMap().forEach { (code, name) ->
+            println("INSERT INTO districts (code, name) VALUES ('$code', '$name');")
         }
     }
 }

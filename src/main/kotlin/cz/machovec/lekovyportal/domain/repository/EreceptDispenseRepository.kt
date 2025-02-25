@@ -5,4 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface EreceptDispenseRepository : JpaRepository<EreceptDispense, Long>, EreceptDispenseRepositoryCustom
+interface EreceptDispenseRepository : JpaRepository<EreceptDispense, Long>, EreceptDispenseRepositoryCustom {
+    fun findBySuklCodeAndYearAndMonth(
+        suklCode: String,
+        year: Int,
+        month: Int
+    ): List<EreceptDispense>
+}
