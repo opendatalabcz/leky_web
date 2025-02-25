@@ -42,7 +42,7 @@ function App() {
                 </select>
             </div>
 
-            <DistrictMap geojsonData={geojsonData} districtData={districtData}/>
+            <DistrictMap geojsonData={geojsonData} districtData={districtData} filter={filter}/>
         </div>
     );
 }
