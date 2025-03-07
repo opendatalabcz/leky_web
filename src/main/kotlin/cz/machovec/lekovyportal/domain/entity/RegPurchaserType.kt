@@ -5,11 +5,7 @@ enum class RegPurchaserType {
 
     companion object {
         fun fromString(value: String): RegPurchaserType? {
-            return when (value.trim().uppercase()) {
-                "DISTRIBUTOR" -> DISTRIBUTOR
-                "OOV" -> OOV
-                else -> null
-            }
+            return entries.firstOrNull { it.name.equals(value.trim().uppercase(), ignoreCase = true) }
         }
     }
 }
