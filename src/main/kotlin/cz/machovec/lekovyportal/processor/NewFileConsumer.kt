@@ -11,7 +11,6 @@ class NewFileConsumer(
 ) {
     @RabbitListener(queues = [RabbitConfig.QUEUE_NAME])
     fun handleNewFile(msg: NewFileMessage) {
-        println("Received from RabbitMQ: $msg")
         val processor = resolver.resolve(msg.datasetType)
         if (processor == null) {
             println("No processor found for datasetType=${msg.datasetType}")
