@@ -7,3 +7,5 @@ Database:
 RabbitMQ:
 1. Vytvoření docker kontejneru s RabbitMQ
    * `docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=lekovy_portal_user -e RABBITMQ_DEFAULT_PASS=password rabbitmq:management`
+
+Překlady mezi českými a anglickými názvy datasetů a atributů naleznete v `domain-vocabulary.md`
