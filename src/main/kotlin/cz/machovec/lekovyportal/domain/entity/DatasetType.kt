@@ -7,4 +7,5 @@ enum class DatasetType {
     DISTRIBUCE_DIS,
     DISTRIBUCE_DIS_ZAHRANICI,
     DISTRIBUCE_LEK,
+    MPD,
 }

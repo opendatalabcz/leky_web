@@ -12,7 +12,9 @@ class ScraperScheduler(
     private val ereceptService: EreceptService,
     private val ereceptHistoryService: EreceptHistoryService,
     private val messagePublisher: MessagePublisher,
-    private val lek13Service: Lek13Service
+    private val lek13Service: Lek13Service,
+    private val mpdService: MpdService,
+    private val mpdHistoryService: MpdHistoryService,
 ) {
     @Scheduled(cron = "0 * * * * ?")
     fun doScraping() {
@@ -28,5 +30,9 @@ class ScraperScheduler(
         ereceptHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
         ereceptService.collectNewMessages().forEach { messagePublisher.publish(it) }
+
+        mpdService.collectNewMessages().forEach { messagePublisher.publish(it) }
+
+        mpdHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
     }
 }
