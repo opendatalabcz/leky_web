@@ -12,6 +12,7 @@ class FileProcessorResolver(
     private val lekFileProcessor: LekFileProcessor,
     private val ereceptPrescriptionFileProcessor: EreceptPrescriptionFileProcessor,
     private val ereceptDispenseFileProcessor: EreceptDispenseFileProcessor,
+    private val mpdFileProcessor: MpdFileProcessor,
 ) {
 
     private val processorMap = mutableMapOf<DatasetType, DatasetFileProcessor>()
@@ -24,6 +25,7 @@ class FileProcessorResolver(
         processorMap[DatasetType.DISTRIBUCE_LEK] = lekFileProcessor
         processorMap[DatasetType.ERECEPT_PREDPIS] = ereceptPrescriptionFileProcessor
         processorMap[DatasetType.ERECEPT_VYDEJ] = ereceptDispenseFileProcessor
+        processorMap[DatasetType.MPD] = mpdFileProcessor
     }
 
     fun resolve(datasetType: DatasetType): DatasetFileProcessor? {
