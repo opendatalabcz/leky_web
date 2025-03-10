@@ -20,6 +20,7 @@ import cz.machovec.lekovyportal.processor.mdp.MpdPackageTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationStatusProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdSourceProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdSubstanceProcessor
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -50,6 +51,7 @@ class MpdFileProcessor(
     private val mpdAtcGroupProcessor: MpdAtcGroupProcessor,
     private val mpdOrganisationProcessor: MpdOrganisationProcessor,
     private val mpdActiveSubstanceProcessor: MpdActiveSubstanceProcessor,
+    private val mpdSubstanceProcessor: MpdSubstanceProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -88,6 +90,7 @@ class MpdFileProcessor(
                 "dlp_atc.csv" -> mpdAtcGroupProcessor.importData(content, validFrom, validTo)
                 //"dlp_organizace.csv" -> mpdOrganisationProcessor.importData(content, validFrom, validTo)
                 "dlp_lecivelatky.csv" -> mpdActiveSubstanceProcessor.importData(content, validFrom, validTo)
+                "dlp_latky.csv" -> mpdSubstanceProcessor.importData(content, validFrom, validTo)
             }
         }
 
