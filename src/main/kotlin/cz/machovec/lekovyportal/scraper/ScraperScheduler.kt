@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service
 
 @Service
 class ScraperScheduler(
+    private val mpdHistoryService: MpdHistoryService,
+    private val mpdService: MpdService,
     private val reg13Service: Reg13Service,
     private val dis13Service: Dis13Service,
     private val dis13ZahraniciService: Dis13ZahraniciService,
@@ -13,11 +15,12 @@ class ScraperScheduler(
     private val ereceptHistoryService: EreceptHistoryService,
     private val messagePublisher: MessagePublisher,
     private val lek13Service: Lek13Service,
-    private val mpdService: MpdService,
-    private val mpdHistoryService: MpdHistoryService,
 ) {
     @Scheduled(cron = "0 * * * * ?")
     fun doScraping() {
+        mpdHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
+
+        mpdService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
         reg13Service.collectNewMessages().forEach { messagePublisher.publish(it) }
 
@@ -30,9 +33,5 @@ class ScraperScheduler(
         ereceptHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
         ereceptService.collectNewMessages().forEach { messagePublisher.publish(it) }
-
-        mpdService.collectNewMessages().forEach { messagePublisher.publish(it) }
-
-        mpdHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
     }
 }
