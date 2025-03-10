@@ -3,6 +3,7 @@ package cz.machovec.lekovyportal.processor
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.processor.mdp.MpdActiveSubstanceProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAdministrationRouteProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAtcGroupProcessor
@@ -14,6 +15,7 @@ import cz.machovec.lekovyportal.processor.mdp.MpdDosageFormProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdGovernmentRegulationCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdOrganisationProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdPackageTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationStatusProcessor
@@ -46,6 +48,8 @@ class MpdFileProcessor(
     private val mpdAdministrationRouteProcessor: MpdAdministrationRouteProcessor,
     private val mpdDosageFormProcessor: MpdDosageFormProcessor,
     private val mpdAtcGroupProcessor: MpdAtcGroupProcessor,
+    private val mpdOrganisationProcessor: MpdOrganisationProcessor,
+    private val mpdActiveSubstanceProcessor: MpdActiveSubstanceProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -82,6 +86,8 @@ class MpdFileProcessor(
                 "dlp_cesty.csv" -> mpdAdministrationRouteProcessor.importData(content, validFrom, validTo)
                 "dlp_formy.csv" -> mpdDosageFormProcessor.importData(content, validFrom, validTo)
                 "dlp_atc.csv" -> mpdAtcGroupProcessor.importData(content, validFrom, validTo)
+                //"dlp_organizace.csv" -> mpdOrganisationProcessor.importData(content, validFrom, validTo)
+                "dlp_lecivelatky.csv" -> mpdActiveSubstanceProcessor.importData(content, validFrom, validTo)
             }
         }
 
