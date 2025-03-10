@@ -11,6 +11,7 @@ import cz.machovec.lekovyportal.processor.mdp.MpdDopingCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdGovernmentRegulationCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdPackageTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationStatusProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdSourceProcessor
@@ -38,6 +39,7 @@ class MpdFileProcessor(
     private val mpdCompositionFlagProcessor: MpdCompositionFlagProcessor,
     private val mpdGovernmentRegulationCategoryProcessor: MpdGovernmentRegulationCategoryProcessor,
     private val mpdCountryProcessor: MpdCountryProcessor,
+    private val mpdPackageTypeProcessor: MpdPackageTypeProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
