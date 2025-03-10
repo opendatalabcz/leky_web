@@ -5,6 +5,7 @@ import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAdministrationRouteProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdAtcGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCompositionFlagProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCountryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDispenseTypeProcessor
@@ -44,6 +45,7 @@ class MpdFileProcessor(
     private val mpdPackageTypeProcessor: MpdPackageTypeProcessor,
     private val mpdAdministrationRouteProcessor: MpdAdministrationRouteProcessor,
     private val mpdDosageFormProcessor: MpdDosageFormProcessor,
+    private val mpdAtcGroupProcessor: MpdAtcGroupProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -79,6 +81,7 @@ class MpdFileProcessor(
                 "dlp_obaly.csv" -> mpdPackageTypeProcessor.importData(content, validFrom, validTo)
                 "dlp_cesty.csv" -> mpdAdministrationRouteProcessor.importData(content, validFrom, validTo)
                 "dlp_formy.csv" -> mpdDosageFormProcessor.importData(content, validFrom, validTo)
+                "dlp_atc.csv" -> mpdAtcGroupProcessor.importData(content, validFrom, validTo)
             }
         }
 
