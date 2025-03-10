@@ -4,12 +4,14 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdCompositionFlagProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDispenseTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDopingCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationStatusProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdSourceProcessor
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,6 +32,8 @@ class MpdFileProcessor(
     private val mpdRegistrationStatusProcessor: MpdRegistrationStatusProcessor,
     private val mpdDispenseTypeProcessor: MpdDispenseTypeProcessor,
     private val mpdAddictionCategoryProcessor: MpdAddictionCategoryProcessor,
+    private val mpdSourceProcessor: MpdSourceProcessor,
+    private val mpdCompositionFlagProcessor: MpdCompositionFlagProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -58,6 +62,8 @@ class MpdFileProcessor(
                 "dlp_stavyreg.csv" -> mpdRegistrationStatusProcessor.importData(content, validFrom, validTo)
                 "dlp_vydej.csv" -> mpdDispenseTypeProcessor.importData(content, validFrom, validTo)
                 "dlp_zavislost.csv" -> mpdAddictionCategoryProcessor.importData(content, validFrom, validTo)
+                "dlp_zdroje.csv" -> mpdSourceProcessor.importData(content, validFrom, validTo)
+                "dlp_slozenipriznak.csv" -> mpdCompositionFlagProcessor.importData(content, validFrom, validTo)
             }
         }
 
