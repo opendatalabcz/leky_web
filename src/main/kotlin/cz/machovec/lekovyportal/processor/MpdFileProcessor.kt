@@ -6,6 +6,7 @@ import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdDopingCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,6 +23,7 @@ class MpdFileProcessor(
     private val mpdIndicationGroupProcessor: MpdIndicationGroupProcessor,
     private val mpdDopingCategoryProcessor: MpdDopingCategoryProcessor,
     private val mpdMeasurementUnitProcessor: MpdMeasurementUnitProcessor,
+    private val mpdRegistrationProcessProcessor: MpdRegistrationProcessProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -46,6 +48,7 @@ class MpdFileProcessor(
                 "dlp_indikacniskupiny.csv" -> mpdIndicationGroupProcessor.importData(content, validFrom, validTo)
                 "dlp_doping.csv" -> mpdDopingCategoryProcessor.importData(content, validFrom, validTo)
                 "dlp_jednotky.csv" -> mpdMeasurementUnitProcessor.importData(content, validFrom, validTo)
+                "dlp_regproc.csv" -> mpdRegistrationProcessProcessor.importData(content, validFrom, validTo)
             }
         }
 
