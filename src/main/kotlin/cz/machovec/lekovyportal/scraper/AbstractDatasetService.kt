@@ -29,7 +29,7 @@ abstract class AbstractDatasetService(
                 result += msg
             }
         }
-        return result
+        return result.sortedBy { it.year * 100 + (it.month ?: 0) }
     }
 
     protected open fun isAlreadyInDb(info: ParsedFileInfo): Boolean {
