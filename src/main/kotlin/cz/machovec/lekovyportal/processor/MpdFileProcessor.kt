@@ -4,6 +4,7 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdAdministrationRouteProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCompositionFlagProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCountryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDispenseTypeProcessor
@@ -40,6 +41,7 @@ class MpdFileProcessor(
     private val mpdGovernmentRegulationCategoryProcessor: MpdGovernmentRegulationCategoryProcessor,
     private val mpdCountryProcessor: MpdCountryProcessor,
     private val mpdPackageTypeProcessor: MpdPackageTypeProcessor,
+    private val mpdAdministrationRouteProcessor: MpdAdministrationRouteProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -72,6 +74,8 @@ class MpdFileProcessor(
                 "dlp_slozenipriznak.csv" -> mpdCompositionFlagProcessor.importData(content, validFrom, validTo)
                 "dlp_narvla.csv" -> mpdGovernmentRegulationCategoryProcessor.importData(content, validFrom, validTo)
                 "dlp_zeme.csv" -> mpdCountryProcessor.importData(content, validFrom, validTo)
+                "dlp_obaly.csv" -> mpdPackageTypeProcessor.importData(content, validFrom, validTo)
+                "dlp_cesty.csv" -> mpdAdministrationRouteProcessor.importData(content, validFrom, validTo)
             }
         }
 
