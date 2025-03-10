@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCompositionFlagProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDispenseTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDopingCategoryProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdGovernmentRegulationCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
@@ -34,6 +35,7 @@ class MpdFileProcessor(
     private val mpdAddictionCategoryProcessor: MpdAddictionCategoryProcessor,
     private val mpdSourceProcessor: MpdSourceProcessor,
     private val mpdCompositionFlagProcessor: MpdCompositionFlagProcessor,
+    private val mpdGovernmentRegulationCategoryProcessor: MpdGovernmentRegulationCategoryProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -64,6 +66,7 @@ class MpdFileProcessor(
                 "dlp_zavislost.csv" -> mpdAddictionCategoryProcessor.importData(content, validFrom, validTo)
                 "dlp_zdroje.csv" -> mpdSourceProcessor.importData(content, validFrom, validTo)
                 "dlp_slozenipriznak.csv" -> mpdCompositionFlagProcessor.importData(content, validFrom, validTo)
+                "dlp_narvla.csv" -> mpdGovernmentRegulationCategoryProcessor.importData(content, validFrom, validTo)
             }
         }
 
