@@ -4,12 +4,17 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdAdministrationRouteProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdAtcGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCompositionFlagProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdCountryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDispenseTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDopingCategoryProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdDosageFormProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdGovernmentRegulationCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdPackageTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationStatusProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdSourceProcessor
@@ -36,6 +41,11 @@ class MpdFileProcessor(
     private val mpdSourceProcessor: MpdSourceProcessor,
     private val mpdCompositionFlagProcessor: MpdCompositionFlagProcessor,
     private val mpdGovernmentRegulationCategoryProcessor: MpdGovernmentRegulationCategoryProcessor,
+    private val mpdCountryProcessor: MpdCountryProcessor,
+    private val mpdPackageTypeProcessor: MpdPackageTypeProcessor,
+    private val mpdAdministrationRouteProcessor: MpdAdministrationRouteProcessor,
+    private val mpdDosageFormProcessor: MpdDosageFormProcessor,
+    private val mpdAtcGroupProcessor: MpdAtcGroupProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -67,6 +77,11 @@ class MpdFileProcessor(
                 "dlp_zdroje.csv" -> mpdSourceProcessor.importData(content, validFrom, validTo)
                 "dlp_slozenipriznak.csv" -> mpdCompositionFlagProcessor.importData(content, validFrom, validTo)
                 "dlp_narvla.csv" -> mpdGovernmentRegulationCategoryProcessor.importData(content, validFrom, validTo)
+                "dlp_zeme.csv" -> mpdCountryProcessor.importData(content, validFrom, validTo)
+                "dlp_obaly.csv" -> mpdPackageTypeProcessor.importData(content, validFrom, validTo)
+                "dlp_cesty.csv" -> mpdAdministrationRouteProcessor.importData(content, validFrom, validTo)
+                "dlp_formy.csv" -> mpdDosageFormProcessor.importData(content, validFrom, validTo)
+                "dlp_atc.csv" -> mpdAtcGroupProcessor.importData(content, validFrom, validTo)
             }
         }
 
