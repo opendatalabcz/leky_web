@@ -3,6 +3,7 @@ package cz.machovec.lekovyportal.processor
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.processor.mdp.MpdDopingCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
@@ -18,6 +19,7 @@ private val logger = KotlinLogging.logger {}
 @Service
 class MpdFileProcessor(
     private val mpdIndicationGroupProcessor: MpdIndicationGroupProcessor,
+    private val mpdDopingCategoryProcessor: MpdDopingCategoryProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -38,8 +40,9 @@ class MpdFileProcessor(
         val (validFrom, validTo) = determineValidityDates(msg.year, msg.month ?: 1, extractedFiles["dlp_platnost.csv"])
 
         extractedFiles.forEach { (fileName, content) ->
-            if (fileName == "dlp_indikacniskupiny.csv") {
-                mpdIndicationGroupProcessor.importData(content, validFrom, validTo)
+            when (fileName) {
+                "dlp_indikacniskupiny.csv" -> mpdIndicationGroupProcessor.importData(content, validFrom, validTo)
+                "dlp_doping.csv" -> mpdDopingCategoryProcessor.importData(content, validFrom, validTo)
             }
         }
 

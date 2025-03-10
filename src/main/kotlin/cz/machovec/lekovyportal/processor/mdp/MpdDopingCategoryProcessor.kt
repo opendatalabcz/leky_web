@@ -1,7 +1,7 @@
 package cz.machovec.lekovyportal.processor.mdp
 
-import cz.machovec.lekovyportal.domain.entity.mpd.MpdIndicationGroup
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdIndicationGroupRepository
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDopingCategory
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdDopingCategoryRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -11,18 +11,18 @@ import java.time.LocalDate
 private val logger = KotlinLogging.logger {}
 
 @Service
-class MpdIndicationGroupProcessor(
-    private val indicationGroupRepository: MpdIndicationGroupRepository
+class MpdDopingCategoryProcessor(
+    private val dopingCategoryRepository: MpdDopingCategoryRepository
 ) {
 
     @Transactional
     fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate, validToOfNewDataset: LocalDate?) {
-        val text = csvBytes.toString(Charset.forName("windows-1250"))
+        val text = csvBytes.toString(Charset.forName("Windows-1250")) // Správná konverze kódování
         val lines = text.split("\r\n", "\n").drop(1).filter { it.isNotBlank() }
         val currentData = lines.mapNotNull { parseLine(it, validFromOfNewDataset) }
         val newCodes = currentData.map { it.code }.toSet()
-        val existingRecords = indicationGroupRepository.findAllByCodeIn(newCodes)
-        val updatedRecords = mutableListOf<MpdIndicationGroup>()
+        val existingRecords = dopingCategoryRepository.findAllByCodeIn(newCodes)
+        val updatedRecords = mutableListOf<MpdDopingCategory>()
 
         currentData.forEach { row ->
             val existing = existingRecords.find { it.code == row.code }
@@ -53,19 +53,24 @@ class MpdIndicationGroupProcessor(
 
         val missing = existingRecords.filter { !newCodes.contains(it.code) && it.validTo == null }
         missing.forEach {
-            updatedRecords += it.copy(validTo = validToOfNewDataset ?: validFromOfNewDataset)
-            logger.info { "Code ${it.code} marked invalid from ${validToOfNewDataset ?: validFromOfNewDataset}" }
+            updatedRecords += it.copy(validTo = validFromOfNewDataset)
+            logger.info { "Code ${it.code} marked invalid from $validFromOfNewDataset" }
         }
 
-        indicationGroupRepository.saveAll(updatedRecords)
-        logger.info { "Processed ${updatedRecords.size} updates." }
+        dopingCategoryRepository.saveAll(updatedRecords)
+        logger.info { "Processed ${updatedRecords.size} updates for MpdDopingCategory." }
     }
 
-    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdIndicationGroup? {
+    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdDopingCategory? {
         val cols = line.split(";")
         if (cols.size < 2) return null
         val code = cols[0].trim()
-        val name = cols[1].trim().ifEmpty { null } ?: return null
-        return MpdIndicationGroup(code = code, name = name, validFrom = validFromOfNewDataset, validTo = null)
+        val name = cols[1].trim()
+        return MpdDopingCategory(
+            code = code,
+            name = name,
+            validFrom = validFromOfNewDataset,
+            validTo = null
+        )
     }
 }
