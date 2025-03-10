@@ -3,6 +3,7 @@ package cz.machovec.lekovyportal.processor
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDispenseTypeProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDopingCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
@@ -28,6 +29,7 @@ class MpdFileProcessor(
     private val mpdRegistrationProcessProcessor: MpdRegistrationProcessProcessor,
     private val mpdRegistrationStatusProcessor: MpdRegistrationStatusProcessor,
     private val mpdDispenseTypeProcessor: MpdDispenseTypeProcessor,
+    private val mpdAddictionCategoryProcessor: MpdAddictionCategoryProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository
 ) : DatasetFileProcessor {
 
@@ -55,6 +57,7 @@ class MpdFileProcessor(
                 "dlp_regproc.csv" -> mpdRegistrationProcessProcessor.importData(content, validFrom, validTo)
                 "dlp_stavyreg.csv" -> mpdRegistrationStatusProcessor.importData(content, validFrom, validTo)
                 "dlp_vydej.csv" -> mpdDispenseTypeProcessor.importData(content, validFrom, validTo)
+                "dlp_zavislost.csv" -> mpdAddictionCategoryProcessor.importData(content, validFrom, validTo)
             }
         }
 
