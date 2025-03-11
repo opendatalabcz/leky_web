@@ -6,5 +6,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface MpdDosageFormRepository : JpaRepository<MpdDosageForm, Long> {
+    fun findByCode(code: String): MpdDosageForm?
+
     fun findAllByCodeIn(codes: Set<String>): List<MpdDosageForm>
 }
