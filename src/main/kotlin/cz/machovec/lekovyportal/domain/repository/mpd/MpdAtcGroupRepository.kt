@@ -6,5 +6,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface MpdAtcGroupRepository : JpaRepository<MpdAtcGroup, Long> {
+    fun findByCode(code: String): MpdAtcGroup?
+
     fun findAllByCodeIn(codes: Set<String>): List<MpdAtcGroup>
 }

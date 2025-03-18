@@ -6,5 +6,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface MpdAdministrationRouteRepository : JpaRepository<MpdAdministrationRoute, Long> {
+    fun findByCode(code: String): MpdAdministrationRoute?
+
     fun findAllByCodeIn(codes: Set<String>): List<MpdAdministrationRoute>
 }

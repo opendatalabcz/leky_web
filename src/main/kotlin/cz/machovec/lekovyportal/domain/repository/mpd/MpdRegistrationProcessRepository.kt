@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface MpdRegistrationProcessRepository : JpaRepository<MpdRegistrationProcess, Long> {
+    fun findByCode(code: String): MpdRegistrationProcess?
 
     fun findAllByCodeIn(codes: Set<String>): List<MpdRegistrationProcess>
 }
