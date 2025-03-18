@@ -106,6 +106,13 @@
 			<artifactId>jackson-module-kotlin</artifactId>
 			<version>2.18.2</version>
 		</dependency>
+
+		<!-- CSV processing -->
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+			<version>5.10</version>
+		</dependency>
 	</dependencies>
 
 	<build>

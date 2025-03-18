@@ -18,6 +18,7 @@ import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMedicinalProductProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdOrganisationProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdPackageTypeProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationExceptionProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationProcessProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdRegistrationStatusProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdSourceProcessor
@@ -56,7 +57,8 @@ class MpdFileProcessor(
     private val mpdSubstanceProcessor: MpdSubstanceProcessor,
     private val mpdSubstanceSynonymProcessor: MpdSubstanceSynonymProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository,
-    private val mpdMedicinalProductProcessor: MpdMedicinalProductProcessor
+    private val mpdMedicinalProductProcessor: MpdMedicinalProductProcessor,
+    private val mpdRegistrationExceptionProcessor: MpdRegistrationExceptionProcessor
 ) : DatasetFileProcessor {
 
     @Transactional
@@ -97,6 +99,7 @@ class MpdFileProcessor(
                 //"dlp_latky.csv" -> mpdSubstanceProcessor.importData(content, validFrom, validTo)
                 //"dlp_synonyma.csv" -> mpdSubstanceSynonymProcessor.importData(content, validFrom)
                 "dlp_lecivepripravky.csv" -> mpdMedicinalProductProcessor.importData(content, validFrom, validTo)
+                "dlp_splp.csv" -> mpdRegistrationExceptionProcessor.importData(content, validFrom, validTo)
             }
         }
 
