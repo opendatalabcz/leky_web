@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.domain.entity.mpd
 
+import cz.machovec.lekovyportal.domain.AttributeChange
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -31,11 +32,28 @@ data class MpdDosageForm(
     val isCannabis: Boolean,
 
     @Column(name = "edqm_code")
-    val edqmCode: Long? = null,
+    val edqmCode: Long?,
 
     @Column(name = "valid_from", nullable = false)
-    val validFrom: LocalDate,
+    val firstSeen: LocalDate,
 
     @Column(name = "valid_to")
-    val validTo: LocalDate? = null
-)
+    val missingSince: LocalDate?,
+) {
+    fun getBusinessAttributeChanges(other: MpdDosageForm): List<AttributeChange<*>> {
+        val changes = mutableListOf<AttributeChange<*>>()
+
+        if (this.name != other.name)
+            changes += AttributeChange("name", this.name, other.name)
+        if (this.nameEn != other.nameEn)
+            changes += AttributeChange("nameEn", this.nameEn, other.nameEn)
+        if (this.nameLat != other.nameLat)
+            changes += AttributeChange("nameLat", this.nameLat, other.nameLat)
+        if (this.isCannabis != other.isCannabis)
+            changes += AttributeChange("isCannabis", this.isCannabis, other.isCannabis)
+        if (this.edqmCode != other.edqmCode)
+            changes += AttributeChange("edqmCode", this.edqmCode, other.edqmCode)
+
+        return changes
+    }
+}
