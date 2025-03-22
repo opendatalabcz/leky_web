@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.processor.mdp.MpdActiveSubstanceProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAdministrationRouteProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAtcGroupProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdCancelledRegistrationProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCompositionFlagProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdCountryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdDispenseTypeProcessor
@@ -58,7 +59,8 @@ class MpdFileProcessor(
     private val mpdSubstanceSynonymProcessor: MpdSubstanceSynonymProcessor,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val mpdMedicinalProductProcessor: MpdMedicinalProductProcessor,
-    private val mpdRegistrationExceptionProcessor: MpdRegistrationExceptionProcessor
+    private val mpdRegistrationExceptionProcessor: MpdRegistrationExceptionProcessor,
+    private val mpdCancelledRegistrationProcessor: MpdCancelledRegistrationProcessor
 ) : DatasetFileProcessor {
 
     @Transactional
@@ -100,6 +102,7 @@ class MpdFileProcessor(
                 //"dlp_synonyma.csv" -> mpdSubstanceSynonymProcessor.importData(content, validFrom)
                 "dlp_lecivepripravky.csv" -> mpdMedicinalProductProcessor.importData(content, validFrom, validTo)
                 "dlp_splp.csv" -> mpdRegistrationExceptionProcessor.importData(content, validFrom, validTo)
+                "dlp_zruseneregistrace.csv" -> mpdCancelledRegistrationProcessor.importData(content, validFrom, validTo)
             }
         }
 
