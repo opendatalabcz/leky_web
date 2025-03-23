@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.domain.entity.mpd
 
+import cz.machovec.lekovyportal.domain.AttributeChange
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -39,8 +40,25 @@ data class MpdOrganisation(
     val isMarketingAuthorizationHolder: Boolean,
 
     @Column(name = "valid_from", nullable = false)
-    val validFrom: LocalDate,
+    val firstSeen: LocalDate,
 
     @Column(name = "valid_to")
-    val validTo: LocalDate? = null
-)
+    val missingSince: LocalDate?,
+) {
+    fun getBusinessAttributeChanges(other: MpdOrganisation): List<AttributeChange<*>> {
+        val changes = mutableListOf<AttributeChange<*>>()
+
+        if (this.name != other.name)
+            changes += AttributeChange("name", this.name, other.name)
+        if (this.isManufacturer != other.isManufacturer)
+            changes += AttributeChange("isManufacturer", this.isManufacturer, other.isManufacturer)
+        if (this.isMarketingAuthorizationHolder != other.isMarketingAuthorizationHolder)
+            changes += AttributeChange(
+                "isMarketingAuthorizationHolder",
+                this.isMarketingAuthorizationHolder,
+                other.isMarketingAuthorizationHolder
+            )
+
+        return changes
+    }
+}
