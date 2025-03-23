@@ -34,10 +34,10 @@ data class MpdDosageForm(
     @Column(name = "edqm_code")
     val edqmCode: Long?,
 
-    @Column(name = "valid_from", nullable = false)
+    @Column(name = "first_seen", nullable = false)
     val firstSeen: LocalDate,
 
-    @Column(name = "valid_to")
+    @Column(name = "missing_since")
     val missingSince: LocalDate?,
 ) {
     fun getBusinessAttributeChanges(other: MpdDosageForm): List<AttributeChange<*>> {

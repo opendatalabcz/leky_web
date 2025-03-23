@@ -39,10 +39,10 @@ data class MpdOrganisation(
     @Column(name = "is_marketing_authorization_holder", nullable = false)
     val isMarketingAuthorizationHolder: Boolean,
 
-    @Column(name = "valid_from", nullable = false)
+    @Column(name = "first_seen", nullable = false)
     val firstSeen: LocalDate,
 
-    @Column(name = "valid_to")
+    @Column(name = "missing_since")
     val missingSince: LocalDate?,
 ) {
     fun getBusinessAttributeChanges(other: MpdOrganisation): List<AttributeChange<*>> {
