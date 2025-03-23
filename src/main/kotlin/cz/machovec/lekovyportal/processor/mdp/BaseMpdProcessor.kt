@@ -40,14 +40,22 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         importedDatasetValidTo: LocalDate?
     ) {
         logger.info {
-            "Starting import of ${getDatasetType()} from CSV. Validity: $importedDatasetValidFrom - ${importedDatasetValidTo ?: "∞"}"
+            "Starting import of ${getDatasetType().description} from CSV. Validity: $importedDatasetValidFrom - ${importedDatasetValidTo ?: "∞"}"
         }
 
-        val importedCsvRows = readCsv(csvBytes)
-            .filter { row -> row.any { it.isNotBlank() } }
-            .mapNotNull { mapCsvRowToEntity(it, importedDatasetValidFrom) }
+        val (headers, rows) = readCsv(csvBytes)
+        val headerIndex = headers.withIndex().associate { it.value to it.index }
 
-        logger.info { "Parsed CSV rows: ${importedCsvRows.size}" }
+        val missingColumns = getExpectedColumns().filterNot { headerIndex.containsKey(it) }
+        if (missingColumns.isNotEmpty()) {
+            logger.warn { "Missing required columns for ${getDatasetType().description}: $missingColumns" }
+        }
+
+        val importedCsvRows = rows
+            .filter { row -> row.any { it.isNotBlank() } }
+            .mapNotNull { mapCsvRowToEntity(it, headerIndex, importedDatasetValidFrom) }
+
+        logger.debug { "Successfully parsed CSV rows: ${importedCsvRows.size} out of ${rows.size}" }
 
         val existingRecords = repository.findAll()
 
@@ -63,17 +71,28 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         logDetailedSummary(changesResult, missingResult)
     }
 
-    protected open fun readCsv(csvBytes: ByteArray): List<Array<String>> {
+    protected open fun readCsv(csvBytes: ByteArray): Pair<List<String>, List<Array<String>>> {
         val reader = CSVReaderBuilder(csvBytes.inputStream().reader(Charset.forName("Windows-1250")))
-            .withSkipLines(1)
             .withCSVParser(CSVParserBuilder().withSeparator(';').build())
             .build()
-        return reader.readAll()
+
+        val lines = reader.readAll()
+        if (lines.isEmpty()) return emptyList<String>() to emptyList()
+
+        val headers = lines.first().map { it.trim() }
+        val rows = lines.drop(1)
+        return headers to rows
     }
 
     protected abstract fun getDatasetType(): MpdDatasetType
 
-    protected abstract fun mapCsvRowToEntity(cols: Array<String>, importedDatasetValidFrom: LocalDate): T?
+    protected abstract fun getExpectedColumns(): List<String>
+
+    protected abstract fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): T?
 
     private fun detectChanges(
         existingRecords: List<T>,
@@ -187,7 +206,7 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
 
     private fun logDetailedSummary(d: ChangesResult<T>, m: MissingResult<T>) {
         val summary = """
-            ${getDatasetType()} import summary:
+            ${getDatasetType().description} import summary:
               - New records: ${d.newCount}
               - Updated records: ${d.updatedCount}
               - Reactivated records: ${d.reactivatedCount}
