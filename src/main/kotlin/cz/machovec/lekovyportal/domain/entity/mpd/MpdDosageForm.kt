@@ -14,46 +14,59 @@ import java.time.LocalDate
 data class MpdDosageForm(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    override val id: Long? = null,
+
+    @Column(name = "first_seen", nullable = false)
+    override val firstSeen: LocalDate,
+
+    @Column(name = "missing_since")
+    override val missingSince: LocalDate?,
 
     @Column(name = "code", nullable = false, unique = true)
     val code: String,
 
-    @Column(name = "name", nullable = false)
-    val name: String,
+    @Column(name = "name")
+    val name: String?,
 
-    @Column(name = "name_en", nullable = false)
-    val nameEn: String,
+    @Column(name = "name_en")
+    val nameEn: String?,
 
-    @Column(name = "name_lat", nullable = false)
-    val nameLat: String,
+    @Column(name = "name_lat")
+    val nameLat: String?,
 
-    @Column(name = "is_cannabis", nullable = false)
-    val isCannabis: Boolean,
+    @Column(name = "is_cannabis")
+    val isCannabis: Boolean?,
 
     @Column(name = "edqm_code")
-    val edqmCode: Long?,
+    val edqmCode: Long?
+) : BaseMpdEntity<MpdDosageForm>() {
 
-    @Column(name = "first_seen", nullable = false)
-    val firstSeen: LocalDate,
+    override fun getUniqueKey(): String {
+        return code
+    }
 
-    @Column(name = "missing_since")
-    val missingSince: LocalDate?,
-) {
-    fun getBusinessAttributeChanges(other: MpdDosageForm): List<AttributeChange<*>> {
+    override fun copyPreservingIdAndFirstSeen(from: MpdDosageForm): MpdDosageForm {
+        return this.copy(
+            id = from.id,
+            firstSeen = from.firstSeen,
+            missingSince = null
+        )
+    }
+
+    override fun markMissing(since: LocalDate): MpdDosageForm {
+        return this.copy(missingSince = since)
+    }
+
+    override fun getBusinessAttributeChanges(other: MpdDosageForm): List<AttributeChange<*>> {
         val changes = mutableListOf<AttributeChange<*>>()
-
-        if (this.name != other.name)
-            changes += AttributeChange("name", this.name, other.name)
-        if (this.nameEn != other.nameEn)
-            changes += AttributeChange("nameEn", this.nameEn, other.nameEn)
-        if (this.nameLat != other.nameLat)
-            changes += AttributeChange("nameLat", this.nameLat, other.nameLat)
-        if (this.isCannabis != other.isCannabis)
-            changes += AttributeChange("isCannabis", this.isCannabis, other.isCannabis)
-        if (this.edqmCode != other.edqmCode)
-            changes += AttributeChange("edqmCode", this.edqmCode, other.edqmCode)
-
+        fun <T> compare(attr: String, a: T?, b: T?) {
+            if (a != b) changes += AttributeChange(attr, a, b)
+        }
+        compare("name", name, other.name)
+        compare("nameEn", nameEn, other.nameEn)
+        compare("nameLat", nameLat, other.nameLat)
+        compare("isCannabis", isCannabis, other.isCannabis)
+        compare("edqmCode", edqmCode, other.edqmCode)
         return changes
     }
 }
