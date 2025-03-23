@@ -8,7 +8,6 @@ import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdOrganisation
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdRecordTemporaryAbsence
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import mu.KotlinLogging
@@ -18,7 +17,7 @@ import java.nio.charset.Charset
 import java.time.LocalDate
 
 /**
- * MpdDosageFormProcessor – import logic with 6 possible record states:
+ * MpdOrganisationProcessor – import logic with 6 possible record states:
  *
  * [1] New record               – Not found in DB → insert.
  * [2] No changes               – Found in DB, no attribute changes, not missing → skip.
@@ -33,9 +32,9 @@ private val logger = KotlinLogging.logger {}
 @Service
 class MpdOrganisationProcessor(
     private val organisationRepository: MpdOrganisationRepository,
-    private val countryRepository: MpdCountryRepository,
     private val attributeChangeRepository: MpdAttributeChangeRepository,
     private val temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository,
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) {
 
     @Transactional
@@ -47,9 +46,7 @@ class MpdOrganisationProcessor(
 
         val rows = reader.readAll().filter { row -> row.any { it.isNotBlank() } }
 
-        val countryCodes = rows.map { it[1].trim() }.toSet()
-        val existingCountries = countryRepository.findAllByCodeIn(countryCodes).associateBy { it.code }
-
+        val existingCountries = referenceDataProvider.getCountries()
         val importedRecords = rows.mapNotNull { parseLine(it, importedDatasetValidFrom, existingCountries) }
         val importedKeys = importedRecords.map { it.code to it.country.id }.toSet()
 

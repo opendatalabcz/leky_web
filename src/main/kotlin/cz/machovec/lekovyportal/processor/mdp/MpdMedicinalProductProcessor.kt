@@ -7,22 +7,9 @@ import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdOrganisation
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdRecordTemporaryAbsence
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdAddictionCategoryRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdAdministrationRouteRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdAtcGroupRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdDispenseTypeRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdDopingCategoryRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdDosageFormRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdGovernmentRegulationCategoryRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdIndicationGroupRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdMeasurementUnitRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdMedicinalProductRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdPackageTypeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationProcessRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationStatusRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -48,19 +35,7 @@ class MpdMedicinalProductProcessor(
     private val medicinalProductRepository: MpdMedicinalProductRepository,
     private val attributeChangeRepository: MpdAttributeChangeRepository,
     private val temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository,
-    private val atcGroupRepository: MpdAtcGroupRepository,
-    private val administrationRouteRepository: MpdAdministrationRouteRepository,
-    private val dosageFormRepository: MpdDosageFormRepository,
-    private val packageTypeRepository: MpdPackageTypeRepository,
-    private val organisationRepository: MpdOrganisationRepository,
-    private val registrationStatusRepository: MpdRegistrationStatusRepository,
-    private val registrationProcessRepository: MpdRegistrationProcessRepository,
-    private val dispenseTypeRepository: MpdDispenseTypeRepository,
-    private val addictionCategoryRepository: MpdAddictionCategoryRepository,
-    private val dopingCategoryRepository: MpdDopingCategoryRepository,
-    private val governmentRegulationCategoryRepository: MpdGovernmentRegulationCategoryRepository,
-    private val indicationGroupRepository: MpdIndicationGroupRepository,
-    private val measurementUnitRepository: MpdMeasurementUnitRepository
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) {
 
     @Transactional
@@ -168,37 +143,37 @@ class MpdMedicinalProductProcessor(
             val reportingObligation = cols[1].trim() == "X"
             val name = cols[2].trim()
             val strength = cols[3].trim().ifBlank { null }
-            val dosageForm = cols[4].trim().takeIf { it.isNotEmpty() }?.let { dosageFormRepository.findByCode(it) }
+            val dosageForm = cols[4].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getDosageForms()[it] }
             val packaging = cols[5].trim().ifBlank { null }
-            val administrationRoute = cols[6].trim().takeIf { it.isNotEmpty() }?.let { administrationRouteRepository.findByCode(it) }
+            val administrationRoute = cols[6].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getAdministrationRoutes()[it] }
             val supplementaryInformation = cols[7].trim().ifBlank { null }
-            val packageType = cols[8].trim().takeIf { it.isNotEmpty() }?.let { packageTypeRepository.findByCode(it) }
+            val packageType = cols[8].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getPackageTypes()[it] }
 
             val marketingAuthorizationHolder = findOrganisation(cols[9], cols[10])
             val currentMarketingAuthorizationHolder = findOrganisation(cols[11], cols[12])
 
-            val registrationStatus = cols[13].trim().takeIf { it.isNotEmpty() }?.let { registrationStatusRepository.findByCode(it) }
+            val registrationStatus = cols[13].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getRegistrationStatuses()[it] }
             val registrationValidTo = parseDate(cols[14].trim())
             val registrationUnlimited = cols[15].trim() == "X"
             val marketSupplyEndDate = parseDate(cols[16].trim())
 
-            val indicationGroup = cols[17].trim().takeIf { it.isNotEmpty() }?.let { indicationGroupRepository.findByCode(it) }
-            val atcGroup = cols[18].trim().takeIf { it.isNotEmpty() }?.let { atcGroupRepository.findByCode(it) }
+            val indicationGroup = cols[17].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getIndicationGroups()[it] }
+            val atcGroup = cols[18].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getAtcGroups()[it] }
 
             val registrationNumber = cols[19].trim().ifBlank { null }
             val parallelImportId = cols[20].trim().ifBlank { null }
             val parallelImportSupplier = findOrganisation(cols[21], cols[22])
 
-            val registrationProcess = cols[23].trim().takeIf { it.isNotEmpty() }?.let { registrationProcessRepository.findByCode(it) }
+            val registrationProcess = cols[23].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getRegistrationProcesses()[it] }
             val dailyDoseAmount = cols[24].trim().toBigDecimalOrNull()
-            val dailyDoseUnit = cols[25].trim().takeIf { it.isNotEmpty() }?.let { measurementUnitRepository.findByCode(it) }
+            val dailyDoseUnit = cols[25].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getMeasurementUnits()[it] }
             val dailyDosePackaging = cols[26].trim().toBigDecimalOrNull()
             val whoSource = cols[27].trim().ifBlank { null }
             val substanceList = cols[28].trim().ifBlank { null }
-            val dispenseType = cols[29].trim().takeIf { it.isNotEmpty() }?.let { dispenseTypeRepository.findByCode(it) }
-            val addictionCategory = cols[30].trim().takeIf { it.isNotEmpty() }?.let { addictionCategoryRepository.findByCode(it) }
-            val dopingCategory = cols[31].trim().takeIf { it.isNotEmpty() }?.let { dopingCategoryRepository.findByCode(it) }
-            val governmentRegulationCategory = cols[32].trim().takeIf { it.isNotEmpty() }?.let { governmentRegulationCategoryRepository.findByCode(it) }
+            val dispenseType = cols[29].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getDispenseTypes()[it] }
+            val addictionCategory = cols[30].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getAddictionCategories()[it] }
+            val dopingCategory = cols[31].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getDopingCategories()[it] }
+            val governmentRegulationCategory = cols[32].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getGovRegulationCategories()[it] }
             val deliveriesFlag = cols[33].trim() == "X"
             val ean = cols[34].trim().ifBlank { null }
             val braille = cols[35].trim().ifBlank { null }
@@ -268,6 +243,7 @@ class MpdMedicinalProductProcessor(
         }
 
     private fun findOrganisation(code: String, countryCode: String): MpdOrganisation? =
-        if (code.isNotBlank() && countryCode.isNotBlank()) organisationRepository.findByCodeAndCountryCode(code.trim(), countryCode.trim())
+        if (code.isNotBlank() && countryCode.isNotBlank())
+            referenceDataProvider.getOrganisations()[code.trim() to countryCode.trim()]
         else null
 }
