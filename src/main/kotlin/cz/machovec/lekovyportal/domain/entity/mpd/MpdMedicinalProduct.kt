@@ -18,7 +18,7 @@ import java.time.LocalDate
 data class MpdMedicinalProduct(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    override val id: Long? = null,
 
     @Column(name = "sukl_code", nullable = false, unique = true)
     val suklCode: String,
@@ -159,12 +159,27 @@ data class MpdMedicinalProduct(
     val medicinalProductType: String?,
 
     @Column(name = "first_seen", nullable = false)
-    val firstSeen: LocalDate,
+    override val firstSeen: LocalDate,
 
     @Column(name = "missing_since")
-    val missingSince: LocalDate?
-) {
-    fun getBusinessAttributeChanges(other: MpdMedicinalProduct): List<AttributeChange<*>> {
+    override val missingSince: LocalDate?
+) : BaseMpdEntity<MpdMedicinalProduct>() {
+
+    override fun copyPreservingIdAndFirstSeen(from: MpdMedicinalProduct): MpdMedicinalProduct {
+        return this.copy(
+            id = from.id,
+            firstSeen = from.firstSeen,
+            missingSince = null
+        )
+    }
+
+    override fun markMissing(since: LocalDate): MpdMedicinalProduct {
+        return this.copy(missingSince = since)
+    }
+
+    override fun getUniqueKey(): Any = suklCode
+
+    override fun getBusinessAttributeChanges(other: MpdMedicinalProduct): List<AttributeChange<*>> {
         val changes = mutableListOf<AttributeChange<*>>()
 
         fun <T> compare(attribute: String, a: T?, b: T?) {
