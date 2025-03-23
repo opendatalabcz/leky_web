@@ -10,6 +10,6 @@ abstract class BaseMpdEntity<T : BaseMpdEntity<T>> {
 
     abstract fun copyPreservingIdAndFirstSeen(from: T): T
     abstract fun markMissing(since: LocalDate): T
-    abstract fun getUniqueKey(): Any
+    abstract fun getUniqueKey(): String
     abstract fun getBusinessAttributeChanges(other: T): List<AttributeChange<*>>
 }

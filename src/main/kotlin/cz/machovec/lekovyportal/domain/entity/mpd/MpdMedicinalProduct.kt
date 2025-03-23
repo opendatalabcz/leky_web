@@ -177,7 +177,7 @@ data class MpdMedicinalProduct(
         return this.copy(missingSince = since)
     }
 
-    override fun getUniqueKey(): Any = suklCode
+    override fun getUniqueKey(): String = suklCode
 
     override fun getBusinessAttributeChanges(other: MpdMedicinalProduct): List<AttributeChange<*>> {
         val changes = mutableListOf<AttributeChange<*>>()

@@ -28,7 +28,10 @@ class MpdMedicinalProductProcessor(
         MpdDatasetType.MPD_MEDICINAL_PRODUCT
 
     override fun mapCsvRowToEntity(cols: Array<String>, importedDatasetValidFrom: LocalDate): MpdMedicinalProduct? {
-        if (cols.size < 44) return null
+        if (cols.size < 39) {
+            logger.warn { "Row skipped, expected at least 43 columns, but got ${cols.size}: ${cols.joinToString()}" }
+            return null
+        }
 
         try {
             val suklCode = cols[0].trim()
@@ -72,11 +75,12 @@ class MpdMedicinalProductProcessor(
             val expiryPeriodDuration = cols[36].trim().ifBlank { null }
             val expiryPeriodUnit = cols[37].trim().ifBlank { null }
             val registeredName = cols[38].trim().ifBlank { null }
-            val mrpNumber = cols[39].trim().ifBlank { null }
-            val registrationLegalBasis = cols[40].trim().ifBlank { null }
-            val safetyFeature = cols[41].trim() == "A"
-            val prescriptionRestriction = cols[42].trim() == "A"
-            val medicinalProductType = cols[43].trim().ifBlank { null }
+
+            val mrpNumber = cols.getOrNull(39)?.trim()?.ifBlank { null }
+            val registrationLegalBasis = cols.getOrNull(40)?.trim()?.ifBlank { null }
+            val safetyFeature = cols.getOrNull(41)?.trim() == "A"
+            val prescriptionRestriction = cols.getOrNull(42)?.trim() == "A"
+            val medicinalProductType = cols.getOrNull(43)?.trim()?.ifBlank { null }
 
             return MpdMedicinalProduct(
                 suklCode = suklCode,

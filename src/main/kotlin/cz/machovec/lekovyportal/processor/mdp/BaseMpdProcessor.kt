@@ -39,27 +39,28 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         importedDatasetValidFrom: LocalDate,
         importedDatasetValidTo: LocalDate?
     ) {
+        logger.info {
+            "Starting import of ${getDatasetType()} from CSV. Validity: $importedDatasetValidFrom - ${importedDatasetValidTo ?: "∞"}"
+        }
+
         val importedCsvRows = readCsv(csvBytes)
             .filter { row -> row.any { it.isNotBlank() } }
             .mapNotNull { mapCsvRowToEntity(it, importedDatasetValidFrom) }
 
+        logger.info { "Parsed CSV rows: ${importedCsvRows.size}" }
+
         val existingRecords = repository.findAll()
 
-        val detectChangesResult = detectChanges(existingRecords, importedCsvRows, importedDatasetValidFrom)
-
+        val changesResult = detectChanges(existingRecords, importedCsvRows, importedDatasetValidFrom)
         val missingResult = detectNewlyMissing(existingRecords, importedCsvRows, importedDatasetValidFrom)
 
-        val recordsToSave =
-                    detectChangesResult.newRecords +
-                    detectChangesResult.updatedRecords +
-                    detectChangesResult.reactivatedRecords +
-                    missingResult.newlyMissingRecords
+        val allRecordsToSave = changesResult.recordsToSave + missingResult.newlyMissingRecords
 
-        repository.saveAll(recordsToSave)
-        attributeChangeRepository.saveAll(detectChangesResult.attributeChanges)
-        temporaryAbsenceRepository.saveAll(detectChangesResult.reactivations)
+        repository.saveAll(allRecordsToSave)
+        attributeChangeRepository.saveAll(changesResult.attributeChanges)
+        temporaryAbsenceRepository.saveAll(changesResult.reactivations)
 
-        logDetailedSummary(detectChangesResult, missingResult)
+        logDetailedSummary(changesResult, missingResult)
     }
 
     protected open fun readCsv(csvBytes: ByteArray): List<Array<String>> {
@@ -74,88 +75,88 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
 
     protected abstract fun mapCsvRowToEntity(cols: Array<String>, importedDatasetValidFrom: LocalDate): T?
 
-    /**
-     * [1], [2], [3], [4]
-     */
     private fun detectChanges(
         existingRecords: List<T>,
         importedRecords: List<T>,
         importedDatasetValidFrom: LocalDate
-    ): DetectionResult<T> {
-        val newRecords = mutableListOf<T>()
-        val updatedRecords = mutableListOf<T>()
-        val reactivatedRecords = mutableListOf<T>()
-        val noChangeRecords = mutableListOf<T>()
+    ): ChangesResult<T> {
+        val existingMap = existingRecords.associateBy { it.getUniqueKey() }
 
+        val recordsToSave = mutableSetOf<T>()
         val attributeChanges = mutableListOf<MpdAttributeChange>()
         val reactivations = mutableListOf<MpdRecordTemporaryAbsence>()
 
-        val existingMap = existingRecords.associateBy { it.getUniqueKey() }
+        var newCount = 0
+        var updatedCount = 0
+        var reactivatedCount = 0
+        var noChangeCount = 0
 
         importedRecords.forEach { imported ->
             val existing = existingMap[imported.getUniqueKey()]
 
             if (existing == null) {
                 // [1] New record
-                newRecords += imported
-            } else {
-                val changes = existing.getBusinessAttributeChanges(imported)
-                val existingWasMarkedMissing = existing.missingSince != null
+                newCount++
+                recordsToSave += imported
+                return@forEach
+            }
 
-                if (changes.isEmpty() && !existingWasMarkedMissing) {
-                    // [2] No changes
-                    noChangeRecords += imported
-                    return@forEach
-                }
+            val changes = existing.getBusinessAttributeChanges(imported)
+            val wasMissing = existing.missingSince != null
 
-                if (changes.isNotEmpty()) {
-                    // [3] Attribute changes
-                    updatedRecords += imported
-                    changes.forEach {
-                        logger.info {
-                            "Key ${existing.getUniqueKey()} attribute '${it.attribute}' changed from '${it.oldValue}' to '${it.newValue}'"
-                        }
-                        attributeChanges += MpdAttributeChange(
-                            datasetType = getDatasetType(),
-                            recordId = existing.id!!,
-                            attribute = it.attribute,
-                            oldValue = it.oldValue?.toString(),
-                            newValue = it.newValue?.toString(),
-                            seenInDatasetValidFrom = importedDatasetValidFrom
-                        )
+            if (changes.isEmpty() && !wasMissing) {
+                // [2] No changes
+                noChangeCount++
+                return@forEach
+            }
+
+            val merged = imported.copyPreservingIdAndFirstSeen(existing)
+            recordsToSave += merged
+
+            if (changes.isNotEmpty()) {
+                // [3] Attribute changes
+                updatedCount++
+                changes.forEach {
+                    logger.debug {
+                        "Key ${existing.getUniqueKey()} attribute '${it.attribute}' changed from '${it.oldValue}' to '${it.newValue}'"
                     }
-                }
-
-                if (existingWasMarkedMissing) {
-                    // [4] Reactivated records
-                    reactivatedRecords += imported
-                    logger.info { "Key ${existing.getUniqueKey()} reactivated (validFrom ${imported.firstSeen})" }
-                    reactivations += MpdRecordTemporaryAbsence(
+                    attributeChanges += MpdAttributeChange(
                         datasetType = getDatasetType(),
                         recordId = existing.id!!,
-                        missingFrom = existing.missingSince!!,
-                        missingTo = importedDatasetValidFrom.minusDays(1)
+                        attribute = it.attribute,
+                        oldValue = it.oldValue?.toString(),
+                        newValue = it.newValue?.toString(),
+                        seenInDatasetValidFrom = importedDatasetValidFrom
                     )
                 }
+            }
 
-                // [3], [4] Common update
-                imported.copyPreservingIdAndFirstSeen(existing)
+            if (wasMissing) {
+                // [4] Reactivated record
+                reactivatedCount++
+                logger.debug {
+                    "Key ${existing.getUniqueKey()} reactivated (validFrom ${imported.firstSeen})"
+                }
+                reactivations += MpdRecordTemporaryAbsence(
+                    datasetType = getDatasetType(),
+                    recordId = existing.id!!,
+                    missingFrom = existing.missingSince!!,
+                    missingTo = importedDatasetValidFrom.minusDays(1)
+                )
             }
         }
 
-        return DetectionResult(
-            newRecords = newRecords,
-            updatedRecords = updatedRecords,
-            reactivatedRecords = reactivatedRecords,
-            noChangeRecords = noChangeRecords,
+        return ChangesResult(
+            recordsToSave = recordsToSave.toList(),
+            newCount = newCount,
+            updatedCount = updatedCount,
+            reactivatedCount = reactivatedCount,
+            noChangeCount = noChangeCount,
             attributeChanges = attributeChanges,
             reactivations = reactivations
         )
     }
 
-    /**
-     * [5], [6]
-     */
     private fun detectNewlyMissing(
         existingRecords: List<T>,
         importedRecords: List<T>,
@@ -163,52 +164,55 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
     ): MissingResult<T> {
         val importedKeys = importedRecords.map { it.getUniqueKey() }.toSet()
 
+        // [5] Newly missing records
         val newlyMissing = existingRecords.filter {
             it.missingSince == null && !importedKeys.contains(it.getUniqueKey())
         }
 
-        val newlyMissingCopied = newlyMissing.map {
-            logger.info { "Key ${it.getUniqueKey()} marked invalid from $importedDatasetValidFrom" }
-            it.markMissing(importedDatasetValidFrom)
-        }
-
+        // [6] Already missing records
         val alreadyMissing = existingRecords.filter {
             it.missingSince != null && !importedKeys.contains(it.getUniqueKey())
         }
 
+        val newlyMissingRecords = newlyMissing.map {
+            logger.debug { "Key ${it.getUniqueKey()} marked missing since $importedDatasetValidFrom" }
+            it.markMissing(importedDatasetValidFrom)
+        }
+
         return MissingResult(
-            newlyMissingRecords = newlyMissingCopied,
+            newlyMissingRecords = newlyMissingRecords,
             alreadyMissingRecords = alreadyMissing
         )
     }
 
-    private fun logDetailedSummary(detection: DetectionResult<T>, missingResult: MissingResult<T>) {
+    private fun logDetailedSummary(d: ChangesResult<T>, m: MissingResult<T>) {
         val summary = """
             ${getDatasetType()} import summary:
-              - New records: ${detection.newRecords.size}
-              - Updated records (attribute changes): ${detection.updatedRecords.size}
-              - Reactivated records: ${detection.reactivatedRecords.size}
-              - Newly missing records: ${missingResult.newlyMissingRecords.size}
-              - Already missing records: ${missingResult.alreadyMissingRecords.size}
-              - No change records: ${detection.noChangeRecords.size}
-              - Attribute changes: ${detection.attributeChanges.size}
-              - Reactivations: ${detection.reactivations.size}
+              - New records: ${d.newCount}
+              - Updated records: ${d.updatedCount}
+              - Reactivated records: ${d.reactivatedCount}
+              - Newly missing records: ${m.newlyMissingRecords.size}
+              - Already missing records: ${m.alreadyMissingRecords.size}
+              - No change records: ${d.noChangeCount}
+              - Attribute changes logged: ${d.attributeChanges.size}
+              - Reactivations logged: ${d.reactivations.size}
         """.trimIndent()
 
         logger.info { summary }
     }
 }
 
-data class DetectionResult<T>(
-    val newRecords: List<T> = emptyList(),
-    val updatedRecords: List<T> = emptyList(),
-    val reactivatedRecords: List<T> = emptyList(),
-    val noChangeRecords: List<T> = emptyList(),
-    val attributeChanges: List<MpdAttributeChange> = emptyList(),
-    val reactivations: List<MpdRecordTemporaryAbsence> = emptyList()
+data class ChangesResult<T>(
+    val recordsToSave: List<T>,
+    val newCount: Int,
+    val updatedCount: Int,
+    val reactivatedCount: Int,
+    val noChangeCount: Int,
+    val attributeChanges: List<MpdAttributeChange>,
+    val reactivations: List<MpdRecordTemporaryAbsence>
 )
 
 data class MissingResult<T>(
-    val newlyMissingRecords: List<T> = emptyList(),
-    val alreadyMissingRecords: List<T> = emptyList()
+    val newlyMissingRecords: List<T>,
+    val alreadyMissingRecords: List<T>
 )
