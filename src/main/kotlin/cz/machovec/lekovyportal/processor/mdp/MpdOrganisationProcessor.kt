@@ -104,11 +104,9 @@ class MpdOrganisationProcessor(
                 }
 
                 // [3], [4] Common update
-                recordsToSave += existing.copy(
-                    name = imported.name,
-                    isManufacturer = imported.isManufacturer,
-                    isMarketingAuthorizationHolder = imported.isMarketingAuthorizationHolder,
-                    firstSeen = imported.firstSeen,
+                recordsToSave += imported.copy(
+                    id = existing.id,
+                    firstSeen = existing.firstSeen,
                     missingSince = null
                 )
             }

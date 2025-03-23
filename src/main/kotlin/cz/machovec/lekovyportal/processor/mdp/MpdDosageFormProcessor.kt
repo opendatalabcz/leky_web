@@ -100,13 +100,9 @@ class MpdDosageFormProcessor(
                 }
 
                 // [3], [4] Common update
-                recordsToSave += existing.copy(
-                    name = imported.name,
-                    nameEn = imported.nameEn,
-                    nameLat = imported.nameLat,
-                    isCannabis = imported.isCannabis,
-                    edqmCode = imported.edqmCode,
-                    firstSeen = imported.firstSeen,
+                recordsToSave += imported.copy(
+                    id = existing.id,
+                    firstSeen = existing.firstSeen,
                     missingSince = null
                 )
             }
