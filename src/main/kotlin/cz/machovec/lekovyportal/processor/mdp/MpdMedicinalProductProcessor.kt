@@ -1,11 +1,16 @@
 package cz.machovec.lekovyportal.processor.mdp
 
+import com.opencsv.CSVParserBuilder
+import com.opencsv.CSVReaderBuilder
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdAttributeChange
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdOrganisation
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdRecordTemporaryAbsence
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAddictionCategoryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAdministrationRouteRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAtcGroupRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDispenseTypeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDopingCategoryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDosageFormRepository
@@ -15,6 +20,7 @@ import cz.machovec.lekovyportal.domain.repository.mpd.MpdMeasurementUnitReposito
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdMedicinalProductRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdPackageTypeRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationProcessRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationStatusRepository
 import mu.KotlinLogging
@@ -24,17 +30,29 @@ import java.nio.charset.Charset
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+/**
+ * MpdMedicinalProductProcessor – import logic with 6 possible record states:
+ *
+ * [1] New record               – Not found in DB → insert.
+ * [2] No changes               – Found in DB, no attribute changes, not missing → skip.
+ * [3] Attribute changes        – Found in DB, business fields differ → update + log changes.
+ * [4] Reactivated records      – Previously missing (missingSince != null), now present → restore + log downtime.
+ * [5] Newly missing record     – Was present, not in current dataset, not yet marked missing → mark as missing.
+ * [6] Already missing records  – Still missing and already marked as such → skip.
+ */
+
 private val logger = KotlinLogging.logger {}
 
 @Service
 class MpdMedicinalProductProcessor(
     private val medicinalProductRepository: MpdMedicinalProductRepository,
+    private val attributeChangeRepository: MpdAttributeChangeRepository,
+    private val temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository,
     private val atcGroupRepository: MpdAtcGroupRepository,
     private val administrationRouteRepository: MpdAdministrationRouteRepository,
     private val dosageFormRepository: MpdDosageFormRepository,
     private val packageTypeRepository: MpdPackageTypeRepository,
     private val organisationRepository: MpdOrganisationRepository,
-    private val countryRepository: MpdCountryRepository,
     private val registrationStatusRepository: MpdRegistrationStatusRepository,
     private val registrationProcessRepository: MpdRegistrationProcessRepository,
     private val dispenseTypeRepository: MpdDispenseTypeRepository,
@@ -46,72 +64,122 @@ class MpdMedicinalProductProcessor(
 ) {
 
     @Transactional
-    fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate, validToOfNewDataset: LocalDate?) {
-        val text = csvBytes.toString(Charset.forName("Windows-1250"))
-        val lines = text.split("\r\n", "\n").drop(1).filter { it.isNotBlank() }.take(1000)
+    fun importData(csvBytes: ByteArray, importedDatasetValidFrom: LocalDate, validToOfNewDataset: LocalDate?) {
+        val reader = CSVReaderBuilder(csvBytes.inputStream().reader(Charset.forName("Windows-1250")))
+            .withSkipLines(1)
+            .withCSVParser(CSVParserBuilder().withSeparator(';').build())
+            .build()
 
-        val currentData = lines.mapNotNull { parseLine(it, validFromOfNewDataset) }
-        val newCodes = currentData.map { it.suklCode }.toSet()
-        val existingRecords = medicinalProductRepository.findAllBySuklCodeIn(newCodes)
-        val updatedRecords = mutableListOf<MpdMedicinalProduct>()
+        val importedRecords = reader.readAll()
+            .filter { row -> row.any { it.isNotBlank() } }
+            .mapNotNull { parseLine(it, importedDatasetValidFrom) }
 
-        currentData.forEach { newRecord ->
-            val existing = existingRecords.find { it.suklCode == newRecord.suklCode }
+        val importedKeys = importedRecords.map { it.suklCode }.toSet()
+        val existingRecords = medicinalProductRepository.findAll()
+        val recordsToSave = mutableListOf<MpdMedicinalProduct>()
+        val attributeChangesToSave = mutableListOf<MpdAttributeChange>()
+        val reactivationsToSave = mutableListOf<MpdRecordTemporaryAbsence>()
+
+        importedRecords.forEach { imported ->
+            val existing = existingRecords.find { it.suklCode == imported.suklCode }
+
             if (existing == null) {
-                updatedRecords += newRecord
+                // [1] New record
+                recordsToSave += imported
             } else {
-                var changed = false
-                if (existing.name != newRecord.name || existing.strength != newRecord.strength || existing.packaging != newRecord.packaging) {
-                    changed = true
-                }
-                if (existing.validTo != null) {
-                    changed = true
+                val changes = existing.getBusinessAttributeChanges(imported)
+                val existingWasMarkedMissing = existing.missingSince != null
+
+                if (changes.isEmpty() && !existingWasMarkedMissing) {
+                    // [2] No changes
+                    return@forEach
                 }
 
-                if (changed) {
-                    updatedRecords += existing.copy(
-                        name = newRecord.name,
-                        strength = newRecord.strength,
-                        packaging = newRecord.packaging,
-                        validTo = null,
-                        validFrom = newRecord.validFrom
+                if (changes.isNotEmpty()) {
+                    // [3] Attribute changes
+                    changes.forEach {
+                        logger.info {
+                            "MP ${existing.suklCode} attribute '${it.attribute}' changed from '${it.oldValue}' to '${it.newValue}'"
+                        }
+
+                        attributeChangesToSave += MpdAttributeChange(
+                            datasetType = MpdDatasetType.MPD_MEDICINAL_PRODUCT,
+                            recordId = existing.id!!,
+                            attribute = it.attribute,
+                            oldValue = it.oldValue?.toString(),
+                            newValue = it.newValue?.toString(),
+                            seenInDatasetValidFrom = importedDatasetValidFrom
+                        )
+                    }
+                }
+
+                if (existingWasMarkedMissing) {
+                    // [4] Reactivated record
+                    logger.info { "MP ${existing.suklCode} reactivated (validFrom ${imported.firstSeen})" }
+
+                    reactivationsToSave += MpdRecordTemporaryAbsence(
+                        datasetType = MpdDatasetType.MPD_MEDICINAL_PRODUCT,
+                        recordId = existing.id!!,
+                        missingFrom = existing.missingSince!!,
+                        missingTo = importedDatasetValidFrom.minusDays(1)
                     )
                 }
+
+                // [3], [4] Common update
+                recordsToSave += imported.copy(
+                    id = existing.id,
+                    firstSeen = existing.firstSeen,
+                    missingSince = null
+                )
             }
         }
 
-        val missing = existingRecords.filter { !newCodes.contains(it.suklCode) && it.validTo == null }
-        missing.forEach {
-            updatedRecords += it.copy(validTo = validFromOfNewDataset)
+        val newlyMissingRecords = existingRecords.filter {
+            !importedKeys.contains(it.suklCode) && it.missingSince == null
         }
 
-        medicinalProductRepository.saveAll(updatedRecords)
+        newlyMissingRecords.forEach {
+            // [5] Newly missing record
+            recordsToSave += it.copy(missingSince = importedDatasetValidFrom)
+            logger.info { "MP ${it.suklCode} marked invalid from $importedDatasetValidFrom" }
+        }
 
-        logger.info { "Processed ${updatedRecords.size} updates for MpdMedicinalProduct." }
+        // [6] Already missing records
+
+        medicinalProductRepository.saveAll(recordsToSave)
+        attributeChangeRepository.saveAll(attributeChangesToSave)
+        temporaryAbsenceRepository.saveAll(reactivationsToSave)
+
+        logger.info {
+            """
+            MpdMedicinalProduct import summary:
+              - Updated records: ${recordsToSave.size}
+              - Attribute changes: ${attributeChangesToSave.size}
+              - Reactivations: ${reactivationsToSave.size}
+            """.trimIndent()
+        }
     }
 
-    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdMedicinalProduct? {
-        val cols = line.split(";")
+    private fun parseLine(cols: Array<String>, datasetValidFrom: LocalDate): MpdMedicinalProduct? {
         if (cols.size < 44) return null
 
         try {
             val suklCode = cols[0].trim()
-            val reportingObligation = (cols[1].trim() == "X")
+            val reportingObligation = cols[1].trim() == "X"
             val name = cols[2].trim()
             val strength = cols[3].trim().ifBlank { null }
-            val packaging = cols[5].trim().ifBlank { null }
-            val supplementaryInformation = cols[7].trim().ifBlank { null }
-
             val dosageForm = cols[4].trim().takeIf { it.isNotEmpty() }?.let { dosageFormRepository.findByCode(it) }
+            val packaging = cols[5].trim().ifBlank { null }
             val administrationRoute = cols[6].trim().takeIf { it.isNotEmpty() }?.let { administrationRouteRepository.findByCode(it) }
+            val supplementaryInformation = cols[7].trim().ifBlank { null }
             val packageType = cols[8].trim().takeIf { it.isNotEmpty() }?.let { packageTypeRepository.findByCode(it) }
 
-            val marketingAuthorizationHolder = findOrganisation(cols[9].trim(), cols[10].trim())
-            val currentMarketingAuthorizationHolder = findOrganisation(cols[11].trim(), cols[12].trim())
+            val marketingAuthorizationHolder = findOrganisation(cols[9], cols[10])
+            val currentMarketingAuthorizationHolder = findOrganisation(cols[11], cols[12])
 
             val registrationStatus = cols[13].trim().takeIf { it.isNotEmpty() }?.let { registrationStatusRepository.findByCode(it) }
             val registrationValidTo = parseDate(cols[14].trim())
-            val registrationUnlimited = (cols[15].trim() == "X")
+            val registrationUnlimited = cols[15].trim() == "X"
             val marketSupplyEndDate = parseDate(cols[16].trim())
 
             val indicationGroup = cols[17].trim().takeIf { it.isNotEmpty() }?.let { indicationGroupRepository.findByCode(it) }
@@ -119,7 +187,7 @@ class MpdMedicinalProductProcessor(
 
             val registrationNumber = cols[19].trim().ifBlank { null }
             val parallelImportId = cols[20].trim().ifBlank { null }
-            val parallelImportSupplier = findOrganisation(cols[21].trim(), cols[22].trim())
+            val parallelImportSupplier = findOrganisation(cols[21], cols[22])
 
             val registrationProcess = cols[23].trim().takeIf { it.isNotEmpty() }?.let { registrationProcessRepository.findByCode(it) }
             val dailyDoseAmount = cols[24].trim().toBigDecimalOrNull()
@@ -131,8 +199,7 @@ class MpdMedicinalProductProcessor(
             val addictionCategory = cols[30].trim().takeIf { it.isNotEmpty() }?.let { addictionCategoryRepository.findByCode(it) }
             val dopingCategory = cols[31].trim().takeIf { it.isNotEmpty() }?.let { dopingCategoryRepository.findByCode(it) }
             val governmentRegulationCategory = cols[32].trim().takeIf { it.isNotEmpty() }?.let { governmentRegulationCategoryRepository.findByCode(it) }
-
-            val deliveriesFlag = (cols[33].trim() == "X")
+            val deliveriesFlag = cols[33].trim() == "X"
             val ean = cols[34].trim().ifBlank { null }
             val braille = cols[35].trim().ifBlank { null }
             val expiryPeriodDuration = cols[36].trim().ifBlank { null }
@@ -140,8 +207,8 @@ class MpdMedicinalProductProcessor(
             val registeredName = cols[38].trim().ifBlank { null }
             val mrpNumber = cols[39].trim().ifBlank { null }
             val registrationLegalBasis = cols[40].trim().ifBlank { null }
-            val safetyFeature = (cols[41].trim() == "A")
-            val prescriptionRestriction = (cols[42].trim() == "A")
+            val safetyFeature = cols[41].trim() == "A"
+            val prescriptionRestriction = cols[42].trim() == "A"
             val medicinalProductType = cols[43].trim().ifBlank { null }
 
             return MpdMedicinalProduct(
@@ -186,25 +253,21 @@ class MpdMedicinalProductProcessor(
                 safetyFeature = safetyFeature,
                 prescriptionRestriction = prescriptionRestriction,
                 medicinalProductType = medicinalProductType,
-                validFrom = validFromOfNewDataset,
-                validTo = null
+                firstSeen = datasetValidFrom,
+                missingSince = null
             )
         } catch (e: Exception) {
-            println("Error processing line: $line")
-            e.printStackTrace()
+            logger.error(e) { "Failed to parse medicinal product row: ${cols.joinToString()}" }
             return null
         }
     }
 
-    private fun findOrganisation(code: String, countryCode: String): MpdOrganisation? {
-        return if (code.isNotEmpty() && countryCode.isNotEmpty()) {
-            organisationRepository.findByCodeAndCountryCode(code, countryCode)
-        } else null
-    }
-
-    private fun parseDate(raw: String): LocalDate? {
-        return raw.takeIf { it.isNotEmpty() }?.let {
+    private fun parseDate(value: String): LocalDate? =
+        value.takeIf { it.isNotBlank() }?.let {
             LocalDate.parse(it, DateTimeFormatter.ofPattern("yyMMdd"))
         }
-    }
+
+    private fun findOrganisation(code: String, countryCode: String): MpdOrganisation? =
+        if (code.isNotBlank() && countryCode.isNotBlank()) organisationRepository.findByCodeAndCountryCode(code.trim(), countryCode.trim())
+        else null
 }
