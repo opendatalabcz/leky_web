@@ -20,6 +20,12 @@ data class MpdMedicinalProduct(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     override val id: Long? = null,
 
+    @Column(name = "first_seen", nullable = false)
+    override val firstSeen: LocalDate,
+
+    @Column(name = "missing_since")
+    override val missingSince: LocalDate?,
+
     @Column(name = "sukl_code", nullable = false, unique = true)
     val suklCode: String,
 
@@ -157,13 +163,9 @@ data class MpdMedicinalProduct(
 
     @Column(name = "medicinal_product_type")
     val medicinalProductType: String?,
-
-    @Column(name = "first_seen", nullable = false)
-    override val firstSeen: LocalDate,
-
-    @Column(name = "missing_since")
-    override val missingSince: LocalDate?
 ) : BaseMpdEntity<MpdMedicinalProduct>() {
+
+    override fun getUniqueKey(): String = suklCode
 
     override fun copyPreservingIdAndFirstSeen(from: MpdMedicinalProduct): MpdMedicinalProduct {
         return this.copy(
@@ -176,8 +178,6 @@ data class MpdMedicinalProduct(
     override fun markMissing(since: LocalDate): MpdMedicinalProduct {
         return this.copy(missingSince = since)
     }
-
-    override fun getUniqueKey(): String = suklCode
 
     override fun getBusinessAttributeChanges(other: MpdMedicinalProduct): List<AttributeChange<*>> {
         val changes = mutableListOf<AttributeChange<*>>()

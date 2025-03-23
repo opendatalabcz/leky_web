@@ -24,63 +24,167 @@ class MpdMedicinalProductProcessor(
     attributeChangeRepository,
     temporaryAbsenceRepository
 ) {
-    override fun getDatasetType(): MpdDatasetType =
-        MpdDatasetType.MPD_MEDICINAL_PRODUCT
+    companion object {
+        private const val COLUMN_SUKL_CODE = "SUKL_KOD"
+        private const val COLUMN_REPORTING_OBLIGATION = "HLASENI"
+        private const val COLUMN_NAME = "NAZEV"
+        private const val COLUMN_STRENGTH = "SILA"
+        private const val COLUMN_DOSAGE_FORM = "FORMA"
+        private const val COLUMN_PACKAGING = "BALENI"
+        private const val COLUMN_ADMIN_ROUTE = "CESTA"
+        private const val COLUMN_SUPPLEMENTARY_INFO = "DOPLNEK"
+        private const val COLUMN_PACKAGE_TYPE = "DRUH_BALENI"
+        private const val COLUMN_MAH_CODE = "DRZITEL_KOD"
+        private const val COLUMN_MAH_COUNTRY = "DRZITEL_ZEME"
+        private const val COLUMN_CURR_MAH_CODE = "AKT_DRZITEL_KOD"
+        private const val COLUMN_CURR_MAH_COUNTRY = "AKT_DRZITEL_ZEME"
+        private const val COLUMN_REGISTRATION_STATUS = "STAV"
+        private const val COLUMN_REGISTRATION_VALID_TO = "PLATNOST_DO"
+        private const val COLUMN_REGISTRATION_UNLIMITED = "NEOMEZENE"
+        private const val COLUMN_MARKET_SUPPLY_END = "KONEC_DODAVEK"
+        private const val COLUMN_INDICATION_GROUP = "INDIKACE"
+        private const val COLUMN_ATC_GROUP = "ATC"
+        private const val COLUMN_REGISTRATION_NUMBER = "REG_CISLO"
+        private const val COLUMN_PARALLEL_IMPORT_ID = "PAR_ID"
+        private const val COLUMN_PARALLEL_IMPORT_SUPPLIER_CODE = "PAR_DOD_KOD"
+        private const val COLUMN_PARALLEL_IMPORT_SUPPLIER_COUNTRY = "PAR_DOD_ZEME"
+        private const val COLUMN_REGISTRATION_PROCESS = "REG_PROC"
+        private const val COLUMN_DAILY_DOSE_AMOUNT = "DDD_MNOZSTVI"
+        private const val COLUMN_DAILY_DOSE_UNIT = "DDD_JEDNOTKA"
+        private const val COLUMN_DAILY_DOSE_PACKAGING = "DDD_BALENI"
+        private const val COLUMN_WHO_SOURCE = "WHO"
+        private const val COLUMN_SUBSTANCE_LIST = "LATKY"
+        private const val COLUMN_DISPENSE_TYPE = "VYDEJ"
+        private const val COLUMN_ADDICTION_CATEGORY = "ZAVISLOST"
+        private const val COLUMN_DOPING_CATEGORY = "DOPING"
+        private const val COLUMN_GOV_REG_CATEGORY = "VLADNI_REGULACE"
+        private const val COLUMN_DELIVERIES_FLAG = "DODAVKY"
+        private const val COLUMN_EAN = "EAN"
+        private const val COLUMN_BRAILLE = "BRAILLOVO_PISMO"
+        private const val COLUMN_EXPIRY_PERIOD_DURATION = "EXP_DOBA"
+        private const val COLUMN_EXPIRY_PERIOD_UNIT = "EXP_JEDNOTKA"
+        private const val COLUMN_REGISTERED_NAME = "REG_NAZEV"
+        private const val COLUMN_MRP_NUMBER = "MRP_CISLO"
+        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "PRAVNI_ZAKLAD"
+        private const val COLUMN_SAFETY_FEATURE = "BEZPECNOSTNI_PRVEK"
+        private const val COLUMN_PRESCRIPTION_RESTRICTION = "OMEZENI_PREDPISU"
+        private const val COLUMN_MEDICINAL_PRODUCT_TYPE = "TYP"
+    }
 
-    override fun mapCsvRowToEntity(cols: Array<String>, importedDatasetValidFrom: LocalDate): MpdMedicinalProduct? {
-        if (cols.size < 39) {
-            logger.warn { "Row skipped, expected at least 43 columns, but got ${cols.size}: ${cols.joinToString()}" }
-            return null
-        }
+    override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_MEDICINAL_PRODUCT
 
+    override fun getExpectedColumns(): List<String> = listOf(
+        COLUMN_SUKL_CODE,
+        COLUMN_REPORTING_OBLIGATION,
+        COLUMN_NAME,
+        COLUMN_STRENGTH,
+        COLUMN_DOSAGE_FORM,
+        COLUMN_PACKAGING,
+        COLUMN_ADMIN_ROUTE,
+        COLUMN_SUPPLEMENTARY_INFO,
+        COLUMN_PACKAGE_TYPE,
+        COLUMN_MAH_CODE,
+        COLUMN_MAH_COUNTRY,
+        COLUMN_CURR_MAH_CODE,
+        COLUMN_CURR_MAH_COUNTRY,
+        COLUMN_REGISTRATION_STATUS,
+        COLUMN_REGISTRATION_VALID_TO,
+        COLUMN_REGISTRATION_UNLIMITED,
+        COLUMN_MARKET_SUPPLY_END,
+        COLUMN_INDICATION_GROUP,
+        COLUMN_ATC_GROUP,
+        COLUMN_REGISTRATION_NUMBER,
+        COLUMN_PARALLEL_IMPORT_ID,
+        COLUMN_PARALLEL_IMPORT_SUPPLIER_CODE,
+        COLUMN_PARALLEL_IMPORT_SUPPLIER_COUNTRY,
+        COLUMN_REGISTRATION_PROCESS,
+        COLUMN_DAILY_DOSE_AMOUNT,
+        COLUMN_DAILY_DOSE_UNIT,
+        COLUMN_DAILY_DOSE_PACKAGING,
+        COLUMN_WHO_SOURCE,
+        COLUMN_SUBSTANCE_LIST,
+        COLUMN_DISPENSE_TYPE,
+        COLUMN_ADDICTION_CATEGORY,
+        COLUMN_DOPING_CATEGORY,
+        COLUMN_GOV_REG_CATEGORY,
+        COLUMN_DELIVERIES_FLAG,
+        COLUMN_EAN,
+        COLUMN_BRAILLE,
+        COLUMN_EXPIRY_PERIOD_DURATION,
+        COLUMN_EXPIRY_PERIOD_UNIT,
+        COLUMN_REGISTERED_NAME,
+        COLUMN_MRP_NUMBER,
+        COLUMN_REGISTRATION_LEGAL_BASIS,
+        COLUMN_SAFETY_FEATURE,
+        COLUMN_PRESCRIPTION_RESTRICTION,
+        COLUMN_MEDICINAL_PRODUCT_TYPE
+    )
+
+    override fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): MpdMedicinalProduct? {
+        // TODO změnit nullable atributů
         try {
-            val suklCode = cols[0].trim()
-            val reportingObligation = cols[1].trim() == "X"
-            val name = cols[2].trim()
-            val strength = cols[3].trim().ifBlank { null }
-            val dosageForm = cols[4].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getDosageForms()[it] }
-            val packaging = cols[5].trim().ifBlank { null }
-            val administrationRoute = cols[6].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getAdministrationRoutes()[it] }
-            val supplementaryInformation = cols[7].trim().ifBlank { null }
-            val packageType = cols[8].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getPackageTypes()[it] }
+            val suklCode = row[headerIndex.getValue(COLUMN_SUKL_CODE)].trim()
+            val reportingObligation = row[headerIndex.getValue(COLUMN_REPORTING_OBLIGATION)].trim() == "X"
+            val name = row[headerIndex.getValue(COLUMN_NAME)].trim()
+            val strength = row[headerIndex.getValue(COLUMN_STRENGTH)].trim().ifBlank { null }
+            val dosageForm = headerIndex[COLUMN_DOSAGE_FORM]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getDosageForms()[it] }
+            val packaging = row[headerIndex.getValue(COLUMN_PACKAGING)].trim().ifBlank { null }
+            val administrationRoute = headerIndex[COLUMN_ADMIN_ROUTE]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getAdministrationRoutes()[it] }
+            val supplementaryInformation = row[headerIndex.getValue(COLUMN_SUPPLEMENTARY_INFO)].trim().ifBlank { null }
+            val packageType = headerIndex[COLUMN_PACKAGE_TYPE]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getPackageTypes()[it] }
 
-            val marketingAuthorizationHolder = findOrganisation(cols[9], cols[10])
-            val currentMarketingAuthorizationHolder = findOrganisation(cols[11], cols[12])
+            val marketingAuthorizationHolder = findOrganisation(
+                row[headerIndex.getValue(COLUMN_MAH_CODE)],
+                row[headerIndex.getValue(COLUMN_MAH_COUNTRY)]
+            )
+            val currentMarketingAuthorizationHolder = findOrganisation(
+                row[headerIndex.getValue(COLUMN_CURR_MAH_CODE)],
+                row[headerIndex.getValue(COLUMN_CURR_MAH_COUNTRY)]
+            )
 
-            val registrationStatus = cols[13].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getRegistrationStatuses()[it] }
-            val registrationValidTo = parseDate(cols[14].trim())
-            val registrationUnlimited = cols[15].trim() == "X"
-            val marketSupplyEndDate = parseDate(cols[16].trim())
+            val registrationStatus = headerIndex[COLUMN_REGISTRATION_STATUS]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getRegistrationStatuses()[it] }
+            val registrationValidTo = parseDate(row[headerIndex.getValue(COLUMN_REGISTRATION_VALID_TO)].trim())
+            val registrationUnlimited = row[headerIndex.getValue(COLUMN_REGISTRATION_UNLIMITED)].trim() == "X"
+            val marketSupplyEndDate = parseDate(row[headerIndex.getValue(COLUMN_MARKET_SUPPLY_END)].trim())
 
-            val indicationGroup = cols[17].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getIndicationGroups()[it] }
-            val atcGroup = cols[18].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getAtcGroups()[it] }
+            val indicationGroup = headerIndex[COLUMN_INDICATION_GROUP]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getIndicationGroups()[it] }
+            val atcGroup = headerIndex[COLUMN_ATC_GROUP]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getAtcGroups()[it] }
 
-            val registrationNumber = cols[19].trim().ifBlank { null }
-            val parallelImportId = cols[20].trim().ifBlank { null }
-            val parallelImportSupplier = findOrganisation(cols[21], cols[22])
+            val registrationNumber = row[headerIndex.getValue(COLUMN_REGISTRATION_NUMBER)].trim().ifBlank { null }
+            val parallelImportId = row[headerIndex.getValue(COLUMN_PARALLEL_IMPORT_ID)].trim().ifBlank { null }
+            val parallelImportSupplier = findOrganisation(
+                row[headerIndex.getValue(COLUMN_PARALLEL_IMPORT_SUPPLIER_CODE)],
+                row[headerIndex.getValue(COLUMN_PARALLEL_IMPORT_SUPPLIER_COUNTRY)]
+            )
 
-            val registrationProcess = cols[23].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getRegistrationProcesses()[it] }
-            val dailyDoseAmount = cols[24].trim().toBigDecimalOrNull()
-            val dailyDoseUnit = cols[25].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getMeasurementUnits()[it] }
-            val dailyDosePackaging = cols[26].trim().toBigDecimalOrNull()
-            val whoSource = cols[27].trim().ifBlank { null }
-            val substanceList = cols[28].trim().ifBlank { null }
-            val dispenseType = cols[29].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getDispenseTypes()[it] }
-            val addictionCategory = cols[30].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getAddictionCategories()[it] }
-            val dopingCategory = cols[31].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getDopingCategories()[it] }
-            val governmentRegulationCategory = cols[32].trim().takeIf { it.isNotEmpty() }?.let { referenceDataProvider.getGovRegulationCategories()[it] }
-            val deliveriesFlag = cols[33].trim() == "X"
-            val ean = cols[34].trim().ifBlank { null }
-            val braille = cols[35].trim().ifBlank { null }
-            val expiryPeriodDuration = cols[36].trim().ifBlank { null }
-            val expiryPeriodUnit = cols[37].trim().ifBlank { null }
-            val registeredName = cols[38].trim().ifBlank { null }
+            val registrationProcess = headerIndex[COLUMN_REGISTRATION_PROCESS]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getRegistrationProcesses()[it] }
+            val dailyDoseAmount = row[headerIndex.getValue(COLUMN_DAILY_DOSE_AMOUNT)].trim().toBigDecimalOrNull()
+            val dailyDoseUnit = headerIndex[COLUMN_DAILY_DOSE_UNIT]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getMeasurementUnits()[it] }
+            val dailyDosePackaging = row[headerIndex.getValue(COLUMN_DAILY_DOSE_PACKAGING)].trim().toBigDecimalOrNull()
+            val whoSource = row[headerIndex.getValue(COLUMN_WHO_SOURCE)].trim().ifBlank { null }
+            val substanceList = row[headerIndex.getValue(COLUMN_SUBSTANCE_LIST)].trim().ifBlank { null }
 
-            val mrpNumber = cols.getOrNull(39)?.trim()?.ifBlank { null }
-            val registrationLegalBasis = cols.getOrNull(40)?.trim()?.ifBlank { null }
-            val safetyFeature = cols.getOrNull(41)?.trim() == "A"
-            val prescriptionRestriction = cols.getOrNull(42)?.trim() == "A"
-            val medicinalProductType = cols.getOrNull(43)?.trim()?.ifBlank { null }
+            val dispenseType = headerIndex[COLUMN_DISPENSE_TYPE]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getDispenseTypes()[it] }
+            val addictionCategory = headerIndex[COLUMN_ADDICTION_CATEGORY]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getAddictionCategories()[it] }
+            val dopingCategory = headerIndex[COLUMN_DOPING_CATEGORY]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getDopingCategories()[it] }
+            val governmentRegulationCategory = headerIndex[COLUMN_GOV_REG_CATEGORY]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getGovRegulationCategories()[it] }
+
+            val deliveriesFlag = row[headerIndex.getValue(COLUMN_DELIVERIES_FLAG)].trim() == "X"
+            val ean = row[headerIndex.getValue(COLUMN_EAN)].trim().ifBlank { null }
+            val braille = row[headerIndex.getValue(COLUMN_BRAILLE)].trim().ifBlank { null }
+            val expiryPeriodDuration = row[headerIndex.getValue(COLUMN_EXPIRY_PERIOD_DURATION)].trim().ifBlank { null }
+            val expiryPeriodUnit = row[headerIndex.getValue(COLUMN_EXPIRY_PERIOD_UNIT)].trim().ifBlank { null }
+            val registeredName = row[headerIndex.getValue(COLUMN_REGISTERED_NAME)].trim().ifBlank { null }
+
+            val mrpNumber = headerIndex[COLUMN_MRP_NUMBER]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } }
+            val registrationLegalBasis = headerIndex[COLUMN_REGISTRATION_LEGAL_BASIS]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } }
+            val safetyFeature = headerIndex[COLUMN_SAFETY_FEATURE]?.let { row.getOrNull(it)?.trim() == "A" } ?: false
+            val prescriptionRestriction = headerIndex[COLUMN_PRESCRIPTION_RESTRICTION]?.let { row.getOrNull(it)?.trim() == "A" } ?: false
+            val medicinalProductType = headerIndex[COLUMN_MEDICINAL_PRODUCT_TYPE]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } }
 
             return MpdMedicinalProduct(
                 suklCode = suklCode,
@@ -128,14 +232,16 @@ class MpdMedicinalProductProcessor(
                 missingSince = null
             )
         } catch (e: Exception) {
-            logger.error(e) { "Failed to parse medicinal product row: ${cols.joinToString()}" }
+            logger.error(e) { "Failed to parse ${getDatasetType().description} row: ${row.joinToString()}" }
             return null
         }
     }
 
     private fun parseDate(value: String): LocalDate? =
         value.takeIf { it.isNotBlank() }?.let {
-            LocalDate.parse(it, DateTimeFormatter.ofPattern("yyMMdd"))
+            runCatching {
+                LocalDate.parse(it, DateTimeFormatter.ofPattern("yyMMdd"))
+            }.getOrNull()
         }
 
     private fun findOrganisation(code: String, countryCode: String): MpdOrganisation? =
