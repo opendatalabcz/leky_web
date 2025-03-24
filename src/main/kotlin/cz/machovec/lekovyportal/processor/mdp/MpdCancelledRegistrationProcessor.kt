@@ -1,119 +1,132 @@
 package cz.machovec.lekovyportal.processor.mdp
 
-import com.opencsv.CSVParserBuilder
-import com.opencsv.CSVReaderBuilder
+import cz.machovec.lekovyportal.domain.entity.mpd.BaseMpdEntity
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdAdministrationRoute
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdCancelledRegistration
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdAdministrationRouteRepository
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDosageForm
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdRegistrationProcess
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdRegistrationStatus
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCancelledRegistrationRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdDosageFormRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationProcessRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationStatusRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
+import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import java.io.ByteArrayInputStream
-import java.io.InputStreamReader
-import java.nio.charset.Charset
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+private val logger = KotlinLogging.logger {}
+
 @Service
 class MpdCancelledRegistrationProcessor(
-    private val cancelledRegistrationRepository: MpdCancelledRegistrationRepository,
-    private val administrationRouteRepository: MpdAdministrationRouteRepository,
-    private val dosageFormRepository: MpdDosageFormRepository,
-    private val organisationRepository: MpdOrganisationRepository,
-    private val registrationProcessRepository: MpdRegistrationProcessRepository,
-    private val registrationStatusRepository: MpdRegistrationStatusRepository,
+    cancelledRegistrationRepository: MpdCancelledRegistrationRepository,
+    attributeChangeRepository: MpdAttributeChangeRepository,
+    temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository,
+    private val referenceDataProvider: MpdReferenceDataProvider
+) : BaseMpdProcessor<MpdCancelledRegistration>(
+    cancelledRegistrationRepository,
+    attributeChangeRepository,
+    temporaryAbsenceRepository
 ) {
-    private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
-    @Transactional
-    fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate, validToOfNewDataset: LocalDate?) {
-        val inputStream = ByteArrayInputStream(csvBytes)
-        val reader = InputStreamReader(inputStream, Charset.forName("Windows-1250"))
-
-        val csvParser = CSVParserBuilder()
-            .withSeparator(';')
-            .withIgnoreQuotations(false)
-            .build()
-
-        val csvReader = CSVReaderBuilder(reader)
-            .withCSVParser(csvParser)
-            .withSkipLines(1)
-            .build()
-
-        val lines = csvReader.readAll()
-        val entities = lines.mapNotNullIndexed { index, row -> parseRow(index, row, validFromOfNewDataset) }
-
-        cancelledRegistrationRepository.saveAll(entities)
-        println("✅ Zpracováno a uloženo ${entities.size} záznamů zrušené registrace.")
+    companion object {
+        private const val COLUMN_NAME = "NAZEV"
+        private const val COLUMN_ADMINISTRATION_ROUTE = "CESTA_PODANI"
+        private const val COLUMN_DOSAGE_FORM = "LEKOVA_FORMA"
+        private const val COLUMN_STRENGTH = "SILA"
+        private const val COLUMN_REGISTRATION_NUMBER = "REGISTRACNI_CISLO"
+        private const val COLUMN_PARALLEL_IMPORT_ID = "ID_PAR_IMPORT"
+        private const val COLUMN_MRP_NUMBER = "MRP_CISLO"
+        private const val COLUMN_REGISTRATION_PROCESS = "REG_PROCES"
+        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "PRAVNI_ZAKLAD"
+        private const val COLUMN_MAH_CODE = "MAH_KOD"
+        private const val COLUMN_MAH_COUNTRY_CODE = "MAH_ZEME"
+        private const val COLUMN_REGISTRATION_END_DATE = "DATUM_UKONCENI"
+        private const val COLUMN_REGISTRATION_STATUS = "STATUS"
     }
 
-    private fun parseRow(index: Int, row: Array<String>, validFrom: LocalDate): MpdCancelledRegistration? {
-        if (row.size < 13) {
-            println("Skipping line ${index + 2}: Not enough columns (${row.size})")
-            return null
-        }
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
+    override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_CANCELLED_REGISTRATION
+
+    override fun getExpectedColumns(): List<String> = listOf(
+        COLUMN_NAME,
+        COLUMN_ADMINISTRATION_ROUTE,
+        COLUMN_DOSAGE_FORM,
+        COLUMN_STRENGTH,
+        COLUMN_REGISTRATION_NUMBER,
+        COLUMN_PARALLEL_IMPORT_ID,
+        COLUMN_MRP_NUMBER,
+        COLUMN_REGISTRATION_PROCESS,
+        COLUMN_REGISTRATION_LEGAL_BASIS,
+        COLUMN_MAH_CODE,
+        COLUMN_MAH_COUNTRY_CODE,
+        COLUMN_REGISTRATION_END_DATE,
+        COLUMN_REGISTRATION_STATUS
+    )
+
+    override fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): MpdCancelledRegistration? {
         try {
-            val name = row[0].trim()
-            val administrationRoute = row[1].trim().takeIf { it.isNotEmpty() }?.let { administrationRouteRepository.findByCode(it) }
-            val dosageForm = row[2].trim().takeIf { it.isNotEmpty() }?.let { dosageFormRepository.findByCode(it) }
-            val strength = row[3].trim().ifBlank { null }
+            // Mandatory attributes
+            val registrationNumber = row[headerIndex.getValue(COLUMN_REGISTRATION_NUMBER)].trim()
+            if (registrationNumber.isEmpty()) {
+                logger.warn { "Missing registration number in row: ${row.joinToString()}" }
+                return null
+            }
 
-            val registrationNumber = row[4].trim().ifBlank { null }
-            val parallelImportId = row[5].trim().ifBlank { null }
-            val mrpNumber = row[6].trim().ifBlank { null }
+            // Optional attributes helpers
+            fun getOptionalString(column: String): String? =
+                headerIndex[column]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } }
 
-            val registrationProcess = row[7].trim().takeIf { it.isNotEmpty() }?.let { registrationProcessRepository.findByCode(it) }
-            val registrationLegalBasis = row[8].trim().ifBlank { null }
+            fun getOptionalReference(column: String, refMap: Map<String, BaseMpdEntity<*>>): BaseMpdEntity<*>? =
+                getOptionalString(column)?.let { refMap[it] }
 
-            val mahCode = row[9].trim()
-            val mahCountryCode = row[10].trim()
-            val marketingAuthorizationHolder = if (mahCode.isNotEmpty() && mahCountryCode.isNotEmpty()) {
-                organisationRepository.findByCodeAndCountryCode(mahCode, mahCountryCode)
+            // Reference maps
+            val adminRoutes = referenceDataProvider.getAdministrationRoutes()
+            val dosageForms = referenceDataProvider.getDosageForms()
+            val processes = referenceDataProvider.getRegistrationProcesses()
+            val statuses = referenceDataProvider.getRegistrationStatuses()
+            val organisations = referenceDataProvider.getOrganisations()
+
+            // Composite key for MAH
+            val mahCode = getOptionalString(COLUMN_MAH_CODE)
+            val mahCountryCode = getOptionalString(COLUMN_MAH_COUNTRY_CODE)
+            val marketingAuthorizationHolder = if (mahCode != null && mahCountryCode != null) {
+                organisations[mahCode to mahCountryCode]
             } else null
 
-            val registrationEndDate = parseDate(row[11].trim())
-            val registrationStatus = row[12].trim().takeIf { it.isNotEmpty() }?.let { registrationStatusRepository.findByCode(it) }
-
             return MpdCancelledRegistration(
-                name = name,
-                administrationRoute = administrationRoute,
-                dosageForm = dosageForm,
-                strength = strength,
+                firstSeen = importedDatasetValidFrom,
+                missingSince = null,
                 registrationNumber = registrationNumber,
-                parallelImportId = parallelImportId,
-                mrpNumber = mrpNumber,
-                registrationProcess = registrationProcess,
-                registrationLegalBasis = registrationLegalBasis,
+                name = getOptionalString(COLUMN_NAME),
+                administrationRoute = getOptionalReference(COLUMN_ADMINISTRATION_ROUTE, adminRoutes) as? MpdAdministrationRoute,
+                dosageForm = getOptionalReference(COLUMN_DOSAGE_FORM, dosageForms) as? MpdDosageForm,
+                strength = getOptionalString(COLUMN_STRENGTH),
+                parallelImportId = getOptionalString(COLUMN_PARALLEL_IMPORT_ID),
+                mrpNumber = getOptionalString(COLUMN_MRP_NUMBER),
+                registrationProcess = getOptionalReference(COLUMN_REGISTRATION_PROCESS, processes) as? MpdRegistrationProcess,
+                registrationLegalBasis = getOptionalString(COLUMN_REGISTRATION_LEGAL_BASIS),
                 marketingAuthorizationHolder = marketingAuthorizationHolder,
-                registrationEndDate = registrationEndDate,
-                registrationStatus = registrationStatus,
-                validFrom = validFrom,
-                validTo = null
+                registrationEndDate = getOptionalString(COLUMN_REGISTRATION_END_DATE)?.let { parseDate(it) },
+                registrationStatus = getOptionalReference(COLUMN_REGISTRATION_STATUS, statuses) as? MpdRegistrationStatus
             )
-        } catch (ex: Exception) {
-            println("Chyba na řádku ${index + 2}: ${ex.message}")
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to parse ${getDatasetType().description} row: ${row.joinToString()}" }
             return null
         }
     }
 
     private fun parseDate(raw: String): LocalDate? {
-        return raw.takeIf { it.isNotBlank() }?.let {
-            try {
-                LocalDate.parse(it, dateFormatter)
-            } catch (ex: Exception) {
-                println("Chybný formát data: $raw")
-                null
-            }
+        return try {
+            LocalDate.parse(raw, dateFormatter)
+        } catch (e: Exception) {
+            logger.warn { "Unable to parse date '$raw'" }
+            null
         }
-    }
-
-    private inline fun <T, R : Any> List<T>.mapNotNullIndexed(transform: (index: Int, T) -> R?): List<R> {
-        val result = mutableListOf<R>()
-        forEachIndexed { index, item -> transform(index, item)?.let { result.add(it) } }
-        return result
     }
 }

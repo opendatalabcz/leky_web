@@ -10,10 +10,13 @@ import cz.machovec.lekovyportal.domain.entity.mpd.MpdDosageForm
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdGovernmentRegulationCategory
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdIndicationGroup
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdMeasurementUnit
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdOrganisation
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdPackageType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdRegistrationProcess
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdRegistrationStatus
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdSource
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdSubstance
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAddictionCategoryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAdministrationRouteRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAtcGroupRepository
@@ -24,10 +27,13 @@ import cz.machovec.lekovyportal.domain.repository.mpd.MpdDosageFormRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdGovernmentRegulationCategoryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdIndicationGroupRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdMeasurementUnitRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdMedicinalProductRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdPackageTypeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationProcessRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationStatusRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdSourceRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdSubstanceRepository
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -48,6 +54,9 @@ class MpdReferenceDataProvider(
     private val indicationGroupRepository: MpdIndicationGroupRepository,
     private val measurementUnitRepository: MpdMeasurementUnitRepository,
     private val countryRepository: MpdCountryRepository,
+    private val sourceRepository: MpdSourceRepository,
+    private val substanceRepository: MpdSubstanceRepository,
+    private val medicinalProductRepository: MpdMedicinalProductRepository,
 ) {
 
     private val cache = ConcurrentHashMap<String, Any>()
@@ -66,6 +75,9 @@ class MpdReferenceDataProvider(
     fun getDopingCategories() = Loader.loadByCode(cache, MpdDopingCategory::class, dopingCategoryRepository::findAll) { it.code }
     fun getGovRegulationCategories() = Loader.loadByCode(cache, MpdGovernmentRegulationCategory::class, governmentRegulationCategoryRepository::findAll) { it.code }
     fun getCountries() = Loader.loadByCode(cache, MpdCountry::class, countryRepository::findAll) { it.code }
+    fun getSources() = Loader.loadByCode(cache, MpdSource::class, sourceRepository::findAll) { it.code }
+    fun getSubstances() = Loader.loadByCode(cache, MpdSubstance::class, substanceRepository::findAll) { it.code }
+    fun getMedicinalProducts() = Loader.loadByCode(cache, MpdMedicinalProduct::class, medicinalProductRepository::findAll) { it.suklCode }
 
     @Suppress("UNCHECKED_CAST")
     private object Loader {

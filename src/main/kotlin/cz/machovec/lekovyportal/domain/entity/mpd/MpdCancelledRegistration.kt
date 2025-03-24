@@ -1,21 +1,31 @@
 package cz.machovec.lekovyportal.domain.entity.mpd
 
+import cz.machovec.lekovyportal.domain.AttributeChange
 import java.time.LocalDate
 import jakarta.persistence.*
 
 @Entity
-@Table(name = "mpd_cancelled_registration")
+@Table(
+    name = "mpd_cancelled_registration",
+    uniqueConstraints = [UniqueConstraint(columnNames = ["registration_number", "parallel_import_id"])]
+)
 data class MpdCancelledRegistration(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    override val id: Long? = null,
 
-    @Column(name = "name", nullable = false)
-    val name: String,
+    @Column(name = "first_seen", nullable = false)
+    override val firstSeen: LocalDate,
+
+    @Column(name = "missing_since")
+    override val missingSince: LocalDate?,
+
+    @Column(name = "name")
+    val name: String?,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "administration_route_id")
-    val administrationRoute: MpdAdministrationRoute? = null,
+    val administrationRoute: MpdAdministrationRoute?,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dosage_form_id")
@@ -24,8 +34,8 @@ data class MpdCancelledRegistration(
     @Column(name = "strength")
     val strength: String?,
 
-    @Column(name = "registration_number")
-    val registrationNumber: String?,
+    @Column(name = "registration_number", nullable = false)
+    val registrationNumber: String,
 
     @Column(name = "parallel_import_id")
     val parallelImportId: String?,
@@ -49,11 +59,41 @@ data class MpdCancelledRegistration(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "registration_status_id")
-    val registrationStatus: MpdRegistrationStatus?,
+    val registrationStatus: MpdRegistrationStatus?
+) : BaseMpdEntity<MpdCancelledRegistration>() {
 
-    @Column(name = "valid_from", nullable = false)
-    val validFrom: LocalDate,
+    override fun getUniqueKey(): String = "${registrationNumber}-${parallelImportId ?: "null"}"
 
-    @Column(name = "valid_to")
-    val validTo: LocalDate?
-)
+    override fun copyPreservingIdAndFirstSeen(from: MpdCancelledRegistration): MpdCancelledRegistration {
+        return this.copy(
+            id = from.id,
+            firstSeen = from.firstSeen,
+            missingSince = null
+        )
+    }
+
+    override fun markMissing(since: LocalDate): MpdCancelledRegistration {
+        return this.copy(missingSince = since)
+    }
+
+    override fun getBusinessAttributeChanges(other: MpdCancelledRegistration): List<AttributeChange<*>> {
+        val changes = mutableListOf<AttributeChange<*>>()
+        fun <T> compare(attr: String, a: T?, b: T?) {
+            if (a != b) changes += AttributeChange(attr, a, b)
+        }
+
+        compare("name", name, other.name)
+        compare("administrationRoute", administrationRoute?.id, other.administrationRoute?.id)
+        compare("dosageForm", dosageForm?.id, other.dosageForm?.id)
+        compare("strength", strength, other.strength)
+        compare("parallelImportId", parallelImportId, other.parallelImportId)
+        compare("mrpNumber", mrpNumber, other.mrpNumber)
+        compare("registrationProcess", registrationProcess?.id, other.registrationProcess?.id)
+        compare("registrationLegalBasis", registrationLegalBasis, other.registrationLegalBasis)
+        compare("marketingAuthorizationHolder", marketingAuthorizationHolder?.id, other.marketingAuthorizationHolder?.id)
+        compare("registrationEndDate", registrationEndDate, other.registrationEndDate)
+        compare("registrationStatus", registrationStatus?.id, other.registrationStatus?.id)
+
+        return changes
+    }
+}
