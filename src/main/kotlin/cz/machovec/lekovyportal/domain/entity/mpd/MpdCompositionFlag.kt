@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.domain.entity.mpd
 
+import cz.machovec.lekovyportal.domain.AttributeChange
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -13,17 +14,43 @@ import java.time.LocalDate
 data class MpdCompositionFlag(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    override val id: Long? = null,
+
+    @Column(name = "first_seen", nullable = false)
+    override val firstSeen: LocalDate,
+
+    @Column(name = "missing_since")
+    override val missingSince: LocalDate?,
 
     @Column(name = "code", nullable = false, unique = true)
     val code: String,
 
-    @Column(name = "meaning", nullable = false)
-    val meaning: String,
+    @Column(name = "meaning")
+    val meaning: String?
+) : BaseMpdEntity<MpdCompositionFlag>() {
 
-    @Column(name = "valid_from", nullable = false)
-    val validFrom: LocalDate,
+    override fun getUniqueKey(): String = code
 
-    @Column(name = "valid_to")
-    val validTo: LocalDate? = null
-)
+    override fun copyPreservingIdAndFirstSeen(from: MpdCompositionFlag): MpdCompositionFlag {
+        return this.copy(
+            id = from.id,
+            firstSeen = from.firstSeen,
+            missingSince = null
+        )
+    }
+
+    override fun markMissing(since: LocalDate): MpdCompositionFlag {
+        return this.copy(missingSince = since)
+    }
+
+    override fun getBusinessAttributeChanges(other: MpdCompositionFlag): List<AttributeChange<*>> {
+        val changes = mutableListOf<AttributeChange<*>>()
+        fun <T> compare(attr: String, a: T?, b: T?) {
+            if (a != b) changes += AttributeChange(attr, a, b)
+        }
+
+        compare("meaning", meaning, other.meaning)
+
+        return changes
+    }
+}

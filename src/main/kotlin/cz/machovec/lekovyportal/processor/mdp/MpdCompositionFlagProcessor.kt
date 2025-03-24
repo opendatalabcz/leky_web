@@ -1,77 +1,59 @@
 package cz.machovec.lekovyportal.processor.mdp
 
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdCompositionFlag
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCompositionFlagRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import java.nio.charset.Charset
 import java.time.LocalDate
+
+private val logger = KotlinLogging.logger {}
 
 @Service
 class MpdCompositionFlagProcessor(
-    private val compositionFlagRepository: MpdCompositionFlagRepository
+    compositionFlagRepository: MpdCompositionFlagRepository,
+    attributeChangeRepository: MpdAttributeChangeRepository,
+    temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository
+) : BaseMpdProcessor<MpdCompositionFlag>(
+    compositionFlagRepository,
+    attributeChangeRepository,
+    temporaryAbsenceRepository
 ) {
-
-    private val logger = KotlinLogging.logger {}
-
-    @Transactional
-    fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate, validToOfNewDataset: LocalDate?) {
-        val text = csvBytes.toString(Charset.forName("Windows-1250")) // Konverze kódování
-        val lines = text.split("\r\n", "\n").drop(1).filter { it.isNotBlank() }
-
-        val currentData = lines.mapNotNull { parseLine(it, validFromOfNewDataset) }
-        val newCodes = currentData.map { it.code }.toSet()
-        val existingRecords = compositionFlagRepository.findAllByCodeIn(newCodes)
-        val updatedRecords = mutableListOf<MpdCompositionFlag>()
-
-        currentData.forEach { row ->
-            val existing = existingRecords.find { it.code == row.code }
-            if (existing == null) {
-                updatedRecords += row
-            } else {
-                var changed = false
-
-                if (existing.meaning != row.meaning) {
-                    logger.info { "Code ${existing.code} meaning changed from '${existing.meaning}' to '${row.meaning}'" }
-                    changed = true
-                }
-
-                if (existing.validTo != null) {
-                    logger.info { "Code ${existing.code} reactivated (validFrom ${row.validFrom})" }
-                    changed = true
-                }
-
-                if (changed) {
-                    updatedRecords += existing.copy(
-                        meaning = row.meaning,
-                        validTo = null,
-                        validFrom = row.validFrom
-                    )
-                }
-            }
-        }
-
-        val missing = existingRecords.filter { !newCodes.contains(it.code) && it.validTo == null }
-        missing.forEach {
-            updatedRecords += it.copy(validTo = validFromOfNewDataset)
-            logger.info { "Code ${it.code} marked invalid from $validFromOfNewDataset" }
-        }
-
-        compositionFlagRepository.saveAll(updatedRecords)
-        logger.info { "Processed ${updatedRecords.size} updates for MpdCompositionFlag." }
+    companion object {
+        private const val COLUMN_KOD = "S"
+        private const val COLUMN_VYZNAM = "VYZNAM"
     }
 
-    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdCompositionFlag? {
-        val cols = line.split(";")
-        if (cols.size < 2) return null
-        val code = cols[0].trim()
-        val meaning = cols[1].trim()
-        return MpdCompositionFlag(
-            code = code,
-            meaning = meaning,
-            validFrom = validFromOfNewDataset,
-            validTo = null
-        )
+    override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_COMPOSITION_FLAG
+
+    override fun getExpectedColumns(): List<String> = listOf(
+        COLUMN_KOD,
+        COLUMN_VYZNAM
+    )
+
+    override fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): MpdCompositionFlag? {
+        try {
+            // Mandatory attributes
+            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+
+            // Optional attributes
+            val meaning = headerIndex[COLUMN_VYZNAM]?.let { row.getOrNull(it)?.trim() }
+
+            return MpdCompositionFlag(
+                firstSeen = importedDatasetValidFrom,
+                missingSince = null,
+                code = code,
+                meaning = meaning
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to parse ${getDatasetType().description} row: ${row.joinToString()}" }
+            return null
+        }
     }
 }

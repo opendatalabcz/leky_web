@@ -1,91 +1,70 @@
 package cz.machovec.lekovyportal.processor.mdp
 
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdPackageType
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdPackageTypeRepository
-import jakarta.transaction.Transactional
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import java.nio.charset.Charset
 import java.time.LocalDate
 
 private val logger = KotlinLogging.logger {}
 
 @Service
 class MpdPackageTypeProcessor(
-    private val packageTypeRepository: MpdPackageTypeRepository
+    packageTypeRepository: MpdPackageTypeRepository,
+    attributeChangeRepository: MpdAttributeChangeRepository,
+    temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository
+) : BaseMpdProcessor<MpdPackageType>(
+    packageTypeRepository,
+    attributeChangeRepository,
+    temporaryAbsenceRepository
 ) {
-
-    @Transactional
-    fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate, validToOfNewDataset: LocalDate?) {
-        val text = csvBytes.toString(Charset.forName("Windows-1250")) // Správná konverze kódování
-        val lines = text.split("\r\n", "\n").drop(1).filter { it.isNotBlank() }
-        val currentData = lines.mapNotNull { parseLine(it, validFromOfNewDataset) }
-        val newCodes = currentData.map { it.code }.toSet()
-        val existingRecords = packageTypeRepository.findAllByCodeIn(newCodes)
-        val updatedRecords = mutableListOf<MpdPackageType>()
-
-        currentData.forEach { row ->
-            val existing = existingRecords.find { it.code == row.code }
-            if (existing == null) {
-                updatedRecords += row
-            } else {
-                var changed = false
-
-                if (existing.name != row.name) {
-                    logger.info { "Code ${existing.code} name changed from '${existing.name}' to '${row.name}'" }
-                    changed = true
-                }
-                if (existing.nameEn != row.nameEn) {
-                    logger.info { "Code ${existing.code} English name changed from '${existing.nameEn}' to '${row.nameEn}'" }
-                    changed = true
-                }
-                if (existing.edqmCode != row.edqmCode) {
-                    logger.info { "Code ${existing.code} EDQM code changed from '${existing.edqmCode}' to '${row.edqmCode}'" }
-                    changed = true
-                }
-
-                if (existing.validTo != null) {
-                    logger.info { "Code ${existing.code} reactivated (validFrom ${row.validFrom})" }
-                    changed = true
-                }
-
-                if (changed) {
-                    updatedRecords += existing.copy(
-                        name = row.name,
-                        nameEn = row.nameEn,
-                        edqmCode = row.edqmCode,
-                        validTo = null,
-                        validFrom = row.validFrom
-                    )
-                }
-            }
-        }
-
-        val missing = existingRecords.filter { !newCodes.contains(it.code) && it.validTo == null }
-        missing.forEach {
-            updatedRecords += it.copy(validTo = validFromOfNewDataset)
-            logger.info { "Code ${it.code} marked invalid from $validFromOfNewDataset" }
-        }
-
-        packageTypeRepository.saveAll(updatedRecords)
-        logger.info { "Processed ${updatedRecords.size} updates for MpdPackageType." }
+    companion object {
+        private const val COLUMN_KOD = "KOD"
+        private const val COLUMN_NAZEV = "NAZEV"
+        private const val COLUMN_NAZEV_EN = "NAZEV_EN"
+        private const val COLUMN_KOD_EDQM = "KOD_EDQM"
     }
 
-    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdPackageType? {
-        val cols = line.split(";")
-        if (cols.size < 4) return null
-        val code = cols[0].trim()
-        val name = cols[1].trim()
-        val nameEn = cols[2].trim()
-        val edqmCode = cols[3].takeIf { it.isNotEmpty() }?.trim()?.toLongOrNull()
+    override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_PACKAGE_TYPE
 
-        return MpdPackageType(
-            code = code,
-            name = name,
-            nameEn = nameEn,
-            edqmCode = edqmCode,
-            validFrom = validFromOfNewDataset,
-            validTo = null
-        )
+    override fun getExpectedColumns(): List<String> = listOf(
+        COLUMN_KOD,
+        COLUMN_NAZEV,
+        COLUMN_NAZEV_EN,
+        COLUMN_KOD_EDQM
+    )
+
+    override fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): MpdPackageType? {
+        try {
+            // Mandatory attributes
+            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+
+            // Optional attributes
+            val name = headerIndex[COLUMN_NAZEV]
+                ?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAZEV_EN]
+                ?.let { row.getOrNull(it)?.trim() }
+            val edqmCode = headerIndex[COLUMN_KOD_EDQM]
+                ?.let { row.getOrNull(it)?.trim()?.toLongOrNull() }
+
+            return MpdPackageType(
+                firstSeen = importedDatasetValidFrom,
+                missingSince = null,
+                code = code,
+                name = name,
+                nameEn = nameEn,
+                edqmCode = edqmCode
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to parse ${getDatasetType().description} row: ${row.joinToString()}" }
+            return null
+        }
     }
 }

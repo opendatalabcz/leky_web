@@ -1,85 +1,72 @@
 package cz.machovec.lekovyportal.processor.mdp
 
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAdministrationRoute
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAdministrationRouteRepository
-import jakarta.transaction.Transactional
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import java.nio.charset.Charset
 import java.time.LocalDate
 
 private val logger = KotlinLogging.logger {}
 
 @Service
 class MpdAdministrationRouteProcessor(
-    private val administrationRouteRepository: MpdAdministrationRouteRepository
+    administrationRouteRepository: MpdAdministrationRouteRepository,
+    attributeChangeRepository: MpdAttributeChangeRepository,
+    temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository
+) : BaseMpdProcessor<MpdAdministrationRoute>(
+    administrationRouteRepository,
+    attributeChangeRepository,
+    temporaryAbsenceRepository
 ) {
-
-    @Transactional
-    fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate, validToOfNewDataset: LocalDate?) {
-        val text = csvBytes.toString(Charset.forName("Windows-1250"))
-        val lines = text.split("\r\n", "\n").drop(1).filter { it.isNotBlank() }
-        val currentData = lines.mapNotNull { parseLine(it, validFromOfNewDataset) }
-        val newCodes = currentData.map { it.code }.toSet()
-        val existingRecords = administrationRouteRepository.findAllByCodeIn(newCodes)
-        val updatedRecords = mutableListOf<MpdAdministrationRoute>()
-
-        currentData.forEach { row ->
-            val existing = existingRecords.find { it.code == row.code }
-            if (existing == null) {
-                updatedRecords += row
-            } else {
-                var changed = false
-
-                if (existing.name != row.name || existing.nameEn != row.nameEn || existing.nameLat != row.nameLat || existing.edqmCode != row.edqmCode) {
-                    logger.info { "Code ${existing.code} changed from '${existing.name}' to '${row.name}'" }
-                    changed = true
-                }
-
-                if (existing.validTo != null) {
-                    logger.info { "Code ${existing.code} reactivated (validFrom ${row.validFrom})" }
-                    changed = true
-                }
-
-                if (changed) {
-                    updatedRecords += existing.copy(
-                        name = row.name,
-                        nameEn = row.nameEn,
-                        nameLat = row.nameLat,
-                        edqmCode = row.edqmCode,
-                        validTo = null,
-                        validFrom = row.validFrom
-                    )
-                }
-            }
-        }
-
-        val missing = existingRecords.filter { !newCodes.contains(it.code) && it.validTo == null }
-        missing.forEach {
-            updatedRecords += it.copy(validTo = validFromOfNewDataset)
-            logger.info { "Code ${it.code} marked invalid from $validFromOfNewDataset" }
-        }
-
-        administrationRouteRepository.saveAll(updatedRecords)
-        logger.info { "Processed ${updatedRecords.size} updates for MpdAdministrationRoute." }
+    companion object {
+        private const val COLUMN_CESTA = "CESTA"
+        private const val COLUMN_NAZEV = "NAZEV"
+        private const val COLUMN_NAZEV_EN = "NAZEV_EN"
+        private const val COLUMN_NAZEV_LAT = "NAZEV_LAT"
+        private const val COLUMN_KOD_EDQM = "KOD_EDQM"
     }
 
-    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdAdministrationRoute? {
-        val cols = line.split(";")
-        if (cols.size < 5) return null
-        val code = cols[0].trim()
-        val name = cols[1].trim()
-        val nameEn = cols[2].trim()
-        val nameLat = cols[3].trim()
-        val edqmCode = cols[4].takeIf { it.isNotEmpty() }?.trim()?.toLongOrNull()
-        return MpdAdministrationRoute(
-            code = code,
-            name = name,
-            nameEn = nameEn,
-            nameLat = nameLat,
-            edqmCode = edqmCode,
-            validFrom = validFromOfNewDataset,
-            validTo = null
-        )
+    override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_ADMINISTRATION_ROUTE
+
+    override fun getExpectedColumns(): List<String> = listOf(
+        COLUMN_CESTA,
+        COLUMN_NAZEV,
+        COLUMN_NAZEV_EN,
+        COLUMN_NAZEV_LAT,
+        COLUMN_KOD_EDQM
+    )
+
+    override fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): MpdAdministrationRoute? {
+        try {
+            // Mandatory attributes
+            val code = row[headerIndex.getValue(COLUMN_CESTA)].trim()
+
+            // Optional attributes
+            val name = headerIndex[COLUMN_NAZEV]?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAZEV_EN]?.let { row.getOrNull(it)?.trim() }
+            val nameLat = headerIndex[COLUMN_NAZEV_LAT]?.let { row.getOrNull(it)?.trim() }
+            val edqmCode = headerIndex[COLUMN_KOD_EDQM]
+                ?.let { row.getOrNull(it)?.trim()?.toLongOrNull() }
+
+            return MpdAdministrationRoute(
+                firstSeen = importedDatasetValidFrom,
+                missingSince = null,
+                code = code,
+                name = name,
+                nameEn = nameEn,
+                nameLat = nameLat,
+                edqmCode = edqmCode
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to parse ${getDatasetType().description} row: ${row.joinToString()}" }
+            return null
+        }
     }
 }
