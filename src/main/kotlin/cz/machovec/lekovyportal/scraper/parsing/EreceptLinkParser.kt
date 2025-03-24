@@ -20,7 +20,7 @@ class EreceptLinkParser : LinkParser {
             val year = match.groupValues[1].toInt()
             val month = match.groupValues[2].toInt()
             return ParsedFileInfo(
-                datasetType = DatasetType.ERECEPT_PREDPIS,
+                datasetType = DatasetType.ERECEPT_PRESCRIPTION,
                 fileType = FILE_TYPE,
                 year = year,
                 month = month
@@ -31,7 +31,7 @@ class EreceptLinkParser : LinkParser {
             val year = match.groupValues[1].toInt()
             val month = match.groupValues[2].toInt()
             return ParsedFileInfo(
-                datasetType = DatasetType.ERECEPT_VYDEJ,
+                datasetType = DatasetType.ERECEPT_DISPENSE,
                 fileType = FILE_TYPE,
                 year = year,
                 month = month

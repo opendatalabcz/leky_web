@@ -19,7 +19,7 @@ class EreceptHistoryLinkParser : LinkParser {
         PREDPIS_REGEX.matchEntire(fileName)?.let { match ->
             val year = match.groupValues[1].toInt()
             return ParsedFileInfo(
-                datasetType = DatasetType.ERECEPT_PREDPIS,
+                datasetType = DatasetType.ERECEPT_PRESCRIPTION,
                 fileType = FILE_TYPE,
                 year = year,
                 month = null
@@ -29,7 +29,7 @@ class EreceptHistoryLinkParser : LinkParser {
         VYDEJ_REGEX.matchEntire(fileName)?.let { match ->
             val year = match.groupValues[1].toInt()
             return ParsedFileInfo(
-                datasetType = DatasetType.ERECEPT_VYDEJ,
+                datasetType = DatasetType.ERECEPT_DISPENSE,
                 fileType = FILE_TYPE,
                 year = year,
                 month = null

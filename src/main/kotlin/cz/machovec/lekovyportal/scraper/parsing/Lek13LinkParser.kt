@@ -24,7 +24,7 @@ class Lek13LinkParser : LinkParser {
             val month = match.groupValues[2].toIntOrNull() ?: return null
 
             return ParsedFileInfo(
-                datasetType = DatasetType.DISTRIBUCE_LEK,
+                datasetType = DatasetType.DISTRIBUTION_LEK,
                 fileType = MONTHLY_FILE_TYPE,
                 year = year,
                 month = month
@@ -36,7 +36,7 @@ class Lek13LinkParser : LinkParser {
             val year = match.groupValues[1].toIntOrNull() ?: return null
 
             return ParsedFileInfo(
-                datasetType = DatasetType.DISTRIBUCE_LEK,
+                datasetType = DatasetType.DISTRIBUTION_LEK,
                 fileType = YEARLY_FILE_TYPE,
                 year = year,
                 month = null

@@ -42,7 +42,7 @@ class MpdLinkParser : LinkParser {
             match.groupValues[2].toIntOrNull() ?: return null
         )
 
-        logger.info { "Determined dataset period: $year-$month for file $fileUrl" }
+        //logger.info { "Determined dataset period: $year-$month for file $fileUrl" }
 
         return ParsedFileInfo(
             datasetType = DatasetType.MPD,

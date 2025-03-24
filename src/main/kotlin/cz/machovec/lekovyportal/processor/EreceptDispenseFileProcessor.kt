@@ -83,26 +83,31 @@ class EreceptDispenseFileProcessor(
         val otherRecords = mutableListOf<EreceptDispense>()
         val districtNames = mutableMapOf<String, String>()
 
-        lines.drop(1).forEach { line ->
+        lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(",").map { it.trim('"') }
-            if (cols.size < 10) return@forEach
+            if (cols.size < 10) return@forEachIndexed
 
             val districtCode = cols[0]
             val districtName = cols[1] // Název okresu
-            val year = cols[2].toIntOrNull() ?: return@forEach
-            val month = cols[3].toIntOrNull() ?: return@forEach
+            val year = cols[2].toIntOrNull() ?: return@forEachIndexed
+            val month = cols[3].toIntOrNull() ?: return@forEachIndexed
             val suklCode = cols[4]
-            val quantity = cols[9].toIntOrNull() ?: return@forEach
+            val quantity = cols[9].toIntOrNull() ?: return@forEachIndexed
 
             districtNames[districtCode] = districtName
 
             val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
+            if (medicinalProduct == null) {
+                logger.warn { "Řádek $index přeskočen – neznámý SUKL kód: $suklCode (okres: $districtCode, datum: $year-$month)" }
+                return@forEachIndexed
+            }
+
             val dispense = EreceptDispense(
                 districtCode = districtCode,
                 year = year,
                 month = month,
-                medicinalProduct = medicinalProduct!!,
+                medicinalProduct = medicinalProduct,
                 quantity = quantity
             )
 
