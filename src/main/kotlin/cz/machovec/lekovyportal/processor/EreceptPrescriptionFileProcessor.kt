@@ -43,7 +43,7 @@ class EreceptPrescriptionFileProcessor(
             parseCsv(fileBytes)
         }
 
-        logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
+        logger.info("Saving records from file: ${msg.fileUrl}, records count: ${records.size}")
         ereceptPrescriptionRepository.batchInsert(records, batchSize = 50)
 
         val processedDataset = ProcessedDataset(
@@ -76,12 +76,18 @@ class EreceptPrescriptionFileProcessor(
     }
 
     private fun parseCsv(csvBytes: ByteArray): Pair<List<EreceptPrescription>, Map<String, String>> {
+        val start = System.currentTimeMillis()
+
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
         val pragueMap = mutableMapOf<String, EreceptPrescription>()
         val otherRecords = mutableListOf<EreceptPrescription>()
         val districtNames = mutableMapOf<String, String>()
+
+        var skippedCount = 0
+
+        logger.info { "Starting CSV parsing, total lines: ${lines.size - 1}" }
 
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(",").map { it.trim('"') }
@@ -99,7 +105,10 @@ class EreceptPrescriptionFileProcessor(
             val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
             if (medicinalProduct == null) {
-                logger.warn { "Řádek $index přeskočen – neznámý SUKL kód: $suklCode (okres: $districtCode, datum: $year-$month)" }
+                skippedCount++
+                if (skippedCount <= 5) {
+                    logger.warn { "Skipped line $index – unknown SUKL code: $suklCode ($districtCode $year-$month)" }
+                }
                 return@forEachIndexed
             }
 
@@ -116,6 +125,17 @@ class EreceptPrescriptionFileProcessor(
             } else {
                 otherRecords.add(prescription)
             }
+
+            if ((index + 1) % 10_000 == 0) {
+                logger.info { "Parsed ${index + 1} lines so far..." }
+            }
+        }
+
+        val totalParsed = otherRecords.size + pragueMap.size
+        val duration = System.currentTimeMillis() - start
+
+        logger.info {
+            "Finished parsing. Valid records: $totalParsed, Skipped: $skippedCount, Time: ${duration}ms"
         }
 
         return Pair(otherRecords + pragueMap.values, districtNames)
