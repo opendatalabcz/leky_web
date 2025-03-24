@@ -22,7 +22,7 @@ class MpdIndicationGroupProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "IS_"
+        private const val COLUMN_KOD = "indsk"
         private const val COLUMN_NAZEV = "NAZEV"
     }
 

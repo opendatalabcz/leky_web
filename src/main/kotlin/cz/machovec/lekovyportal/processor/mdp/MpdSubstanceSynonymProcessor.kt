@@ -24,10 +24,10 @@ class MpdSubstanceSynonymProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_SUBSTANCE = "SUBSTANCE_KOD"
-        private const val COLUMN_SEQUENCE = "SEKVENCE"
+        private const val COLUMN_SUBSTANCE = "KOD_LATKY"
+        private const val COLUMN_SEQUENCE = "SQ"
         private const val COLUMN_SOURCE = "ZDROJ"
-        private const val COLUMN_NAME = "JMENO"
+        private const val COLUMN_NAME = "NAZEV"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_SUBSTANCE_SYNONYM

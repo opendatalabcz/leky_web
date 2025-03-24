@@ -22,7 +22,7 @@ class MpdMeasurementUnitProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "KOD"
+        private const val COLUMN_KOD = "jd"
         private const val COLUMN_NAZEV = "NAZEV"
     }
 

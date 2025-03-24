@@ -24,14 +24,14 @@ class MpdSubstanceProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_KOD = "KOD"
+        private const val COLUMN_KOD = "KOD_LATKY"
         private const val COLUMN_ZDROJ = "ZDROJ"
-        private const val COLUMN_INN = "INN"
+        private const val COLUMN_INN = "NAZE_INN"
         private const val COLUMN_EN = "NAZEV_EN"
         private const val COLUMN_NAZEV = "NAZEV"
-        private const val COLUMN_ZAVISLOST = "KAT_ZAVISLOSTI"
-        private const val COLUMN_DOPING = "KAT_DOPINGU"
-        private const val COLUMN_VLADNI = "KAT_VLADNI"
+        private const val COLUMN_ZAVISLOST = "ZAV"
+        private const val COLUMN_DOPING = "DOP"
+        private const val COLUMN_VLADNI = "NARVLA"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_SUBSTANCE

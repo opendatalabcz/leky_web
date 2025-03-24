@@ -128,10 +128,36 @@ class MpdFileProcessor(
         val extractedFiles = extractCsvFiles(fileBytes)
         val (validFrom, validTo) = determineValidityDates(msg.year, msg.month, extractedFiles["dlp_platnost.csv"])
 
-        extractedFiles.forEach { (fileName, content) ->
-            when (fileName) {
-                "dlp_lecivepripravky.csv" -> mpdMedicinalProductProcessor.processCsv(content, validFrom, validTo)
-            }
+        val ordered = listOf(
+            "dlp_zeme.csv" to mpdCountryProcessor,
+            "dlp_zavislost.csv" to mpdAddictionCategoryProcessor,
+            "dlp_doping.csv" to mpdDopingCategoryProcessor,
+            "dlp_narvla.csv" to mpdGovernmentRegulationCategoryProcessor,
+            "dlp_zdroje.csv" to mpdSourceProcessor,
+            "dlp_slozenipriznak.csv" to mpdCompositionFlagProcessor,
+            "dlp_vydej.csv" to mpdDispenseTypeProcessor,
+            "dlp_jednotky.csv" to mpdMeasurementUnitProcessor,
+            "dlp_regproc.csv" to mpdRegistrationProcessProcessor,
+            "dlp_stavyreg.csv" to mpdRegistrationStatusProcessor,
+            "dlp_indikacniskupiny.csv" to mpdIndicationGroupProcessor,
+            "dlp_atc.csv" to mpdAtcGroupProcessor,
+            "dlp_obaly.csv" to mpdPackageTypeProcessor,
+            "dlp_cesty.csv" to mpdAdministrationRouteProcessor,
+            "dlp_formy.csv" to mpdDosageFormProcessor,
+            "dlp_organizace.csv" to mpdOrganisationProcessor,
+            "dlp_lecivelatky.csv" to mpdActiveSubstanceProcessor,
+            "dlp_latky.csv" to mpdSubstanceProcessor,
+            "dlp_synonyma.csv" to mpdSubstanceSynonymProcessor,
+            "dlp_lecivepripravky.csv" to mpdMedicinalProductProcessor,
+            "dlp_splp.csv" to mpdRegistrationExceptionProcessor,
+            "dlp_zruseneregistrace.csv" to mpdCancelledRegistrationProcessor
+        )
+
+        ordered.forEach { (filename, processor) ->
+            extractedFiles[filename]?.let {
+                logger.info { "Processing file: $filename" }
+                processor.processCsv(it, validFrom, validTo)
+            } ?: logger.warn { "File not found in ZIP: $filename" }
         }
 
         processedDatasetRepository.save(

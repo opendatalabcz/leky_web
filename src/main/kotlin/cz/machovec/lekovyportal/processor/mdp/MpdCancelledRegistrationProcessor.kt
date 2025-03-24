@@ -31,18 +31,18 @@ class MpdCancelledRegistrationProcessor(
 
     companion object {
         private const val COLUMN_NAME = "NAZEV"
-        private const val COLUMN_ADMINISTRATION_ROUTE = "CESTA_PODANI"
-        private const val COLUMN_DOSAGE_FORM = "LEKOVA_FORMA"
+        private const val COLUMN_ADMINISTRATION_ROUTE = "CESTA"
+        private const val COLUMN_DOSAGE_FORM = "FORMA"
         private const val COLUMN_STRENGTH = "SILA"
         private const val COLUMN_REGISTRATION_NUMBER = "REGISTRACNI_CISLO"
-        private const val COLUMN_PARALLEL_IMPORT_ID = "ID_PAR_IMPORT"
+        private const val COLUMN_PARALLEL_IMPORT_ID = "SOUBEZNY_DOVOZ"
         private const val COLUMN_MRP_NUMBER = "MRP_CISLO"
-        private const val COLUMN_REGISTRATION_PROCESS = "REG_PROCES"
-        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "PRAVNI_ZAKLAD"
-        private const val COLUMN_MAH_CODE = "MAH_KOD"
-        private const val COLUMN_MAH_COUNTRY_CODE = "MAH_ZEME"
-        private const val COLUMN_REGISTRATION_END_DATE = "DATUM_UKONCENI"
-        private const val COLUMN_REGISTRATION_STATUS = "STATUS"
+        private const val COLUMN_REGISTRATION_PROCESS = "TYO_REGISTRACE"
+        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "PRAVNI_ZAKLAD_REGISTRACE"
+        private const val COLUMN_MAH_CODE = "DRZITEL"
+        private const val COLUMN_MAH_COUNTRY_CODE = "ZEME_DRZITELE"
+        private const val COLUMN_REGISTRATION_END_DATE = "KONEC_PLATNOSTI_REGISTRACE"
+        private const val COLUMN_REGISTRATION_STATUS = "STAV_REGISTRACE"
     }
 
     private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")

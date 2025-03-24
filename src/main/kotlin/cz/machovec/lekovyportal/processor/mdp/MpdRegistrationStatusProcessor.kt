@@ -22,7 +22,7 @@ class MpdRegistrationStatusProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "KOD"
+        private const val COLUMN_KOD = "REG"
         private const val COLUMN_NAZEV = "NAZEV"
     }
 

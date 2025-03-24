@@ -25,15 +25,15 @@ class MpdRegistrationExceptionProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_SUKL_CODE = "SUKL_KOD"
-        private const val COLUMN_VALID_FROM = "PLATNOST_OD"
-        private const val COLUMN_VALID_TO = "PLATNOST_DO"
-        private const val COLUMN_ALLOWED_PACKAGE_COUNT = "POVOLENY_POCET_BALENI"
+        private const val COLUMN_SUKL_CODE = "KOD_SUKL"
+        private const val COLUMN_VALID_FROM = "DAT_OD"
+        private const val COLUMN_VALID_TO = "DAT_DO"
+        private const val COLUMN_ALLOWED_PACKAGE_COUNT = "POVOL_BALENI"
         private const val COLUMN_PURPOSE = "UCEL"
         private const val COLUMN_WORKPLACE = "PRACOVISTE"
         private const val COLUMN_DISTRIBUTOR = "DISTRIBUTOR"
         private const val COLUMN_NOTE = "POZNAMKA"
-        private const val COLUMN_SUBMITTER = "ZADAVATEL"
+        private const val COLUMN_SUBMITTER = "PREKLADATEL"
         private const val COLUMN_MANUFACTURER = "VYROBCE"
     }
 

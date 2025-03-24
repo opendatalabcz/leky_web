@@ -23,8 +23,8 @@ class MpdOrganisationProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "KOD"
-        private const val COLUMN_ZEME = "ZEME"
+        private const val COLUMN_KOD = "ZKR_ORG"
+        private const val COLUMN_ZEME = "ZEM"
         private const val COLUMN_NAZEV = "NAZEV"
         private const val COLUMN_VYROBCE = "VYROBCE"
         private const val COLUMN_DRZITEL = "DRZITEL"

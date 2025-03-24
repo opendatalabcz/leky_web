@@ -22,7 +22,7 @@ class MpdSourceProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "KOD"
+        private const val COLUMN_KOD = "ZDROJ"
         private const val COLUMN_NAZEV = "NAZEV"
     }
 
