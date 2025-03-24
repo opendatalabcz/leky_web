@@ -43,7 +43,7 @@ class EreceptDispenseFileProcessor(
             parseCsv(fileBytes)
         }
 
-        logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
+        logger.info("Saving records from file: ${msg.fileUrl}, records count: ${records.size}")
         ereceptDispenseRepository.batchInsert(records, batchSize = 50)
 
         val processedDataset = ProcessedDataset(
@@ -83,12 +83,16 @@ class EreceptDispenseFileProcessor(
         val otherRecords = mutableListOf<EreceptDispense>()
         val districtNames = mutableMapOf<String, String>()
 
+        var skippedCount = 0
+
+        logger.info { "Starting CSV parsing, total lines: ${lines.size - 1}" }
+
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(",").map { it.trim('"') }
             if (cols.size < 10) return@forEachIndexed
 
             val districtCode = cols[0]
-            val districtName = cols[1] // Název okresu
+            val districtName = cols[1]
             val year = cols[2].toIntOrNull() ?: return@forEachIndexed
             val month = cols[3].toIntOrNull() ?: return@forEachIndexed
             val suklCode = cols[4]
@@ -99,7 +103,10 @@ class EreceptDispenseFileProcessor(
             val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
             if (medicinalProduct == null) {
-                logger.warn { "Řádek $index přeskočen – neznámý SUKL kód: $suklCode (okres: $districtCode, datum: $year-$month)" }
+                skippedCount++
+                if (skippedCount <= 5) { // log only first few individually
+                    logger.warn { "Skipped line $index – unknown SUKL code: $suklCode ($districtCode $year-$month)" }
+                }
                 return@forEachIndexed
             }
 
@@ -116,6 +123,14 @@ class EreceptDispenseFileProcessor(
             } else {
                 otherRecords.add(dispense)
             }
+
+            if ((index + 1) % 10_000 == 0) {
+                logger.info { "Parsed ${index + 1} lines so far..." }
+            }
+        }
+
+        logger.info {
+            "Finished parsing. Valid records: ${otherRecords.size + pragueMap.size}, Skipped: $skippedCount"
         }
 
         return Pair(otherRecords + pragueMap.values, districtNames)

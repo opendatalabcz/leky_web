@@ -18,7 +18,7 @@ class EreceptHistoryService(
     linkParser = ereceptHistoryParser,
     processedDatasetRepository = processedDatasetRepository,
     pageUrl = "https://opendata.sukl.cz/?q=katalog/historie-predepsanych-vydanych-lecivych-pripravku-ze-systemu-erecept",
-    filePrefix = "https://opendata.sukl.cz/soubory/TODO/",
+    filePrefix = "https://opendata.sukl.cz/soubory/ERECEPT_HISTORIE/",
     fileSuffix = ".zip"
 ) {
 
