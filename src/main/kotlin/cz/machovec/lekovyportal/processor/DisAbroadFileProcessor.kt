@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.DisAbroadDistributionRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -16,6 +17,7 @@ import java.net.URL
 class DisAbroadFileProcessor(
     private val disAbroadDistributionRepository: DisAbroadDistributionRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -74,11 +76,13 @@ class DisAbroadFileProcessor(
 
                 val subject = cols[10]
 
+                val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
+
                 val record = DisAbroadDistribution(
                     year = year,
                     month = month,
                     purchaserType = purchaserType,
-                    suklCode = suklCode,
+                    medicinalProduct = medicinalProduct!!,
                     movementType = movementType,
                     packageCount = packageCount,
                     subject = subject,

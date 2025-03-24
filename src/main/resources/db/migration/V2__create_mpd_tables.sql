@@ -253,6 +253,8 @@ CREATE TABLE IF NOT EXISTS mpd_registration_exception (
     first_seen DATE NOT NULL,
     missing_since DATE,
     medicinal_product_id BIGINT NOT NULL REFERENCES mpd_medicinal_product(id) ON DELETE CASCADE,
+    valid_from      DATE NOT NULL,
+    valid_to        DATE,
     allowed_package_count INTEGER,
     purpose TEXT,
     workplace TEXT,

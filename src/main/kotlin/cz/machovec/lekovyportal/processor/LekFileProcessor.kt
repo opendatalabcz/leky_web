@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.LekDistributionRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,6 +21,7 @@ import java.util.zip.ZipInputStream
 class LekFileProcessor(
     private val lekDistributionRepository: LekDistributionRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -105,10 +107,12 @@ class LekFileProcessor(
                     .toBigDecimalOrNull()
                     ?: throw IllegalArgumentException("Invalid package count: ${cols[8]}")
 
+                val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
+
                 val record = LekDistribution(
                     year = year,
                     month = month,
-                    suklCode = suklCode,
+                    medicinalProduct = medicinalProduct!!,
                     dispenseType = dispenseType,
                     packageCount = packageCount,
                 )

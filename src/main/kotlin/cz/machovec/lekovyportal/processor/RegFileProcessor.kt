@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.domain.entity.RegPurchaserType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.domain.repository.RegDistributionRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -16,6 +17,7 @@ import java.net.URL
 class RegFileProcessor(
     private val regDistributionRepository: RegDistributionRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -72,11 +74,13 @@ class RegFileProcessor(
 
                 val packageCount = cols[9].toIntOrNull() ?: throw IllegalArgumentException("Invalid package count")
 
+                val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
+
                 val record = RegDistribution(
                     year = year,
                     month = month,
                     purchaserType = purchaserType,
-                    suklCode = suklCode,
+                    medicinalProduct = medicinalProduct!!,
                     movementType = movementType,
                     packageCount = packageCount
                 )

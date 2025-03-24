@@ -12,9 +12,9 @@ class EReceptService(
     private val ereceptDispenseRepository: EreceptDispenseRepository,
     private val districtRepository: DistrictRepository
 ) {
-    fun getDistrictData(suklCode: String, year: Int, month: Int): List<EReceptDataResponse> {
-        val prescribedData = ereceptPrescriptionRepository.findBySuklCodeAndYearAndMonth(suklCode, year, month)
-        val dispensedData = ereceptDispenseRepository.findBySuklCodeAndYearAndMonth(suklCode, year, month)
+    fun getDistrictData(medicinalProductId: Long, year: Int, month: Int): List<EReceptDataResponse> {
+        val prescribedData = ereceptPrescriptionRepository.findByMedicinalProductIdAndYearAndMonth(medicinalProductId, year, month)
+        val dispensedData = ereceptDispenseRepository.findByMedicinalProductIdAndYearAndMonth(medicinalProductId, year, month)
 
         val prescribedMap = prescribedData.groupBy { it.districtCode }
             .mapValues { entry -> entry.value.sumOf { it.quantity } }

@@ -15,11 +15,11 @@ class DistrictController(
     fun getDistrictData(
         @RequestParam filter: String
     ): Map<String, Int> {
-        val hardcodedSuklCode = "0150766"
+        val medicinalProductId = 36L
         val hardcodedYear = 2025
         val hardcodedMonth = 1
 
-        val districtDataList = eReceptService.getDistrictData(hardcodedSuklCode, hardcodedYear, hardcodedMonth)
+        val districtDataList = eReceptService.getDistrictData(medicinalProductId, hardcodedYear, hardcodedMonth)
 
         return districtDataList.associate { districtData ->
             val value = when (filter.lowercase()) {
