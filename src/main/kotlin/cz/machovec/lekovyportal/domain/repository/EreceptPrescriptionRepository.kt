@@ -6,8 +6,8 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface EreceptPrescriptionRepository : JpaRepository<EreceptPrescription, Long>, EreceptPrescriptionRepositoryCustom {
-    fun findBySuklCodeAndYearAndMonth(
-        suklCode: String,
+    fun findByMedicinalProductIdAndYearAndMonth(
+        medicinalProductId: Long,
         year: Int,
         month: Int
     ): List<EreceptPrescription>

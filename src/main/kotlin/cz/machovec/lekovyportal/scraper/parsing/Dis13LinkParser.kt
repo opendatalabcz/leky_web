@@ -20,7 +20,7 @@ class Dis13LinkParser : LinkParser {
         val month = match.groupValues[2].toIntOrNull() ?: return null
 
         return ParsedFileInfo(
-            datasetType = DatasetType.DISTRIBUCE_DIS,
+            datasetType = DatasetType.DISTRIBUTION_DIS,
             fileType = FILE_TYPE,
             year = year,
             month = month

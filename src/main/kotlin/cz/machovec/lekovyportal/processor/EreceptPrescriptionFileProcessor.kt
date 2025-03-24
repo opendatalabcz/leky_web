@@ -6,6 +6,7 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.EreceptPrescriptionRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,6 +20,7 @@ private val logger = KotlinLogging.logger {}
 class EreceptPrescriptionFileProcessor(
     private val ereceptPrescriptionRepository: EreceptPrescriptionRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
 
     private val PRAGUE_DISTRICT_CODE = "3100"
@@ -49,11 +51,9 @@ class EreceptPrescriptionFileProcessor(
             year = msg.year,
             month = msg.month ?: 0
         )
-        processedDatasetRepository.save(processedDataset)
+        processedDatasetRepository.saveAndFlush(processedDataset)
 
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
-
-        printDistricts(districtNames)
     }
 
     private fun parseZip(zipBytes: ByteArray): Pair<List<EreceptPrescription>, Map<String, String>> {
@@ -83,29 +83,36 @@ class EreceptPrescriptionFileProcessor(
         val otherRecords = mutableListOf<EreceptPrescription>()
         val districtNames = mutableMapOf<String, String>()
 
-        lines.drop(1).forEach { line ->
+        lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(",").map { it.trim('"') }
-            if (cols.size < 10) return@forEach
+            if (cols.size < 10) return@forEachIndexed
 
             val districtCode = cols[0]
-            val districtName = cols[1] // Název okresu
-            val year = cols[2].toIntOrNull() ?: return@forEach
-            val month = cols[3].toIntOrNull() ?: return@forEach
+            val districtName = cols[1]
+            val year = cols[2].toIntOrNull() ?: return@forEachIndexed
+            val month = cols[3].toIntOrNull() ?: return@forEachIndexed
             val suklCode = cols[4]
-            val quantity = cols[9].toIntOrNull() ?: return@forEach
+            val quantity = cols[9].toIntOrNull() ?: return@forEachIndexed
 
             districtNames[districtCode] = districtName
+
+            val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
+
+            if (medicinalProduct == null) {
+                logger.warn { "Řádek $index přeskočen – neznámý SUKL kód: $suklCode (okres: $districtCode, datum: $year-$month)" }
+                return@forEachIndexed
+            }
 
             val prescription = EreceptPrescription(
                 districtCode = districtCode,
                 year = year,
                 month = month,
-                suklCode = suklCode,
+                medicinalProduct = medicinalProduct,
                 quantity = quantity
             )
 
             if (districtCode == PRAGUE_DISTRICT_CODE) {
-                groupPragueRecord(prescription, pragueMap)
+                groupPragueRecord(prescription, pragueMap, suklCode)
             } else {
                 otherRecords.add(prescription)
             }
@@ -116,22 +123,16 @@ class EreceptPrescriptionFileProcessor(
 
     private fun groupPragueRecord(
         prescription: EreceptPrescription,
-        pragueMap: MutableMap<String, EreceptPrescription>
+        pragueMap: MutableMap<String, EreceptPrescription>,
+        suklCode: String
     ) {
-        val key = "${prescription.districtCode}-${prescription.year}-${prescription.month}-${prescription.suklCode}"
+        val key = "${prescription.districtCode}-${prescription.year}-${prescription.month}-${suklCode}"
         val existing = pragueMap[key]
 
         if (existing != null) {
             pragueMap[key] = existing.copy(quantity = existing.quantity + prescription.quantity)
         } else {
             pragueMap[key] = prescription
-        }
-    }
-
-    private fun printDistricts(districtNames: Map<String, String>) {
-        println("Seznam okresů pro naplnění tabulky districts:")
-        districtNames.toSortedMap().forEach { (code, name) ->
-            println("INSERT INTO districts (code, name) VALUES ('$code', '$name');")
         }
     }
 }
