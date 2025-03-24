@@ -1,70 +1,83 @@
 package cz.machovec.lekovyportal.processor.mdp
 
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdSubstanceSynonym
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdSourceRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdSubstanceRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdSubstanceSynonymRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import java.nio.charset.Charset
 import java.time.LocalDate
 
 private val logger = KotlinLogging.logger {}
 
 @Service
 class MpdSubstanceSynonymProcessor(
-    private val substanceSynonymRepository: MpdSubstanceSynonymRepository,
-    private val substanceRepository: MpdSubstanceRepository,
-    private val sourceRepository: MpdSourceRepository
+    synonymRepository: MpdSubstanceSynonymRepository,
+    attributeChangeRepository: MpdAttributeChangeRepository,
+    temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository,
+    private val referenceDataProvider: MpdReferenceDataProvider
+) : BaseMpdProcessor<MpdSubstanceSynonym>(
+    synonymRepository,
+    attributeChangeRepository,
+    temporaryAbsenceRepository
 ) {
 
-    @Transactional
-    fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate) {
-        val text = csvBytes.toString(Charset.forName("Windows-1250"))
-        val lines = text.split("\r\n", "\n").drop(1).filter { it.isNotBlank() }
-
-        val currentData = lines.mapNotNull { parseLine(it, validFromOfNewDataset) }
-        val newEntries = currentData.toMutableList() // TODO: Měl bych zkontrolovat správnost toho porovnávání starých a nových až budu vědět co přesně byl PK
-        val existingRecords = substanceSynonymRepository.findAll()
-        val updatedRecords = mutableListOf<MpdSubstanceSynonym>()
-
-        currentData.forEach { row ->
-            val existing = existingRecords.find { it.substance == row.substance && it.source == row.source && it.sequenceNumber == row.sequenceNumber }
-
-            if (existing == null) {
-                updatedRecords += row
-            } else {
-                if (existing.name != row.name) {
-                    logger.info { "Synonym name changed for substance ${existing.substance.code}: '${existing.name}' -> '${row.name}'" }
-                    updatedRecords += existing.copy(name = row.name)
-                }
-            }
-        }
-
-        substanceSynonymRepository.saveAll(updatedRecords)
-        logger.info { "Processed ${updatedRecords.size} updates for MpdSubstanceSynonym." }
+    companion object {
+        private const val COLUMN_SUBSTANCE = "SUBSTANCE_KOD"
+        private const val COLUMN_SEQUENCE = "SEKVENCE"
+        private const val COLUMN_SOURCE = "ZDROJ"
+        private const val COLUMN_NAME = "JMENO"
     }
 
-    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdSubstanceSynonym? {
-        val cols = line.split(";")
-        if (cols.size < 4) return null
+    override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_SUBSTANCE_SYNONYM
 
-        val substanceCode = cols[0].trim()
-        val sequence = cols[1].toIntOrNull() ?: return null
-        val sourceCode = cols[2].trim()
-        val name = cols[3].trim()
+    override fun getExpectedColumns(): List<String> = listOf(
+        COLUMN_SUBSTANCE,
+        COLUMN_SEQUENCE,
+        COLUMN_SOURCE,
+        COLUMN_NAME
+    )
 
-        val substance = substanceRepository.findByCode(substanceCode) ?: return null
-        val source = sourceRepository.findByCode(sourceCode) ?: return null
+    override fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): MpdSubstanceSynonym? {
+        try {
+            // Mandatory: substance code
+            val substanceCode = row[headerIndex.getValue(COLUMN_SUBSTANCE)].trim()
+            val substance = referenceDataProvider.getSubstances()[substanceCode]
+                ?: return null.also {
+                    logger.warn { "Unknown substance '$substanceCode', skipping row." }
+                }
 
-        return MpdSubstanceSynonym(
-            substance = substance,
-            sequenceNumber = sequence,
-            source = source,
-            name = name,
-            validFrom = validFromOfNewDataset,
-            validTo = null
-        )
+            // Optional sequence number
+            val sequenceNumber = headerIndex[COLUMN_SEQUENCE]?.let {
+                row.getOrNull(it)?.trim()?.takeIf { it.isNotEmpty() }?.toIntOrNull()
+            }
+
+            // Mandatory: source
+            val sourceCode = row[headerIndex.getValue(COLUMN_SOURCE)].trim()
+            val source = referenceDataProvider.getSources()[sourceCode]
+                ?: return null.also {
+                    logger.warn { "Unknown source '$sourceCode', skipping row." }
+                }
+
+            // Optional name
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
+
+            return MpdSubstanceSynonym(
+                firstSeen = importedDatasetValidFrom,
+                missingSince = null,
+                substance = substance,
+                sequenceNumber = sequenceNumber,
+                source = source,
+                name = name
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to parse ${getDatasetType().description} row: ${row.joinToString()}" }
+            return null
+        }
     }
 }

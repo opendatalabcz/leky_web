@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.domain.entity.mpd
 
+import cz.machovec.lekovyportal.domain.AttributeChange
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -20,7 +21,13 @@ import java.time.LocalDate
 data class MpdOrganisation(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    override val id: Long? = null,
+
+    @Column(name = "first_seen", nullable = false)
+    override val firstSeen: LocalDate,
+
+    @Column(name = "missing_since")
+    override val missingSince: LocalDate?,
 
     @Column(name = "code", nullable = false)
     val code: String,
@@ -29,18 +36,40 @@ data class MpdOrganisation(
     @JoinColumn(name = "country_id", nullable = false)
     val country: MpdCountry,
 
-    @Column(name = "name", nullable = false)
-    val name: String,
+    @Column(name = "name")
+    val name: String?,
 
-    @Column(name = "is_manufacturer", nullable = false)
-    val isManufacturer: Boolean,
+    @Column(name = "is_manufacturer")
+    val isManufacturer: Boolean?,
 
-    @Column(name = "is_marketing_authorization_holder", nullable = false)
-    val isMarketingAuthorizationHolder: Boolean,
+    @Column(name = "is_marketing_authorization_holder")
+    val isMarketingAuthorizationHolder: Boolean?,
+) : BaseMpdEntity<MpdOrganisation>() {
 
-    @Column(name = "valid_from", nullable = false)
-    val validFrom: LocalDate,
+    override fun getUniqueKey(): String {
+        return "$code-${country.id}"
+    }
 
-    @Column(name = "valid_to")
-    val validTo: LocalDate? = null
-)
+    override fun copyPreservingIdAndFirstSeen(from: MpdOrganisation): MpdOrganisation {
+        return this.copy(
+            id = from.id,
+            firstSeen = from.firstSeen,
+            missingSince = null
+        )
+    }
+
+    override fun markMissing(since: LocalDate): MpdOrganisation {
+        return this.copy(missingSince = since)
+    }
+
+    override fun getBusinessAttributeChanges(other: MpdOrganisation): List<AttributeChange<*>> {
+        val changes = mutableListOf<AttributeChange<*>>()
+        fun <T> compare(attr: String, a: T, b: T) {
+            if (a != b) changes += AttributeChange(attr, a, b)
+        }
+        compare("name", name, other.name)
+        compare("isManufacturer", isManufacturer, other.isManufacturer)
+        compare("isMarketingAuthorizationHolder", isMarketingAuthorizationHolder, other.isMarketingAuthorizationHolder)
+        return changes
+    }
+}

@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.io.ByteArrayInputStream
 import java.net.URL
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.zip.ZipInputStream
 
@@ -65,61 +66,108 @@ class MpdFileProcessor(
 
     @Transactional
     override fun processFile(msg: NewFileMessage) {
-        val isProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-            msg.datasetType, msg.year, msg.month ?: 0
-        )
+        logger.info { "Starting processing of dataset=${msg.datasetType}, year=${msg.year}, month=${msg.month}, url=${msg.fileUrl}" }
 
+        val fileBytes = URL(msg.fileUrl).readBytes()
+
+        if (msg.month == null) {
+            processYearlyZip(msg, fileBytes)
+        } else {
+            processMonthlyZip(msg, fileBytes)
+        }
+    }
+
+    private fun processYearlyZip(msg: NewFileMessage, annualZipBytes: ByteArray) {
+        logger.info { "Detected yearly ZIP. Extracting monthly zips..." }
+
+        val monthlyZips = extractMonthlyZips(annualZipBytes)
+            .toSortedMap(compareBy { parseMonthFromFilename(it) ?: 0 })
+
+        monthlyZips.forEach { (monthFileName, zipContent) ->
+            val month = parseMonthFromFilename(monthFileName)
+            if (month == null) {
+                logger.warn { "Skipping $monthFileName, cannot parse month from name." }
+                return@forEach
+            }
+
+            val monthlyMsg = msg.copy(month = month)
+            processMonthlyZip(monthlyMsg, zipContent)
+        }
+
+        logger.info { "Finished processing all monthly zips in annual zip for year=${msg.year}" }
+    }
+
+    private fun processMonthlyZip(msg: NewFileMessage, fileBytes: ByteArray) {
+        logger.info { "Processing monthly ZIP for year=${msg.year}, month=${msg.month}" }
+
+        if (msg.month == null) return
+
+        if (msg.year != 2021 || msg.month != 1) {
+            val previousYearMonth = YearMonth.of(msg.year, msg.month).minusMonths(1)
+            val isPreviousProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
+                msg.datasetType,
+                previousYearMonth.year,
+                previousYearMonth.monthValue
+            )
+            if (!isPreviousProcessed) {
+                logger.warn { "Previous month ${previousYearMonth} not processed yet. Skipping ${msg.year}-${msg.month}." }
+                return
+            }
+        }
+
+        val isProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
+            msg.datasetType,
+            msg.year,
+            msg.month
+        )
         if (isProcessed) {
             logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} already processed. Skipping." }
             return
         }
 
-        val fileBytes = URL(msg.fileUrl).readBytes()
-        val extractedFiles = extractFiles(fileBytes)
-
-        val (validFrom, validTo) = determineValidityDates(msg.year, msg.month ?: 1, extractedFiles["dlp_platnost.csv"])
+        val extractedFiles = extractCsvFiles(fileBytes)
+        val (validFrom, validTo) = determineValidityDates(msg.year, msg.month, extractedFiles["dlp_platnost.csv"])
 
         extractedFiles.forEach { (fileName, content) ->
             when (fileName) {
-                "dlp_indikacniskupiny.csv" -> mpdIndicationGroupProcessor.importData(content, validFrom, validTo)
-                "dlp_doping.csv" -> mpdDopingCategoryProcessor.importData(content, validFrom, validTo)
-                "dlp_jednotky.csv" -> mpdMeasurementUnitProcessor.importData(content, validFrom, validTo)
-                "dlp_regproc.csv" -> mpdRegistrationProcessProcessor.importData(content, validFrom, validTo)
-                "dlp_stavyreg.csv" -> mpdRegistrationStatusProcessor.importData(content, validFrom, validTo)
-                "dlp_vydej.csv" -> mpdDispenseTypeProcessor.importData(content, validFrom, validTo)
-                "dlp_zavislost.csv" -> mpdAddictionCategoryProcessor.importData(content, validFrom, validTo)
-                "dlp_zdroje.csv" -> mpdSourceProcessor.importData(content, validFrom, validTo)
-                "dlp_slozenipriznak.csv" -> mpdCompositionFlagProcessor.importData(content, validFrom, validTo)
-                "dlp_narvla.csv" -> mpdGovernmentRegulationCategoryProcessor.importData(content, validFrom, validTo)
-                "dlp_zeme.csv" -> mpdCountryProcessor.importData(content, validFrom, validTo)
-                "dlp_obaly.csv" -> mpdPackageTypeProcessor.importData(content, validFrom, validTo)
-                "dlp_cesty.csv" -> mpdAdministrationRouteProcessor.importData(content, validFrom, validTo)
-                "dlp_formy.csv" -> mpdDosageFormProcessor.importData(content, validFrom, validTo)
-                "dlp_atc.csv" -> mpdAtcGroupProcessor.importData(content, validFrom, validTo)
-                //"dlp_organizace.csv" -> mpdOrganisationProcessor.importData(content, validFrom, validTo)
-                "dlp_lecivelatky.csv" -> mpdActiveSubstanceProcessor.importData(content, validFrom, validTo)
-                //"dlp_latky.csv" -> mpdSubstanceProcessor.importData(content, validFrom, validTo)
-                //"dlp_synonyma.csv" -> mpdSubstanceSynonymProcessor.importData(content, validFrom)
-                "dlp_lecivepripravky.csv" -> mpdMedicinalProductProcessor.importData(content, validFrom, validTo)
-                "dlp_splp.csv" -> mpdRegistrationExceptionProcessor.importData(content, validFrom, validTo)
-                "dlp_zruseneregistrace.csv" -> mpdCancelledRegistrationProcessor.importData(content, validFrom, validTo)
+                "dlp_lecivepripravky.csv" -> mpdMedicinalProductProcessor.processCsv(content, validFrom, validTo)
             }
         }
 
         processedDatasetRepository.save(
-            ProcessedDataset(datasetType = msg.datasetType, year = msg.year, month = msg.month ?: 0)
+            ProcessedDataset(
+                datasetType = msg.datasetType,
+                year = msg.year,
+                month = msg.month
+            )
         )
 
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} processed successfully." }
     }
 
-    private fun extractFiles(fileBytes: ByteArray): Map<String, ByteArray> {
+    private fun extractMonthlyZips(annualZip: ByteArray): Map<String, ByteArray> {
+        val result = mutableMapOf<String, ByteArray>()
+        ZipInputStream(ByteArrayInputStream(annualZip)).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory && entry.name.endsWith(".zip", ignoreCase = true)) {
+                    result[entry.name] = zis.readBytes()
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return result
+    }
+
+    private fun extractCsvFiles(zipBytes: ByteArray): Map<String, ByteArray> {
         val extractedFiles = mutableMapOf<String, ByteArray>()
-        ZipInputStream(ByteArrayInputStream(fileBytes)).use { zis ->
+        ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
                 if (!entry.isDirectory && entry.name.endsWith(".csv", ignoreCase = true)) {
-                    extractedFiles[entry.name] = zis.readBytes()
+                    val fileName = entry.name.substringAfterLast('/')
+                    extractedFiles[fileName] = zis.readBytes()
                 }
                 zis.closeEntry()
                 entry = zis.nextEntry
@@ -128,7 +176,13 @@ class MpdFileProcessor(
         return extractedFiles
     }
 
-    private fun determineValidityDates(year: Int, month: Int, validityFile: ByteArray?): Pair<LocalDate, LocalDate?> {
+    private fun parseMonthFromFilename(fileName: String): Int? {
+        val regex = Regex(".*(\\d{4})(\\d{2}).*\\.zip")
+        val match = regex.matchEntire(fileName)
+        return match?.destructured?.component2()?.toIntOrNull()
+    }
+
+    private fun determineValidityDates(year: Int, month: Int, validityFile: ByteArray?): Pair<LocalDate, LocalDate> {
         return if (validityFile != null) {
             val text = validityFile.decodeToString()
             val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
@@ -138,8 +192,8 @@ class MpdFileProcessor(
                 val validFrom = LocalDate.parse(firstLine[0], DateTimeFormatter.ofPattern("dd.MM.yyyy"))
                 val validTo = firstLine[1].takeIf { it.isNotEmpty() }?.let {
                     LocalDate.parse(it, DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-                }
-                Pair(validFrom, validTo)
+                } ?: YearMonth.of(year, month).atEndOfMonth()
+                validFrom to validTo
             } else {
                 fallbackValidityDates(year, month)
             }
@@ -148,8 +202,9 @@ class MpdFileProcessor(
         }
     }
 
-    private fun fallbackValidityDates(year: Int, month: Int): Pair<LocalDate, LocalDate?> {
-        val validFrom = LocalDate.of(year, month, 1)
-        return Pair(validFrom, null)
+    private fun fallbackValidityDates(year: Int, month: Int): Pair<LocalDate, LocalDate> {
+        val start = LocalDate.of(year, month, 1)
+        val end = YearMonth.of(year, month).atEndOfMonth()
+        return start to end
     }
 }

@@ -1,101 +1,80 @@
 package cz.machovec.lekovyportal.processor.mdp
 
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDosageForm
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdAttributeChangeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDosageFormRepository
-import jakarta.transaction.Transactional
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import java.nio.charset.Charset
 import java.time.LocalDate
 
 private val logger = KotlinLogging.logger {}
 
 @Service
 class MpdDosageFormProcessor(
-    private val dosageFormRepository: MpdDosageFormRepository
+    dosageFormRepository: MpdDosageFormRepository,
+    attributeChangeRepository: MpdAttributeChangeRepository,
+    temporaryAbsenceRepository: MpdRecordTemporaryAbsenceRepository
+) : BaseMpdProcessor<MpdDosageForm>(
+    dosageFormRepository,
+    attributeChangeRepository,
+    temporaryAbsenceRepository
 ) {
-
-    @Transactional
-    fun importData(csvBytes: ByteArray, validFromOfNewDataset: LocalDate, validToOfNewDataset: LocalDate?) {
-        val text = csvBytes.toString(Charset.forName("Windows-1250"))
-        val lines = text.split("\r\n", "\n").drop(1).filter { it.isNotBlank() }
-
-        val currentData = lines.mapNotNull { parseLine(it, validFromOfNewDataset) }
-        val newCodes = currentData.map { it.code }.toSet()
-        val existingRecords = dosageFormRepository.findAllByCodeIn(newCodes)
-        val updatedRecords = mutableListOf<MpdDosageForm>()
-
-        currentData.forEach { row ->
-            val existing = existingRecords.find { it.code == row.code }
-            if (existing == null) {
-                updatedRecords += row
-            } else {
-                var changed = false
-
-                if (existing.name != row.name || existing.nameEn != row.nameEn || existing.nameLat != row.nameLat) {
-                    logger.info { "Code ${existing.code} name changed: '${existing.name}' -> '${row.name}', '${existing.nameEn}' -> '${row.nameEn}', '${existing.nameLat}' -> '${row.nameLat}'" }
-                    changed = true
-                }
-
-                if (existing.isCannabis != row.isCannabis) {
-                    logger.info { "Code ${existing.code} cannabis flag changed from '${existing.isCannabis}' to '${row.isCannabis}'" }
-                    changed = true
-                }
-
-                if (existing.edqmCode != row.edqmCode) {
-                    logger.info { "Code ${existing.code} EDQM code changed from '${existing.edqmCode}' to '${row.edqmCode}'" }
-                    changed = true
-                }
-
-                if (existing.validTo != null) {
-                    logger.info { "Code ${existing.code} reactivated (validFrom ${row.validFrom})" }
-                    changed = true
-                }
-
-                if (changed) {
-                    updatedRecords += existing.copy(
-                        name = row.name,
-                        nameEn = row.nameEn,
-                        nameLat = row.nameLat,
-                        isCannabis = row.isCannabis,
-                        edqmCode = row.edqmCode,
-                        validTo = null,
-                        validFrom = row.validFrom
-                    )
-                }
-            }
-        }
-
-        val missing = existingRecords.filter { !newCodes.contains(it.code) && it.validTo == null }
-        missing.forEach {
-            updatedRecords += it.copy(validTo = validFromOfNewDataset)
-            logger.info { "Code ${it.code} marked invalid from $validFromOfNewDataset" }
-        }
-
-        dosageFormRepository.saveAll(updatedRecords)
-        logger.info { "Processed ${updatedRecords.size} updates for MpdDosageForm." }
+    companion object {
+        private const val COLUMN_FORMA = "FORMA"
+        private const val COLUMN_NAZEV = "NAZEV"
+        private const val COLUMN_NAZEV_EN = "NAZEV_EN"
+        private const val COLUMN_NAZEV_LAT = "NAZEV_LAT"
+        private const val COLUMN_JE_KONOPI = "JE_KONOPI"
+        private const val COLUMN_KOD_EDQM = "KOD_EDQM"
     }
 
-    private fun parseLine(line: String, validFromOfNewDataset: LocalDate): MpdDosageForm? {
-        val cols = line.split(";")
-        if (cols.size < 6) return null
+    override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_DOSAGE_FORM
 
-        val code = cols[0].trim()
-        val name = cols[1].trim()
-        val nameEn = cols[2].trim()
-        val nameLat = cols[3].trim()
-        val isCannabis = cols[4].trim().equals("A", ignoreCase = true)
-        val edqmCode = cols[5].takeIf { it.isNotEmpty() }?.trim()?.toLongOrNull()
+    override fun getExpectedColumns(): List<String> = listOf(
+        COLUMN_FORMA,
+        COLUMN_NAZEV,
+        COLUMN_NAZEV_EN,
+        COLUMN_NAZEV_LAT,
+        COLUMN_JE_KONOPI,
+        COLUMN_KOD_EDQM
+    )
 
-        return MpdDosageForm(
-            code = code,
-            name = name,
-            nameEn = nameEn,
-            nameLat = nameLat,
-            isCannabis = isCannabis,
-            edqmCode = edqmCode,
-            validFrom = validFromOfNewDataset,
-            validTo = null
-        )
+    override fun mapCsvRowToEntity(
+        row: Array<String>,
+        headerIndex: Map<String, Int>,
+        importedDatasetValidFrom: LocalDate
+    ): MpdDosageForm? {
+        try {
+            // Mandatory attributes
+            val code = row[headerIndex.getValue(COLUMN_FORMA)].trim()
+
+            // Optional attributes
+            val name = headerIndex[COLUMN_NAZEV]
+                ?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAZEV_EN]
+                ?.let { row.getOrNull(it)?.trim() }
+            val nameLat = headerIndex[COLUMN_NAZEV_LAT]
+                ?.let { row.getOrNull(it)?.trim() }
+            val isCannabis = headerIndex[COLUMN_JE_KONOPI]
+                ?.let { row.getOrNull(it)?.trim().equals("A", ignoreCase = true) }
+            val edqmCode = headerIndex[COLUMN_KOD_EDQM]
+                ?.let { row.getOrNull(it)?.trim()?.toLongOrNull() }
+
+            return MpdDosageForm(
+                firstSeen = importedDatasetValidFrom,
+                missingSince = null,
+                code = code,
+                name = name,
+                nameEn = nameEn,
+                nameLat = nameLat,
+                isCannabis = isCannabis,
+                edqmCode = edqmCode
+            )
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to parse ${getDatasetType().description} row: ${row.joinToString()}" }
+            return null
+        }
     }
 }

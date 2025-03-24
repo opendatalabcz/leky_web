@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface MpdIndicationGroupRepository : JpaRepository<MpdIndicationGroup, String> {
+interface MpdIndicationGroupRepository : JpaRepository<MpdIndicationGroup, Long> {
     fun findByCode(code: String): MpdIndicationGroup?
 
     fun findAllByCodeIn(codes: Set<String>): List<MpdIndicationGroup>

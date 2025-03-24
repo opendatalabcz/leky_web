@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.domain.entity.mpd
 
+import cz.machovec.lekovyportal.domain.AttributeChange
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -13,17 +14,44 @@ import java.time.LocalDate
 data class MpdDopingCategory(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    override val id: Long? = null,
+
+    @Column(name = "first_seen", nullable = false)
+    override val firstSeen: LocalDate,
+
+    @Column(name = "missing_since")
+    override val missingSince: LocalDate?,
 
     @Column(name = "code", nullable = false, unique = true)
     val code: String,
 
-    @Column(name = "name", nullable = false)
-    val name: String,
+    @Column(name = "name")
+    val name: String?
+) : BaseMpdEntity<MpdDopingCategory>() {
 
-    @Column(name = "valid_from", nullable = false)
-    val validFrom: LocalDate,
+    override fun getUniqueKey(): String = code
 
-    @Column(name = "valid_to")
-    val validTo: LocalDate? = null
-)
+    override fun copyPreservingIdAndFirstSeen(from: MpdDopingCategory): MpdDopingCategory {
+        return this.copy(
+            id = from.id,
+            firstSeen = from.firstSeen,
+            missingSince = null
+        )
+    }
+
+    override fun markMissing(since: LocalDate): MpdDopingCategory {
+        return this.copy(missingSince = since)
+    }
+
+    override fun getBusinessAttributeChanges(other: MpdDopingCategory): List<AttributeChange<*>> {
+        val changes = mutableListOf<AttributeChange<*>>()
+        fun <T> compare(attr: String, a: T?, b: T?) {
+            if (a != b) changes += AttributeChange(attr, a, b)
+        }
+
+        compare("name", name, other.name)
+
+        return changes
+    }
+}
+

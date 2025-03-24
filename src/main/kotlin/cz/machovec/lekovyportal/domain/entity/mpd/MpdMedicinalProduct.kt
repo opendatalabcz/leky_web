@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.domain.entity.mpd
 
+import cz.machovec.lekovyportal.domain.AttributeChange
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -17,7 +18,13 @@ import java.time.LocalDate
 data class MpdMedicinalProduct(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
+    override val id: Long? = null,
+
+    @Column(name = "first_seen", nullable = false)
+    override val firstSeen: LocalDate,
+
+    @Column(name = "missing_since")
+    override val missingSince: LocalDate?,
 
     @Column(name = "sukl_code", nullable = false, unique = true)
     val suklCode: String,
@@ -156,10 +163,70 @@ data class MpdMedicinalProduct(
 
     @Column(name = "medicinal_product_type")
     val medicinalProductType: String?,
+) : BaseMpdEntity<MpdMedicinalProduct>() {
 
-    @Column(name = "valid_from", nullable = false)
-    val validFrom: LocalDate,
+    override fun getUniqueKey(): String = suklCode
 
-    @Column(name = "valid_to")
-    val validTo: LocalDate?
-)
+    override fun copyPreservingIdAndFirstSeen(from: MpdMedicinalProduct): MpdMedicinalProduct {
+        return this.copy(
+            id = from.id,
+            firstSeen = from.firstSeen,
+            missingSince = null
+        )
+    }
+
+    override fun markMissing(since: LocalDate): MpdMedicinalProduct {
+        return this.copy(missingSince = since)
+    }
+
+    override fun getBusinessAttributeChanges(other: MpdMedicinalProduct): List<AttributeChange<*>> {
+        val changes = mutableListOf<AttributeChange<*>>()
+
+        fun <T> compare(attribute: String, a: T?, b: T?) {
+            if (a != b) changes += AttributeChange(attribute, a, b)
+        }
+
+        compare("reportingObligation", reportingObligation, other.reportingObligation)
+        compare("name", name, other.name)
+        compare("strength", strength, other.strength)
+        compare("dosageFormId", dosageForm?.id, other.dosageForm?.id)
+        compare("packaging", packaging, other.packaging)
+        compare("administrationRouteId", administrationRoute?.id, other.administrationRoute?.id)
+        compare("supplementaryInformation", supplementaryInformation, other.supplementaryInformation)
+        compare("packageTypeId", packageType?.id, other.packageType?.id)
+        compare("marketingAuthorizationHolderId", marketingAuthorizationHolder?.id, other.marketingAuthorizationHolder?.id)
+        compare("currentMarketingAuthorizationHolderId", currentMarketingAuthorizationHolder?.id, other.currentMarketingAuthorizationHolder?.id)
+        compare("registrationStatusId", registrationStatus?.id, other.registrationStatus?.id)
+        compare("registrationValidTo", registrationValidTo, other.registrationValidTo)
+        compare("registrationUnlimited", registrationUnlimited, other.registrationUnlimited)
+        compare("marketSupplyEndDate", marketSupplyEndDate, other.marketSupplyEndDate)
+        compare("indicationGroupId", indicationGroup?.id, other.indicationGroup?.id)
+        compare("atcGroupId", atcGroup?.id, other.atcGroup?.id)
+        compare("registrationNumber", registrationNumber, other.registrationNumber)
+        compare("parallelImportId", parallelImportId, other.parallelImportId)
+        compare("parallelImportSupplierId", parallelImportSupplier?.id, other.parallelImportSupplier?.id)
+        compare("registrationProcessId", registrationProcess?.id, other.registrationProcess?.id)
+        compare("dailyDoseAmount", dailyDoseAmount, other.dailyDoseAmount)
+        compare("dailyDoseUnitId", dailyDoseUnit?.id, other.dailyDoseUnit?.id)
+        compare("dailyDosePackaging", dailyDosePackaging, other.dailyDosePackaging)
+        compare("whoSource", whoSource, other.whoSource)
+        compare("substanceList", substanceList, other.substanceList)
+        compare("dispenseTypeId", dispenseType?.id, other.dispenseType?.id)
+        compare("addictionCategoryId", addictionCategory?.id, other.addictionCategory?.id)
+        compare("dopingCategoryId", dopingCategory?.id, other.dopingCategory?.id)
+        compare("governmentRegulationCategoryId", governmentRegulationCategory?.id, other.governmentRegulationCategory?.id)
+        compare("deliveriesFlag", deliveriesFlag, other.deliveriesFlag)
+        compare("ean", ean, other.ean)
+        compare("braille", braille, other.braille)
+        compare("expiryPeriodDuration", expiryPeriodDuration, other.expiryPeriodDuration)
+        compare("expiryPeriodUnit", expiryPeriodUnit, other.expiryPeriodUnit)
+        compare("registeredName", registeredName, other.registeredName)
+        compare("mrpNumber", mrpNumber, other.mrpNumber)
+        compare("registrationLegalBasis", registrationLegalBasis, other.registrationLegalBasis)
+        compare("safetyFeature", safetyFeature, other.safetyFeature)
+        compare("prescriptionRestriction", prescriptionRestriction, other.prescriptionRestriction)
+        compare("medicinalProductType", medicinalProductType, other.medicinalProductType)
+
+        return changes
+    }
+}
