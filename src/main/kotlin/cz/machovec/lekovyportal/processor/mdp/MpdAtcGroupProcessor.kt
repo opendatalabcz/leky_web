@@ -22,19 +22,19 @@ class MpdAtcGroupProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_ATC = "ATC"
-        private const val COLUMN_TYP = "NT"
-        private const val COLUMN_NAZEV = "NAZEV"
-        private const val COLUMN_NAZEV_EN = "NAZEV_EN"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_TYPE = "type"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_NAME_EN = "nameEn"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_ATC_GROUP
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_ATC,
-        COLUMN_TYP,
-        COLUMN_NAZEV,
-        COLUMN_NAZEV_EN
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("ATC"),
+        COLUMN_TYPE to listOf("NT"),
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_NAME_EN to listOf("NAZEV_EN")
     )
 
     override fun mapCsvRowToEntity(
@@ -44,12 +44,12 @@ class MpdAtcGroupProcessor(
     ): MpdAtcGroup? {
         try {
             // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_ATC)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
 
             // Optional attributes
-            val type = headerIndex[COLUMN_TYP]?.let { row.getOrNull(it)?.trim()?.firstOrNull() }
-            val name = headerIndex[COLUMN_NAZEV]?.let { row.getOrNull(it)?.trim() }
-            val nameEn = headerIndex[COLUMN_NAZEV_EN]?.let { row.getOrNull(it)?.trim() }
+            val type = headerIndex[COLUMN_TYPE]?.let { row.getOrNull(it)?.trim()?.firstOrNull() }
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAME_EN]?.let { row.getOrNull(it)?.trim() }
 
             return MpdAtcGroup(
                 firstSeen = importedDatasetValidFrom,

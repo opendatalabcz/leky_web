@@ -24,19 +24,19 @@ class MpdSubstanceSynonymProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_SUBSTANCE = "KOD_LATKY"
-        private const val COLUMN_SEQUENCE = "SQ"
-        private const val COLUMN_SOURCE = "ZDROJ"
-        private const val COLUMN_NAME = "NAZEV"
+        private const val COLUMN_SUBSTANCE = "substance"
+        private const val COLUMN_SEQUENCE = "sequenceNumber"
+        private const val COLUMN_SOURCE = "source"
+        private const val COLUMN_NAME = "name"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_SUBSTANCE_SYNONYM
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_SUBSTANCE,
-        COLUMN_SEQUENCE,
-        COLUMN_SOURCE,
-        COLUMN_NAME
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_SUBSTANCE to listOf("KOD_LATKY"),
+        COLUMN_SEQUENCE to listOf("SQ"),
+        COLUMN_SOURCE to listOf("ZDROJ"),
+        COLUMN_NAME to listOf("NAZEV")
     )
 
     override fun mapCsvRowToEntity(

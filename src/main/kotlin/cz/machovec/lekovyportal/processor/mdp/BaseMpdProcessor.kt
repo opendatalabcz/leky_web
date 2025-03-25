@@ -44,16 +44,18 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         }
 
         val (headers, rows) = readCsv(csvBytes)
-        val headerIndex = headers.withIndex().associate { it.value to it.index }
+        val columnIndexMap = findColumnIndexes(headers)
 
-        val missingColumns = getExpectedColumns().filterNot { headerIndex.containsKey(it) }
+        val expectedKeys = getExpectedColumnsMap().keys
+        val missingColumns = expectedKeys.filterNot { it in columnIndexMap.keys }
+
         if (missingColumns.isNotEmpty()) {
             logger.warn { "Missing required columns for ${getDatasetType().description}: $missingColumns" }
         }
 
         val importedCsvRows = rows
             .filter { row -> row.any { it.isNotBlank() } }
-            .mapNotNull { mapCsvRowToEntity(it, headerIndex, importedDatasetValidFrom) }
+            .mapNotNull { mapCsvRowToEntity(it, columnIndexMap, importedDatasetValidFrom) }
 
         logger.debug { "Successfully parsed CSV rows: ${importedCsvRows.size} out of ${rows.size}" }
 
@@ -86,7 +88,7 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
 
     protected abstract fun getDatasetType(): MpdDatasetType
 
-    protected abstract fun getExpectedColumns(): List<String>
+    protected abstract fun getExpectedColumnsMap(): Map<String, List<String>>
 
     protected abstract fun mapCsvRowToEntity(
         row: Array<String>,
@@ -202,6 +204,18 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
             newlyMissingRecords = newlyMissingRecords,
             alreadyMissingRecords = alreadyMissing
         )
+    }
+
+    private fun findColumnIndexes(headers: List<String>): Map<String, Int> {
+        val normalizedHeaders = headers.mapIndexed { index, value ->
+            index to value.trim().uppercase()
+        }
+
+        return getExpectedColumnsMap().mapNotNull { (englishName, aliases) ->
+            val aliasUpper = aliases.map { it.trim().uppercase() }
+            val index = normalizedHeaders.firstOrNull { (_, headerName) -> headerName in aliasUpper }?.first
+            if (index != null) englishName to index else null
+        }.toMap()
     }
 
     private fun logDetailedSummary(d: ChangesResult<T>, m: MissingResult<T>) {

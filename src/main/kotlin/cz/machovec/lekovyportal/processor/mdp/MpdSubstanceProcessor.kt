@@ -24,27 +24,27 @@ class MpdSubstanceProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_KOD = "KOD_LATKY"
-        private const val COLUMN_ZDROJ = "ZDROJ"
-        private const val COLUMN_INN = "NAZE_INN"
-        private const val COLUMN_EN = "NAZEV_EN"
-        private const val COLUMN_NAZEV = "NAZEV"
-        private const val COLUMN_ZAVISLOST = "ZAV"
-        private const val COLUMN_DOPING = "DOP"
-        private const val COLUMN_VLADNI = "NARVLA"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_SOURCE = "source"
+        private const val COLUMN_NAME_INN = "nameInn"
+        private const val COLUMN_NAME_EN = "nameEn"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_ADDICTION_CATEGORY = "addictionCategory"
+        private const val COLUMN_DOPING_CATEGORY = "dopingCategory"
+        private const val COLUMN_GOV_REG = "governmentRegulationCategory"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_SUBSTANCE
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_KOD,
-        COLUMN_ZDROJ,
-        COLUMN_INN,
-        COLUMN_EN,
-        COLUMN_NAZEV,
-        COLUMN_ZAVISLOST,
-        COLUMN_DOPING,
-        COLUMN_VLADNI
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("KOD_LATKY"),
+        COLUMN_SOURCE to listOf("ZDROJ"),
+        COLUMN_NAME_INN to listOf("NAZEV_INN"),
+        COLUMN_NAME_EN to listOf("NAZEV_EN"),
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_ADDICTION_CATEGORY to listOf("ZAV"),
+        COLUMN_DOPING_CATEGORY to listOf("DOP"),
+        COLUMN_GOV_REG to listOf("NARVLA")
     )
 
     override fun mapCsvRowToEntity(
@@ -54,27 +54,27 @@ class MpdSubstanceProcessor(
     ): MpdSubstance? {
         try {
             // Mandatory attribute
-            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
 
             // Optional attributes
-            val sourceCode = headerIndex[COLUMN_ZDROJ]?.let { row.getOrNull(it)?.trim() }
+            val sourceCode = headerIndex[COLUMN_SOURCE]?.let { row.getOrNull(it)?.trim() }
             val source = sourceCode?.let { referenceDataProvider.getSources()[it] }
 
-            val nameInn = headerIndex[COLUMN_INN]?.let { row.getOrNull(it)?.trim() }
-            val nameEn = headerIndex[COLUMN_EN]?.let { row.getOrNull(it)?.trim() }
-            val name = headerIndex[COLUMN_NAZEV]?.let { row.getOrNull(it)?.trim() }
+            val nameInn = headerIndex[COLUMN_NAME_INN]?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAME_EN]?.let { row.getOrNull(it)?.trim() }
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
 
-            val addictionCategory = headerIndex[COLUMN_ZAVISLOST]
+            val addictionCategory = headerIndex[COLUMN_ADDICTION_CATEGORY]
                 ?.let { row.getOrNull(it)?.trim() }
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { referenceDataProvider.getAddictionCategories()[it] }
 
-            val dopingCategory = headerIndex[COLUMN_DOPING]
+            val dopingCategory = headerIndex[COLUMN_DOPING_CATEGORY]
                 ?.let { row.getOrNull(it)?.trim() }
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { referenceDataProvider.getDopingCategories()[it] }
 
-            val governmentRegulationCategory = headerIndex[COLUMN_VLADNI]
+            val governmentRegulationCategory = headerIndex[COLUMN_GOV_REG]
                 ?.let { row.getOrNull(it)?.trim() }
                 ?.takeIf { it.isNotEmpty() }
                 ?.let { referenceDataProvider.getGovRegulationCategories()[it] }

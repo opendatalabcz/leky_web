@@ -22,23 +22,23 @@ class MpdDosageFormProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_FORMA = "FORMA"
-        private const val COLUMN_NAZEV = "NAZEV"
-        private const val COLUMN_NAZEV_EN = "NAZEV_EN"
-        private const val COLUMN_NAZEV_LAT = "NAZEV_LAT"
-        private const val COLUMN_JE_KONOPI = "JE_KONOPI"
-        private const val COLUMN_KOD_EDQM = "KOD_EDQM"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_NAME_EN = "nameEn"
+        private const val COLUMN_NAME_LAT = "nameLat"
+        private const val COLUMN_IS_CANNABIS = "isCannabis"
+        private const val COLUMN_EDQM_CODE = "edqmCode"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_DOSAGE_FORM
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_FORMA,
-        COLUMN_NAZEV,
-        COLUMN_NAZEV_EN,
-        COLUMN_NAZEV_LAT,
-        COLUMN_JE_KONOPI,
-        COLUMN_KOD_EDQM
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("FORMA"),
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_NAME_EN to listOf("NAZEV_EN"),
+        COLUMN_NAME_LAT to listOf("NAZEV_LAT"),
+        COLUMN_IS_CANNABIS to listOf("JE_KONOPI"),
+        COLUMN_EDQM_CODE to listOf("KOD_EDQM")
     )
 
     override fun mapCsvRowToEntity(
@@ -48,18 +48,15 @@ class MpdDosageFormProcessor(
     ): MpdDosageForm? {
         try {
             // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_FORMA)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
 
             // Optional attributes
-            val name = headerIndex[COLUMN_NAZEV]
-                ?.let { row.getOrNull(it)?.trim() }
-            val nameEn = headerIndex[COLUMN_NAZEV_EN]
-                ?.let { row.getOrNull(it)?.trim() }
-            val nameLat = headerIndex[COLUMN_NAZEV_LAT]
-                ?.let { row.getOrNull(it)?.trim() }
-            val isCannabis = headerIndex[COLUMN_JE_KONOPI]
-                ?.let { row.getOrNull(it)?.trim().equals("A", ignoreCase = true) }
-            val edqmCode = headerIndex[COLUMN_KOD_EDQM]
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAME_EN]?.let { row.getOrNull(it)?.trim() }
+            val nameLat = headerIndex[COLUMN_NAME_LAT]?.let { row.getOrNull(it)?.trim() }
+            val isCannabis = headerIndex[COLUMN_IS_CANNABIS]
+                ?.let { row.getOrNull(it)?.trim()?.equals("A", ignoreCase = true) }
+            val edqmCode = headerIndex[COLUMN_EDQM_CODE]
                 ?.let { row.getOrNull(it)?.trim()?.toLongOrNull() }
 
             return MpdDosageForm(
