@@ -53,9 +53,22 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
             logger.warn { "Missing required columns for ${getDatasetType().description}: $missingColumns" }
         }
 
+        val seenKeys = mutableSetOf<Any>()
+
         val importedCsvRows = rows
             .filter { row -> row.any { it.isNotBlank() } }
-            .mapNotNull { mapCsvRowToEntity(it, columnIndexMap, importedDatasetValidFrom) }
+            .mapNotNull { row ->
+                val entity = mapCsvRowToEntity(row, columnIndexMap, importedDatasetValidFrom)
+                if (entity == null) return@mapNotNull null
+
+                val key = entity.getUniqueKey()
+                if (!seenKeys.add(key)) {
+                    logger.warn { "Duplicate key '$key' encountered in CSV. Skipping row: ${row.joinToString()}" }
+                    return@mapNotNull null
+                }
+
+                entity
+            }
 
         logger.debug { "Successfully parsed CSV rows: ${importedCsvRows.size} out of ${rows.size}" }
 
