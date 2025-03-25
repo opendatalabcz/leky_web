@@ -22,15 +22,15 @@ class MpdSourceProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "KOD"
-        private const val COLUMN_NAZEV = "NAZEV"
+        private const val CODE = "code"
+        private const val NAME = "name"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_SOURCE
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_KOD,
-        COLUMN_NAZEV
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        CODE to listOf("ZDROJ"),
+        NAME to listOf("NAZEV")
     )
 
     override fun mapCsvRowToEntity(
@@ -39,12 +39,11 @@ class MpdSourceProcessor(
         importedDatasetValidFrom: LocalDate
     ): MpdSource? {
         try {
-            // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+            val codeIndex = headerIndex["code"] ?: return null
+            val code = row.getOrNull(codeIndex)?.trim().orEmpty()
+            if (code.isBlank()) return null
 
-            // Optional attributes
-            val name = headerIndex[COLUMN_NAZEV]
-                ?.let { row.getOrNull(it)?.trim() }
+            val name = headerIndex["name"]?.let { row.getOrNull(it)?.trim() }
 
             return MpdSource(
                 firstSeen = importedDatasetValidFrom,

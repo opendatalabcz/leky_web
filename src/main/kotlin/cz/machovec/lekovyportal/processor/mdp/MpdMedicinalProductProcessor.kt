@@ -25,99 +25,99 @@ class MpdMedicinalProductProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_SUKL_CODE = "KOD_SUKL"
-        private const val COLUMN_REPORTING_OBLIGATION = "H"
-        private const val COLUMN_NAME = "NAZEV"
-        private const val COLUMN_STRENGTH = "SILA"
-        private const val COLUMN_DOSAGE_FORM = "FORMA"
-        private const val COLUMN_PACKAGING = "BALENI"
-        private const val COLUMN_ADMIN_ROUTE = "CESTA"
-        private const val COLUMN_SUPPLEMENTARY_INFO = "DOPLNEK"
-        private const val COLUMN_PACKAGE_TYPE = "OBAL"
-        private const val COLUMN_MAH_CODE = "DRZ"
-        private const val COLUMN_MAH_COUNTRY = "ZEMDRZ"
-        private const val COLUMN_CURR_MAH_CODE = "AKT_DRZ"
-        private const val COLUMN_CURR_MAH_COUNTRY = "AKT_ZEM"
-        private const val COLUMN_REGISTRATION_STATUS = "REG"
-        private const val COLUMN_REGISTRATION_VALID_TO = "V_PLATDO"
-        private const val COLUMN_REGISTRATION_UNLIMITED = "NEOMEZ"
-        private const val COLUMN_MARKET_SUPPLY_END = "UVADENIDO"
-        private const val COLUMN_INDICATION_GROUP = "IS_"
-        private const val COLUMN_ATC_GROUP = "ATC_WHO"
-        private const val COLUMN_REGISTRATION_NUMBER = "RC"
-        private const val COLUMN_PARALLEL_IMPORT_ID = "SDOV"
-        private const val COLUMN_PARALLEL_IMPORT_SUPPLIER_CODE = "SDOV_DOD"
-        private const val COLUMN_PARALLEL_IMPORT_SUPPLIER_COUNTRY = "SDOV_ZEM"
-        private const val COLUMN_REGISTRATION_PROCESS = "REG_PROC"
-        private const val COLUMN_DAILY_DOSE_AMOUNT = "DDDAMNT_WHO"
-        private const val COLUMN_DAILY_DOSE_UNIT = "DDDUN_WHO"
-        private const val COLUMN_DAILY_DOSE_PACKAGING = "DDDP_WHO"
-        private const val COLUMN_WHO_SOURCE = "ZDROJ_WHO"
-        private const val COLUMN_SUBSTANCE_LIST = "LL"
-        private const val COLUMN_DISPENSE_TYPE = "VYDEJ"
-        private const val COLUMN_ADDICTION_CATEGORY = "ZAV"
-        private const val COLUMN_DOPING_CATEGORY = "DOPING"
-        private const val COLUMN_GOV_REG_CATEGORY = "NARVLA"
-        private const val COLUMN_DELIVERIES_FLAG = "DODAVKY"
-        private const val COLUMN_EAN = "EAN"
-        private const val COLUMN_BRAILLE = "BRAILLOVO_PISMO"
-        private const val COLUMN_EXPIRY_PERIOD_DURATION = "EXP"
-        private const val COLUMN_EXPIRY_PERIOD_UNIT = "EXP_T"
-        private const val COLUMN_REGISTERED_NAME = "NAZEV_REG"
-        private const val COLUMN_MRP_NUMBER = "MRP_CISLO"
-        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "PRAVNI_ZAKLAD_REGISTRACE"
-        private const val COLUMN_SAFETY_FEATURE = "OCHRANNY_PRVEK"
-        private const val COLUMN_PRESCRIPTION_RESTRICTION = "OMEZENI_PRESKRIPCE_SMP"
-        private const val COLUMN_MEDICINAL_PRODUCT_TYPE = "TYP_LP"
+        private const val COLUMN_SUKL_CODE = "suklCode"
+        private const val COLUMN_REPORTING_OBLIGATION = "reportingObligation"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_STRENGTH = "strength"
+        private const val COLUMN_DOSAGE_FORM = "dosageForm"
+        private const val COLUMN_PACKAGING = "packaging"
+        private const val COLUMN_ADMIN_ROUTE = "administrationRoute"
+        private const val COLUMN_SUPPLEMENTARY_INFO = "supplementaryInformation"
+        private const val COLUMN_PACKAGE_TYPE = "packageType"
+        private const val COLUMN_MAH_CODE = "mahCode"
+        private const val COLUMN_MAH_COUNTRY = "mahCountry"
+        private const val COLUMN_CURR_MAH_CODE = "currMahCode"
+        private const val COLUMN_CURR_MAH_COUNTRY = "currMahCountry"
+        private const val COLUMN_REGISTRATION_STATUS = "registrationStatus"
+        private const val COLUMN_REGISTRATION_VALID_TO = "registrationValidTo"
+        private const val COLUMN_REGISTRATION_UNLIMITED = "registrationUnlimited"
+        private const val COLUMN_MARKET_SUPPLY_END = "marketSupplyEndDate"
+        private const val COLUMN_INDICATION_GROUP = "indicationGroup"
+        private const val COLUMN_ATC_GROUP = "atcGroup"
+        private const val COLUMN_REGISTRATION_NUMBER = "registrationNumber"
+        private const val COLUMN_PARALLEL_IMPORT_ID = "parallelImportId"
+        private const val COLUMN_PARALLEL_IMPORT_SUPPLIER_CODE = "parallelImportSupplierCode"
+        private const val COLUMN_PARALLEL_IMPORT_SUPPLIER_COUNTRY = "parallelImportSupplierCountry"
+        private const val COLUMN_REGISTRATION_PROCESS = "registrationProcess"
+        private const val COLUMN_DAILY_DOSE_AMOUNT = "dailyDoseAmount"
+        private const val COLUMN_DAILY_DOSE_UNIT = "dailyDoseUnit"
+        private const val COLUMN_DAILY_DOSE_PACKAGING = "dailyDosePackaging"
+        private const val COLUMN_WHO_SOURCE = "whoSource"
+        private const val COLUMN_SUBSTANCE_LIST = "substanceList"
+        private const val COLUMN_DISPENSE_TYPE = "dispenseType"
+        private const val COLUMN_ADDICTION_CATEGORY = "addictionCategory"
+        private const val COLUMN_DOPING_CATEGORY = "dopingCategory"
+        private const val COLUMN_GOV_REG_CATEGORY = "govRegulationCategory"
+        private const val COLUMN_DELIVERIES_FLAG = "deliveriesFlag"
+        private const val COLUMN_EAN = "ean"
+        private const val COLUMN_BRAILLE = "braille"
+        private const val COLUMN_EXPIRY_PERIOD_DURATION = "expiryPeriodDuration"
+        private const val COLUMN_EXPIRY_PERIOD_UNIT = "expiryPeriodUnit"
+        private const val COLUMN_REGISTERED_NAME = "registeredName"
+        private const val COLUMN_MRP_NUMBER = "mrpNumber"
+        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "registrationLegalBasis"
+        private const val COLUMN_SAFETY_FEATURE = "safetyFeature"
+        private const val COLUMN_PRESCRIPTION_RESTRICTION = "prescriptionRestriction"
+        private const val COLUMN_MEDICINAL_PRODUCT_TYPE = "medicinalProductType"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_MEDICINAL_PRODUCT
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_SUKL_CODE,
-        COLUMN_REPORTING_OBLIGATION,
-        COLUMN_NAME,
-        COLUMN_STRENGTH,
-        COLUMN_DOSAGE_FORM,
-        COLUMN_PACKAGING,
-        COLUMN_ADMIN_ROUTE,
-        COLUMN_SUPPLEMENTARY_INFO,
-        COLUMN_PACKAGE_TYPE,
-        COLUMN_MAH_CODE,
-        COLUMN_MAH_COUNTRY,
-        COLUMN_CURR_MAH_CODE,
-        COLUMN_CURR_MAH_COUNTRY,
-        COLUMN_REGISTRATION_STATUS,
-        COLUMN_REGISTRATION_VALID_TO,
-        COLUMN_REGISTRATION_UNLIMITED,
-        COLUMN_MARKET_SUPPLY_END,
-        COLUMN_INDICATION_GROUP,
-        COLUMN_ATC_GROUP,
-        COLUMN_REGISTRATION_NUMBER,
-        COLUMN_PARALLEL_IMPORT_ID,
-        COLUMN_PARALLEL_IMPORT_SUPPLIER_CODE,
-        COLUMN_PARALLEL_IMPORT_SUPPLIER_COUNTRY,
-        COLUMN_REGISTRATION_PROCESS,
-        COLUMN_DAILY_DOSE_AMOUNT,
-        COLUMN_DAILY_DOSE_UNIT,
-        COLUMN_DAILY_DOSE_PACKAGING,
-        COLUMN_WHO_SOURCE,
-        COLUMN_SUBSTANCE_LIST,
-        COLUMN_DISPENSE_TYPE,
-        COLUMN_ADDICTION_CATEGORY,
-        COLUMN_DOPING_CATEGORY,
-        COLUMN_GOV_REG_CATEGORY,
-        COLUMN_DELIVERIES_FLAG,
-        COLUMN_EAN,
-        COLUMN_BRAILLE,
-        COLUMN_EXPIRY_PERIOD_DURATION,
-        COLUMN_EXPIRY_PERIOD_UNIT,
-        COLUMN_REGISTERED_NAME,
-        COLUMN_MRP_NUMBER,
-        COLUMN_REGISTRATION_LEGAL_BASIS,
-        COLUMN_SAFETY_FEATURE,
-        COLUMN_PRESCRIPTION_RESTRICTION,
-        COLUMN_MEDICINAL_PRODUCT_TYPE
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_SUKL_CODE to listOf("KOD_SUKL"),
+        COLUMN_REPORTING_OBLIGATION to listOf("H"),
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_STRENGTH to listOf("SILA"),
+        COLUMN_DOSAGE_FORM to listOf("FORMA"),
+        COLUMN_PACKAGING to listOf("BALENI"),
+        COLUMN_ADMIN_ROUTE to listOf("CESTA"),
+        COLUMN_SUPPLEMENTARY_INFO to listOf("DOPLNEK"),
+        COLUMN_PACKAGE_TYPE to listOf("OBAL"),
+        COLUMN_MAH_CODE to listOf("DRZ"),
+        COLUMN_MAH_COUNTRY to listOf("ZEMDRZ"),
+        COLUMN_CURR_MAH_CODE to listOf("AKT_DRZ"),
+        COLUMN_CURR_MAH_COUNTRY to listOf("AKT_ZEM"),
+        COLUMN_REGISTRATION_STATUS to listOf("REG"),
+        COLUMN_REGISTRATION_VALID_TO to listOf("V_PLATDO"),
+        COLUMN_REGISTRATION_UNLIMITED to listOf("NEOMEZ"),
+        COLUMN_MARKET_SUPPLY_END to listOf("UVADENIDO"),
+        COLUMN_INDICATION_GROUP to listOf("IS_"),
+        COLUMN_ATC_GROUP to listOf("ATC_WHO"),
+        COLUMN_REGISTRATION_NUMBER to listOf("RC"),
+        COLUMN_PARALLEL_IMPORT_ID to listOf("SDOV"),
+        COLUMN_PARALLEL_IMPORT_SUPPLIER_CODE to listOf("SDOV_DOV", "SDOV_DOD"),
+        COLUMN_PARALLEL_IMPORT_SUPPLIER_COUNTRY to listOf("SDOV_ZEM"),
+        COLUMN_REGISTRATION_PROCESS to listOf("REG_PROC"),
+        COLUMN_DAILY_DOSE_AMOUNT to listOf("DDDAMNT_WHO"),
+        COLUMN_DAILY_DOSE_UNIT to listOf("DDDUN_WHO"),
+        COLUMN_DAILY_DOSE_PACKAGING to listOf("DDDP_WHO"),
+        COLUMN_WHO_SOURCE to listOf("ZDROJ_WHO"),
+        COLUMN_SUBSTANCE_LIST to listOf("LL"),
+        COLUMN_DISPENSE_TYPE to listOf("VYDEJ"),
+        COLUMN_ADDICTION_CATEGORY to listOf("ZAV"),
+        COLUMN_DOPING_CATEGORY to listOf("DOPING"),
+        COLUMN_GOV_REG_CATEGORY to listOf("NARVLA"),
+        COLUMN_DELIVERIES_FLAG to listOf("DODAVKY"),
+        COLUMN_EAN to listOf("EAN"),
+        COLUMN_BRAILLE to listOf("BRAILLOVO_PISMO"),
+        COLUMN_EXPIRY_PERIOD_DURATION to listOf("EXP"),
+        COLUMN_EXPIRY_PERIOD_UNIT to listOf("EXP_T"),
+        COLUMN_REGISTERED_NAME to listOf("NAZEV_REG"),
+        COLUMN_MRP_NUMBER to listOf("MRP_CISLO"),
+        COLUMN_REGISTRATION_LEGAL_BASIS to listOf("PRAVNI_ZAKLAD_REGISTRACE"),
+        COLUMN_SAFETY_FEATURE to listOf("OCHRANNY_PRVEK"),
+        COLUMN_PRESCRIPTION_RESTRICTION to listOf("OMEZENI_PRESKRIPCE_SMP"),
+        COLUMN_MEDICINAL_PRODUCT_TYPE to listOf("TYP_LP")
     )
 
     override fun mapCsvRowToEntity(

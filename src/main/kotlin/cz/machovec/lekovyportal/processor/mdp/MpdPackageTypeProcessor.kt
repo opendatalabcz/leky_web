@@ -22,19 +22,19 @@ class MpdPackageTypeProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "KOD"
-        private const val COLUMN_NAZEV = "NAZEV"
-        private const val COLUMN_NAZEV_EN = "NAZEV_EN"
-        private const val COLUMN_KOD_EDQM = "KOD_EDQM"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_NAME_EN = "nameEn"
+        private const val COLUMN_EDQM_CODE = "edqmCode"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_PACKAGE_TYPE
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_KOD,
-        COLUMN_NAZEV,
-        COLUMN_NAZEV_EN,
-        COLUMN_KOD_EDQM
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("OBAL"),
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_NAME_EN to listOf("NAZEV_EN"),
+        COLUMN_EDQM_CODE to listOf("KOD_EDQM")
     )
 
     override fun mapCsvRowToEntity(
@@ -44,15 +44,12 @@ class MpdPackageTypeProcessor(
     ): MpdPackageType? {
         try {
             // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
 
             // Optional attributes
-            val name = headerIndex[COLUMN_NAZEV]
-                ?.let { row.getOrNull(it)?.trim() }
-            val nameEn = headerIndex[COLUMN_NAZEV_EN]
-                ?.let { row.getOrNull(it)?.trim() }
-            val edqmCode = headerIndex[COLUMN_KOD_EDQM]
-                ?.let { row.getOrNull(it)?.trim()?.toLongOrNull() }
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAME_EN]?.let { row.getOrNull(it)?.trim() }
+            val edqmCode = headerIndex[COLUMN_EDQM_CODE]?.let { row.getOrNull(it)?.trim()?.toLongOrNull() }
 
             return MpdPackageType(
                 firstSeen = importedDatasetValidFrom,

@@ -23,21 +23,21 @@ class MpdOrganisationProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "KOD"
-        private const val COLUMN_ZEME = "ZEME"
-        private const val COLUMN_NAZEV = "NAZEV"
-        private const val COLUMN_VYROBCE = "VYROBCE"
-        private const val COLUMN_DRZITEL = "DRZITEL"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_COUNTRY = "country"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_IS_MANUFACTURER = "isManufacturer"
+        private const val COLUMN_IS_MARKETING_AUTH_HOLDER = "isMarketingAuthorizationHolder"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_ORGANISATION
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_KOD,
-        COLUMN_ZEME,
-        COLUMN_NAZEV,
-        COLUMN_VYROBCE,
-        COLUMN_DRZITEL
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("ZKR_ORG"),
+        COLUMN_COUNTRY to listOf("ZEM"),
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_IS_MANUFACTURER to listOf("VYROBCE"),
+        COLUMN_IS_MARKETING_AUTH_HOLDER to listOf("DRZITEL")
     )
 
     override fun mapCsvRowToEntity(
@@ -47,17 +47,18 @@ class MpdOrganisationProcessor(
     ): MpdOrganisation? {
         try {
             // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
-            val countryCode = row[headerIndex.getValue(COLUMN_ZEME)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
+            val countryCode = row[headerIndex.getValue(COLUMN_COUNTRY)].trim()
             val country = referenceDataProvider.getCountries()[countryCode]
-                ?: throw IllegalArgumentException("Country code $countryCode not found")
+                ?: return null.also {
+                    logger.warn { "Unknown country code '$countryCode' – skipping row." }
+                }
 
             // Optional attributes
-            val name = headerIndex[COLUMN_NAZEV]
-                ?.let { row.getOrNull(it)?.trim() }
-            val isManufacturer = headerIndex[COLUMN_VYROBCE]
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
+            val isManufacturer = headerIndex[COLUMN_IS_MANUFACTURER]
                 ?.let { row.getOrNull(it)?.trim().equals("V", ignoreCase = true) }
-            val isMarketingAuthHolder = headerIndex[COLUMN_DRZITEL]
+            val isMarketingAuthHolder = headerIndex[COLUMN_IS_MARKETING_AUTH_HOLDER]
                 ?.let { row.getOrNull(it)?.trim().equals("D", ignoreCase = true) }
 
             return MpdOrganisation(

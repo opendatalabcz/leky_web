@@ -24,21 +24,21 @@ class MpdActiveSubstanceProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_KOD = "KOD_LATKY"
-        private const val COLUMN_INN = "NAZEV_INN"
-        private const val COLUMN_EN = "NAZEV_EN"
-        private const val COLUMN_NAZEV = "NAZEV"
-        private const val COLUMN_ZAVISLOST = "ZAV"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_NAME_INN = "nameInn"
+        private const val COLUMN_NAME_EN = "nameEn"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_ADDICTION_CATEGORY = "addictionCategoryCode"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_ACTIVE_SUBSTANCE
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_KOD,
-        COLUMN_INN,
-        COLUMN_EN,
-        COLUMN_NAZEV,
-        COLUMN_ZAVISLOST
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("KOD_LATKY"),
+        COLUMN_NAME_INN to listOf("NAZEV_INN"),
+        COLUMN_NAME_EN to listOf("NAZEV_EN"),
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_ADDICTION_CATEGORY to listOf("ZAV")
     )
 
     override fun mapCsvRowToEntity(
@@ -48,13 +48,13 @@ class MpdActiveSubstanceProcessor(
     ): MpdActiveSubstance? {
         try {
             // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
 
             // Optional attributes
-            val nameInn = headerIndex[COLUMN_INN]?.let { row.getOrNull(it)?.trim() }
-            val nameEn = headerIndex[COLUMN_EN]?.let { row.getOrNull(it)?.trim() }
-            val name = headerIndex[COLUMN_NAZEV]?.let { row.getOrNull(it)?.trim() }
-            val addictionCategoryCode = headerIndex[COLUMN_ZAVISLOST]?.let { row.getOrNull(it)?.trim() }
+            val nameInn = headerIndex[COLUMN_NAME_INN]?.let { row.getOrNull(it)?.trim() }
+            val nameEn = headerIndex[COLUMN_NAME_EN]?.let { row.getOrNull(it)?.trim() }
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
+            val addictionCategoryCode = headerIndex[COLUMN_ADDICTION_CATEGORY]?.let { row.getOrNull(it)?.trim() }
 
             val addictionCategory = addictionCategoryCode?.let {
                 referenceDataProvider.getAddictionCategories()[it]
@@ -75,4 +75,3 @@ class MpdActiveSubstanceProcessor(
         }
     }
 }
-

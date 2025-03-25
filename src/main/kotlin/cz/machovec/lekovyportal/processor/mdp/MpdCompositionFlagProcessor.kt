@@ -22,15 +22,15 @@ class MpdCompositionFlagProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "S"
-        private const val COLUMN_VYZNAM = "VYZNAM"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_MEANING = "meaning"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_COMPOSITION_FLAG
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_KOD,
-        COLUMN_VYZNAM
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("S"),
+        COLUMN_MEANING to listOf("VYZNAM")
     )
 
     override fun mapCsvRowToEntity(
@@ -40,10 +40,10 @@ class MpdCompositionFlagProcessor(
     ): MpdCompositionFlag? {
         try {
             // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
 
             // Optional attributes
-            val meaning = headerIndex[COLUMN_VYZNAM]?.let { row.getOrNull(it)?.trim() }
+            val meaning = headerIndex[COLUMN_MEANING]?.let { row.getOrNull(it)?.trim() }
 
             return MpdCompositionFlag(
                 firstSeen = importedDatasetValidFrom,

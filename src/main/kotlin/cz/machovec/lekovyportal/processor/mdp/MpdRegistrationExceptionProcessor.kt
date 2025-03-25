@@ -25,33 +25,33 @@ class MpdRegistrationExceptionProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_SUKL_CODE = "SUKL_KOD"
-        private const val COLUMN_VALID_FROM = "PLATNOST_OD"
-        private const val COLUMN_VALID_TO = "PLATNOST_DO"
-        private const val COLUMN_ALLOWED_PACKAGE_COUNT = "POVOLENY_POCET_BALENI"
-        private const val COLUMN_PURPOSE = "UCEL"
-        private const val COLUMN_WORKPLACE = "PRACOVISTE"
-        private const val COLUMN_DISTRIBUTOR = "DISTRIBUTOR"
-        private const val COLUMN_NOTE = "POZNAMKA"
-        private const val COLUMN_SUBMITTER = "ZADAVATEL"
-        private const val COLUMN_MANUFACTURER = "VYROBCE"
+        private const val COLUMN_SUKL_CODE = "suklCode"
+        private const val COLUMN_VALID_FROM = "validFrom"
+        private const val COLUMN_VALID_TO = "validTo"
+        private const val COLUMN_ALLOWED_PACKAGE_COUNT = "allowedPackageCount"
+        private const val COLUMN_PURPOSE = "purpose"
+        private const val COLUMN_WORKPLACE = "workplace"
+        private const val COLUMN_DISTRIBUTOR = "distributor"
+        private const val COLUMN_NOTE = "note"
+        private const val COLUMN_SUBMITTER = "submitter"
+        private const val COLUMN_MANUFACTURER = "manufacturer"
     }
 
     private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_REGISTRATION_EXCEPTION
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_SUKL_CODE,
-        COLUMN_VALID_FROM,
-        COLUMN_VALID_TO,
-        COLUMN_ALLOWED_PACKAGE_COUNT,
-        COLUMN_PURPOSE,
-        COLUMN_WORKPLACE,
-        COLUMN_DISTRIBUTOR,
-        COLUMN_NOTE,
-        COLUMN_SUBMITTER,
-        COLUMN_MANUFACTURER
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_SUKL_CODE to listOf("KOD_SUKL"),
+        COLUMN_VALID_FROM to listOf("DATOD", "DAT_OD"),
+        COLUMN_VALID_TO to listOf("DATDO", "DAT_DO"),
+        COLUMN_ALLOWED_PACKAGE_COUNT to listOf("POVOL_BALENI"),
+        COLUMN_PURPOSE to listOf("UCEL"),
+        COLUMN_WORKPLACE to listOf("PRACOVISTE"),
+        COLUMN_DISTRIBUTOR to listOf("DISTRIBUTOR"),
+        COLUMN_NOTE to listOf("POZNAMKA"),
+        COLUMN_SUBMITTER to listOf("PREDKLADATEL"),
+        COLUMN_MANUFACTURER to listOf("VYROBCE")
     )
 
     override fun mapCsvRowToEntity(
@@ -74,9 +74,11 @@ class MpdRegistrationExceptionProcessor(
             val validTo = headerIndex[COLUMN_VALID_TO]?.let {
                 parseDate(row[it].trim())
             }
+
             val allowedPackageCount = headerIndex[COLUMN_ALLOWED_PACKAGE_COUNT]?.let {
                 row[it].trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
             }
+
             fun getStringOrNull(column: String): String? =
                 headerIndex[column]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } }
 

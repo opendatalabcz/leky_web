@@ -22,15 +22,15 @@ class MpdDispenseTypeProcessor(
     temporaryAbsenceRepository
 ) {
     companion object {
-        private const val COLUMN_KOD = "VYDEJ"
-        private const val COLUMN_NAZEV = "NAZEV"
+        private const val COLUMN_CODE = "code"
+        private const val COLUMN_NAME = "name"
     }
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_DISPENSE_TYPE
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_KOD,
-        COLUMN_NAZEV
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_CODE to listOf("VYDEJ"),
+        COLUMN_NAME to listOf("NAZEV")
     )
 
     override fun mapCsvRowToEntity(
@@ -40,10 +40,10 @@ class MpdDispenseTypeProcessor(
     ): MpdDispenseType? {
         try {
             // Mandatory attributes
-            val code = row[headerIndex.getValue(COLUMN_KOD)].trim()
+            val code = row[headerIndex.getValue(COLUMN_CODE)].trim()
 
             // Optional attributes
-            val name = headerIndex[COLUMN_NAZEV]?.let { row.getOrNull(it)?.trim() }
+            val name = headerIndex[COLUMN_NAME]?.let { row.getOrNull(it)?.trim() }
 
             return MpdDispenseType(
                 firstSeen = importedDatasetValidFrom,

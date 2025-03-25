@@ -30,39 +30,39 @@ class MpdCancelledRegistrationProcessor(
 ) {
 
     companion object {
-        private const val COLUMN_NAME = "NAZEV"
-        private const val COLUMN_ADMINISTRATION_ROUTE = "CESTA_PODANI"
-        private const val COLUMN_DOSAGE_FORM = "LEKOVA_FORMA"
-        private const val COLUMN_STRENGTH = "SILA"
-        private const val COLUMN_REGISTRATION_NUMBER = "REGISTRACNI_CISLO"
-        private const val COLUMN_PARALLEL_IMPORT_ID = "ID_PAR_IMPORT"
-        private const val COLUMN_MRP_NUMBER = "MRP_CISLO"
-        private const val COLUMN_REGISTRATION_PROCESS = "REG_PROCES"
-        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "PRAVNI_ZAKLAD"
-        private const val COLUMN_MAH_CODE = "MAH_KOD"
-        private const val COLUMN_MAH_COUNTRY_CODE = "MAH_ZEME"
-        private const val COLUMN_REGISTRATION_END_DATE = "DATUM_UKONCENI"
-        private const val COLUMN_REGISTRATION_STATUS = "STATUS"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_ADMINISTRATION_ROUTE = "administrationRoute"
+        private const val COLUMN_DOSAGE_FORM = "dosageForm"
+        private const val COLUMN_STRENGTH = "strength"
+        private const val COLUMN_REGISTRATION_NUMBER = "registrationNumber"
+        private const val COLUMN_PARALLEL_IMPORT_ID = "parallelImportId"
+        private const val COLUMN_MRP_NUMBER = "mrpNumber"
+        private const val COLUMN_REGISTRATION_PROCESS = "registrationProcess"
+        private const val COLUMN_REGISTRATION_LEGAL_BASIS = "registrationLegalBasis"
+        private const val COLUMN_MAH_CODE = "mahCode"
+        private const val COLUMN_MAH_COUNTRY_CODE = "mahCountryCode"
+        private const val COLUMN_REGISTRATION_END_DATE = "registrationEndDate"
+        private const val COLUMN_REGISTRATION_STATUS = "registrationStatus"
     }
 
     private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
     override fun getDatasetType(): MpdDatasetType = MpdDatasetType.MPD_CANCELLED_REGISTRATION
 
-    override fun getExpectedColumns(): List<String> = listOf(
-        COLUMN_NAME,
-        COLUMN_ADMINISTRATION_ROUTE,
-        COLUMN_DOSAGE_FORM,
-        COLUMN_STRENGTH,
-        COLUMN_REGISTRATION_NUMBER,
-        COLUMN_PARALLEL_IMPORT_ID,
-        COLUMN_MRP_NUMBER,
-        COLUMN_REGISTRATION_PROCESS,
-        COLUMN_REGISTRATION_LEGAL_BASIS,
-        COLUMN_MAH_CODE,
-        COLUMN_MAH_COUNTRY_CODE,
-        COLUMN_REGISTRATION_END_DATE,
-        COLUMN_REGISTRATION_STATUS
+    override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
+        COLUMN_NAME to listOf("NAZEV"),
+        COLUMN_ADMINISTRATION_ROUTE to listOf("CESTA"),
+        COLUMN_DOSAGE_FORM to listOf("FORMA"),
+        COLUMN_STRENGTH to listOf("SILA"),
+        COLUMN_REGISTRATION_NUMBER to listOf("REGISTRACNI_CISLO"),
+        COLUMN_PARALLEL_IMPORT_ID to listOf("SOUBEZNY_DOVOZ"),
+        COLUMN_MRP_NUMBER to listOf("MRP_CISLO"),
+        COLUMN_REGISTRATION_PROCESS to listOf("TYP_REGISTRACE"),
+        COLUMN_REGISTRATION_LEGAL_BASIS to listOf("PRAVNI_ZAKLAD_REGISTRACE"),
+        COLUMN_MAH_CODE to listOf("DRZITEL"),
+        COLUMN_MAH_COUNTRY_CODE to listOf("ZEME_DRZITELE"),
+        COLUMN_REGISTRATION_END_DATE to listOf("KONEC_PLATNOSTI_REGISTRACE"),
+        COLUMN_REGISTRATION_STATUS to listOf("STAV_REGISTRACE")
     )
 
     override fun mapCsvRowToEntity(

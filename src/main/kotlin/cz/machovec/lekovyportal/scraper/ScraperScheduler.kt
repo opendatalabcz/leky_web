@@ -30,7 +30,7 @@ class ScraperScheduler(
         dis13ZahraniciService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
         lek13Service.collectNewMessages().forEach { messagePublisher.publish(it) }
-         */
+        */
 
         ereceptHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
