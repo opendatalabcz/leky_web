@@ -149,7 +149,7 @@ class MpdFileProcessor(
             "dlp_latky.csv" to mpdSubstanceProcessor,
             "dlp_synonyma.csv" to mpdSubstanceSynonymProcessor,
             "dlp_lecivepripravky.csv" to mpdMedicinalProductProcessor,
-            "dlp_splp.csv" to mpdRegistrationExceptionProcessor,
+            "dlp_splp.csv" to mpdRegistrationExceptionProcessor, // TODO: Fix unique key not unique
             "dlp_zruseneregistrace.csv" to mpdCancelledRegistrationProcessor
         )
 

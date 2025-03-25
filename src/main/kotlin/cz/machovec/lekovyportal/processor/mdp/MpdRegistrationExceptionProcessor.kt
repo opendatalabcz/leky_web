@@ -43,8 +43,8 @@ class MpdRegistrationExceptionProcessor(
 
     override fun getExpectedColumnsMap(): Map<String, List<String>> = mapOf(
         COLUMN_SUKL_CODE to listOf("KOD_SUKL"),
-        COLUMN_VALID_FROM to listOf("DAT_OD"),
-        COLUMN_VALID_TO to listOf("DAT_DO"),
+        COLUMN_VALID_FROM to listOf("DATOD", "DAT_OD"),
+        COLUMN_VALID_TO to listOf("DATDO", "DAT_DO"),
         COLUMN_ALLOWED_PACKAGE_COUNT to listOf("POVOL_BALENI"),
         COLUMN_PURPOSE to listOf("UCEL"),
         COLUMN_WORKPLACE to listOf("PRACOVISTE"),
