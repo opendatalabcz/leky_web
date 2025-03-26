@@ -44,7 +44,7 @@ class EreceptDispenseFileProcessor(
         }
 
         logger.info("Saving records from file: ${msg.fileUrl}, records count: ${records.size}")
-        ereceptDispenseRepository.batchInsert(records, batchSize = 50)
+        ereceptDispenseRepository.batchInsert(records, batchSize = 1000)
 
         val processedDataset = ProcessedDataset(
             datasetType = msg.datasetType,
@@ -122,10 +122,6 @@ class EreceptDispenseFileProcessor(
                 groupPragueRecord(dispense, pragueMap, suklCode)
             } else {
                 otherRecords.add(dispense)
-            }
-
-            if ((index + 1) % 10_000 == 0) {
-                logger.info { "Parsed ${index + 1} lines so far..." }
             }
         }
 

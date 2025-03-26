@@ -1,35 +1,29 @@
 package cz.machovec.lekovyportal.domain.repository
 
 import cz.machovec.lekovyportal.domain.entity.EreceptDispense
-import jakarta.persistence.EntityManager
-import mu.KotlinLogging
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
-private val logger = KotlinLogging.logger {}
-
 @Repository
 class EreceptDispenseRepositoryImpl(
-    private val entityManager: EntityManager,
+    private val jdbcTemplate: JdbcTemplate
 ) : EreceptDispenseRepositoryCustom {
 
     @Transactional
     override fun batchInsert(records: List<EreceptDispense>, batchSize: Int) {
-        records.chunked(batchSize).forEachIndexed { index, batch ->
-            try {
-                batch.forEachIndexed { i, record ->
-                    entityManager.persist(record)
-                    if ((i + 1) % batchSize == 0) {
-                        entityManager.flush()
-                        entityManager.clear()
-                        logger.trace("Successfully saved batch number: ${index + 1}")
-                    }
-                }
-                entityManager.flush()
-                entityManager.clear()
-            } catch (e: Exception) {
-                logger.error("Error during saving batch: ${index + 1}: ${e.message}")
-            }
+        val sql = """
+            INSERT INTO erecept_dispense
+            (district_code, year, month, medicinal_product_id, quantity)
+            VALUES (?, ?, ?, ?, ?)
+        """.trimIndent()
+
+        jdbcTemplate.batchUpdate(sql, records, batchSize) { ps, record ->
+            ps.setString(1, record.districtCode)
+            ps.setInt(2, record.year)
+            ps.setInt(3, record.month)
+            ps.setLong(4, record.medicinalProduct.id!!)
+            ps.setInt(5, record.quantity)
         }
     }
 }

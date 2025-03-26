@@ -44,7 +44,7 @@ class EreceptPrescriptionFileProcessor(
         }
 
         logger.info("Saving records from file: ${msg.fileUrl}, records count: ${records.size}")
-        ereceptPrescriptionRepository.batchInsert(records, batchSize = 50)
+        ereceptPrescriptionRepository.batchInsert(records, batchSize = 1000)
 
         val processedDataset = ProcessedDataset(
             datasetType = msg.datasetType,
@@ -124,10 +124,6 @@ class EreceptPrescriptionFileProcessor(
                 groupPragueRecord(prescription, pragueMap, suklCode)
             } else {
                 otherRecords.add(prescription)
-            }
-
-            if ((index + 1) % 10_000 == 0) {
-                logger.info { "Parsed ${index + 1} lines so far..." }
             }
         }
 
