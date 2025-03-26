@@ -195,8 +195,7 @@ CREATE TABLE IF NOT EXISTS mpd_substance_synonym (
     sequence_number  INT,
     source_id        BIGINT NOT NULL REFERENCES mpd_source(id) ON DELETE RESTRICT,
     name             TEXT,
-    CONSTRAINT uk_substance_sequence_source
-        UNIQUE (substance_id, sequence_number, source_id)
+    CONSTRAINT uk_substance_sequence_source UNIQUE (substance_id, sequence_number, source_id)
 );
 
 -- 20) mpd_medicinal_product
@@ -282,6 +281,23 @@ CREATE TABLE IF NOT EXISTS mpd_cancelled_registration (
     marketing_authorization_holder_id BIGINT REFERENCES mpd_organisation(id),
     registration_end_date DATE,
     registration_status_id BIGINT REFERENCES mpd_registration_status(id),
-    CONSTRAINT uk_cancelled_registration_number
-        UNIQUE (registration_number, parallel_import_id)
+    CONSTRAINT uk_cancelled_registration_number UNIQUE (registration_number, parallel_import_id)
+);
+
+-- 23) mpd_medicinal_product_composition
+CREATE TABLE mpd_medicinal_product_composition (
+    id BIGSERIAL PRIMARY KEY,
+    first_seen DATE NOT NULL,
+    missing_since DATE,
+
+    medicinal_product_id BIGINT NOT NULL REFERENCES mpd_medicinal_product(id),
+    substance_id BIGINT NOT NULL REFERENCES mpd_substance(id),
+
+    sequence_number INT,
+    composition_flag_id BIGINT REFERENCES mpd_composition_flag(id),
+    amount_from TEXT,
+    amount_to TEXT,
+    measurement_unit_id BIGINT REFERENCES mpd_measurement_unit(id),
+
+    CONSTRAINT uk_mpd_medicinal_product_composition UNIQUE (medicinal_product_id, substance_id)
 );

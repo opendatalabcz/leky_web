@@ -16,6 +16,7 @@ import cz.machovec.lekovyportal.processor.mdp.MpdDosageFormProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdGovernmentRegulationCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdIndicationGroupProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMeasurementUnitProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdMedicinalProductCompositionProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdMedicinalProductProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdOrganisationProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdPackageTypeProcessor
@@ -61,7 +62,8 @@ class MpdFileProcessor(
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val mpdMedicinalProductProcessor: MpdMedicinalProductProcessor,
     private val mpdRegistrationExceptionProcessor: MpdRegistrationExceptionProcessor,
-    private val mpdCancelledRegistrationProcessor: MpdCancelledRegistrationProcessor
+    private val mpdCancelledRegistrationProcessor: MpdCancelledRegistrationProcessor,
+    private val mpdMedicinalProductCompositionProcessor: MpdMedicinalProductCompositionProcessor
 ) : DatasetFileProcessor {
 
     @Transactional
@@ -150,7 +152,8 @@ class MpdFileProcessor(
             "dlp_synonyma.csv" to mpdSubstanceSynonymProcessor,
             "dlp_lecivepripravky.csv" to mpdMedicinalProductProcessor,
             "dlp_splp.csv" to mpdRegistrationExceptionProcessor, // TODO: Fix unique key not unique
-            "dlp_zruseneregistrace.csv" to mpdCancelledRegistrationProcessor
+            "dlp_zruseneregistrace.csv" to mpdCancelledRegistrationProcessor,
+            "dlp_slozeni.csv" to mpdMedicinalProductCompositionProcessor
         )
 
         ordered.forEach { (filename, processor) ->

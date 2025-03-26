@@ -22,5 +22,6 @@ enum class MpdDatasetType(val description: String) {
     MPD_REGISTRATION_STATUS("Registration status"),
     MPD_SOURCE("Source"),
     MPD_SUBSTANCE("Substance"),
+    MPD_SUBSTANCE_COMPOSITION("Substance composition"),
     MPD_SUBSTANCE_SYNONYM("Substance synonym");
 }
