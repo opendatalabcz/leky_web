@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.processor
 
+import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.EreceptPrescription
 import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
@@ -27,12 +28,24 @@ class EreceptPrescriptionFileProcessor(
 
     @Transactional
     override fun processFile(msg: NewFileMessage) {
+        val year = msg.year
+        val month = msg.month ?: 0
+
         val isProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-            msg.datasetType, msg.year, msg.month ?: 0
+            msg.datasetType, year, month
         )
 
         if (isProcessed) {
-            logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} already processed. Skipping." }
+            logger.info { "Dataset ${msg.datasetType} for $year-$month already processed. Skipping." }
+            return
+        }
+
+        val isMpdProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
+            DatasetType.MPD, year, month
+        )
+
+        if (!isMpdProcessed) {
+            logger.warn { "MPD dataset for $year-$month not yet processed. Skipping ERECEPT processing." }
             return
         }
 
@@ -51,7 +64,7 @@ class EreceptPrescriptionFileProcessor(
             year = msg.year,
             month = msg.month ?: 0
         )
-        processedDatasetRepository.saveAndFlush(processedDataset)
+        processedDatasetRepository.save(processedDataset)
 
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
     }

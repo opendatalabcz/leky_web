@@ -4,6 +4,7 @@ CREATE TABLE district (
 );
 
 INSERT INTO district (code, name) VALUES
+    ('0000', 'Unknown'),
     ('3100', 'Praha'),
     ('3201', 'Benešov'),
     ('3202', 'Beroun'),
