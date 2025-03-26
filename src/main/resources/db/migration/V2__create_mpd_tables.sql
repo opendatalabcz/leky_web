@@ -261,7 +261,7 @@ CREATE TABLE IF NOT EXISTS mpd_registration_exception (
     note TEXT,
     submitter TEXT,
     manufacturer TEXT,
-    CONSTRAINT uk_med_product_first_seen UNIQUE (medicinal_product_id, first_seen)
+    CONSTRAINT uk_med_product_first_seen UNIQUE (medicinal_product_id, valid_from)
 );
 
 -- 22) mpd_cancelled_registration
@@ -284,8 +284,8 @@ CREATE TABLE IF NOT EXISTS mpd_cancelled_registration (
     CONSTRAINT uk_cancelled_registration_number UNIQUE (registration_number, parallel_import_id)
 );
 
--- 23) mpd_medicinal_product_composition
-CREATE TABLE mpd_medicinal_product_composition (
+-- 23) mpd_medicinal_product_substance
+CREATE TABLE mpd_medicinal_product_substance (
     id BIGSERIAL PRIMARY KEY,
     first_seen DATE NOT NULL,
     missing_since DATE,
@@ -299,5 +299,9 @@ CREATE TABLE mpd_medicinal_product_composition (
     amount_to TEXT,
     measurement_unit_id BIGINT REFERENCES mpd_measurement_unit(id),
 
-    CONSTRAINT uk_mpd_medicinal_product_composition UNIQUE (medicinal_product_id, substance_id)
+    related_to_id BIGINT REFERENCES mpd_medicinal_product_substance(id),
+    relation_type TEXT CHECK (relation_type IN ('OR', 'CORRESPONDING_TO', 'CORRESPONDED_BY')),
+
+    CONSTRAINT uk_mpd_medicinal_product_substance UNIQUE (medicinal_product_id, substance_id)
 );
+

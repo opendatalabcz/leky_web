@@ -109,7 +109,7 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         importedDatasetValidFrom: LocalDate
     ): T?
 
-    private fun detectChanges(
+    protected fun detectChanges(
         existingRecords: List<T>,
         importedRecords: List<T>,
         importedDatasetValidFrom: LocalDate
@@ -191,7 +191,7 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         )
     }
 
-    private fun detectNewlyMissing(
+    protected fun detectNewlyMissing(
         existingRecords: List<T>,
         importedRecords: List<T>,
         importedDatasetValidFrom: LocalDate
@@ -219,7 +219,7 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         )
     }
 
-    private fun findColumnIndexes(headers: List<String>): Map<String, Int> {
+    protected fun findColumnIndexes(headers: List<String>): Map<String, Int> {
         val normalizedHeaders = headers.mapIndexed { index, value ->
             index to value.trim().uppercase()
         }
@@ -231,7 +231,7 @@ abstract class BaseMpdProcessor<T : BaseMpdEntity<T>>(
         }.toMap()
     }
 
-    private fun logDetailedSummary(d: ChangesResult<T>, m: MissingResult<T>) {
+    protected fun logDetailedSummary(d: ChangesResult<T>, m: MissingResult<T>) {
         val summary = """
             ${getDatasetType().description} import summary:
               - New records: ${d.newCount}

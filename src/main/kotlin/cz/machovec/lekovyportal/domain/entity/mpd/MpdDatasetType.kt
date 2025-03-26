@@ -15,6 +15,7 @@ enum class MpdDatasetType(val description: String) {
     MPD_INDICATION_GROUP("Indication group"),
     MPD_MEASUREMENT_UNIT("Measurement unit"),
     MPD_MEDICINAL_PRODUCT("Medicinal product"),
+    MPD_MEDICINAL_PRODUCT_SUBSTANCE("Medicinal product composition"),
     MPD_ORGANISATION("Organisation"),
     MPD_PACKAGE_TYPE("Package type"),
     MPD_REGISTRATION_EXCEPTION("Registration exception"),
@@ -22,6 +23,5 @@ enum class MpdDatasetType(val description: String) {
     MPD_REGISTRATION_STATUS("Registration status"),
     MPD_SOURCE("Source"),
     MPD_SUBSTANCE("Substance"),
-    MPD_SUBSTANCE_COMPOSITION("Substance composition"),
     MPD_SUBSTANCE_SYNONYM("Substance synonym");
 }
