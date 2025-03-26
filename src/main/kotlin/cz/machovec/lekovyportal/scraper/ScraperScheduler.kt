@@ -18,10 +18,14 @@ class ScraperScheduler(
 ) {
     @Scheduled(cron = "0 * * * * ?")
     fun doScraping() {
-        /*
         mpdHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
         mpdService.collectNewMessages().forEach { messagePublisher.publish(it) }
+
+        ereceptHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
+
+        ereceptService.collectNewMessages().forEach { messagePublisher.publish(it) }
+        /*
 
         reg13Service.collectNewMessages().forEach { messagePublisher.publish(it) }
 
@@ -31,9 +35,5 @@ class ScraperScheduler(
 
         lek13Service.collectNewMessages().forEach { messagePublisher.publish(it) }
         */
-
-        ereceptHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
-
-        ereceptService.collectNewMessages().forEach { messagePublisher.publish(it) }
     }
 }
