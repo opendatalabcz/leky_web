@@ -1,4 +1,5 @@
 import {Link, useLocation} from "react-router-dom"
+import "./Navbar.css"
 
 export function Navbar() {
     const location = useLocation()
@@ -6,23 +7,14 @@ export function Navbar() {
     const isActive = (path: string) => location.pathname === path
 
     return (
-        <nav className="bg-white shadow p-4 flex gap-6 text-lg font-medium">
-            <Link
-                to="/"
-                className={isActive("/") ? "text-blue-600 underline" : "text-gray-700 hover:text-blue-600"}
-            >
+        <nav className="navbar">
+            <Link to="/" className={isActive("/") ? "nav-link active" : "nav-link"}>
                 Datové přehledy
             </Link>
-            <Link
-                to="/map"
-                className={isActive("/map") ? "text-blue-600 underline" : "text-gray-700 hover:text-blue-600"}
-            >
+            <Link to="/map" className={isActive("/map") ? "nav-link active" : "nav-link"}>
                 Mapa
             </Link>
-            <Link
-                to="/about"
-                className={isActive("/about") ? "text-blue-600 underline" : "text-gray-700 hover:text-blue-600"}
-            >
+            <Link to="/about" className={isActive("/about") ? "nav-link active" : "nav-link"}>
                 O projektu
             </Link>
         </nav>
