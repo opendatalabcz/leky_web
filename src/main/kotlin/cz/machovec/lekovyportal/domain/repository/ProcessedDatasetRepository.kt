@@ -12,4 +12,9 @@ interface ProcessedDatasetRepository : JpaRepository<ProcessedDataset, Long> {
         year: Int,
         month: Int
     ): Boolean
+
+    fun findAllByDatasetTypeAndYear(
+        datasetType: DatasetType,
+        year: Int
+    ): List<ProcessedDataset>
 }

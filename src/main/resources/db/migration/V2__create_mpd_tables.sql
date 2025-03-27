@@ -195,8 +195,7 @@ CREATE TABLE IF NOT EXISTS mpd_substance_synonym (
     sequence_number  INT,
     source_id        BIGINT NOT NULL REFERENCES mpd_source(id) ON DELETE RESTRICT,
     name             TEXT,
-    CONSTRAINT uk_substance_sequence_source
-        UNIQUE (substance_id, sequence_number, source_id)
+    CONSTRAINT uk_substance_sequence_source UNIQUE (substance_id, sequence_number, source_id)
 );
 
 -- 20) mpd_medicinal_product
@@ -262,7 +261,7 @@ CREATE TABLE IF NOT EXISTS mpd_registration_exception (
     note TEXT,
     submitter TEXT,
     manufacturer TEXT,
-    CONSTRAINT uk_med_product_first_seen UNIQUE (medicinal_product_id, first_seen)
+    CONSTRAINT uk_med_product_first_seen UNIQUE (medicinal_product_id, valid_from)
 );
 
 -- 22) mpd_cancelled_registration
@@ -282,6 +281,27 @@ CREATE TABLE IF NOT EXISTS mpd_cancelled_registration (
     marketing_authorization_holder_id BIGINT REFERENCES mpd_organisation(id),
     registration_end_date DATE,
     registration_status_id BIGINT REFERENCES mpd_registration_status(id),
-    CONSTRAINT uk_cancelled_registration_number
-        UNIQUE (registration_number, parallel_import_id)
+    CONSTRAINT uk_cancelled_registration_number UNIQUE (registration_number, parallel_import_id)
 );
+
+-- 23) mpd_medicinal_product_substance
+CREATE TABLE mpd_medicinal_product_substance (
+    id BIGSERIAL PRIMARY KEY,
+    first_seen DATE NOT NULL,
+    missing_since DATE,
+
+    medicinal_product_id BIGINT NOT NULL REFERENCES mpd_medicinal_product(id),
+    substance_id BIGINT NOT NULL REFERENCES mpd_substance(id),
+
+    sequence_number INT,
+    composition_flag_id BIGINT REFERENCES mpd_composition_flag(id),
+    amount_from TEXT,
+    amount_to TEXT,
+    measurement_unit_id BIGINT REFERENCES mpd_measurement_unit(id),
+
+    related_to_id BIGINT REFERENCES mpd_medicinal_product_substance(id),
+    relation_type TEXT CHECK (relation_type IN ('OR', 'CORRESPONDING_TO', 'CORRESPONDED_BY')),
+
+    CONSTRAINT uk_mpd_medicinal_product_substance UNIQUE (medicinal_product_id, substance_id)
+);
+

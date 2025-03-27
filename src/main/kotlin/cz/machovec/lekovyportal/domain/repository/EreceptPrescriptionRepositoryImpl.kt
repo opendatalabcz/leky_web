@@ -13,7 +13,7 @@ class EreceptPrescriptionRepositoryImpl(
     @Transactional
     override fun batchInsert(records: List<EreceptPrescription>, batchSize: Int) {
         val sql = """
-            INSERT INTO erecept_dispense
+            INSERT INTO erecept_prescription
             (district_code, year, month, medicinal_product_id, quantity)
             VALUES (?, ?, ?, ?, ?)
         """.trimIndent()

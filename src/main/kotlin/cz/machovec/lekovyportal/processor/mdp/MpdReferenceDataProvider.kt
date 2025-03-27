@@ -3,6 +3,7 @@ package cz.machovec.lekovyportal.processor.mdp
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAddictionCategory
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAdministrationRoute
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAtcGroup
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdCompositionFlag
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdCountry
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDispenseType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDopingCategory
@@ -20,6 +21,7 @@ import cz.machovec.lekovyportal.domain.entity.mpd.MpdSubstance
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAddictionCategoryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAdministrationRouteRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAtcGroupRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdCompositionFlagRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDispenseTypeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDopingCategoryRepository
@@ -57,6 +59,7 @@ class MpdReferenceDataProvider(
     private val sourceRepository: MpdSourceRepository,
     private val substanceRepository: MpdSubstanceRepository,
     private val medicinalProductRepository: MpdMedicinalProductRepository,
+    private val compositionFlagRepository: MpdCompositionFlagRepository,
 ) {
 
     private val cache = ConcurrentHashMap<String, Any>()
@@ -78,6 +81,7 @@ class MpdReferenceDataProvider(
     fun getSources() = Loader.loadByCode(cache, MpdSource::class, sourceRepository::findAll) { it.code }
     fun getSubstances() = Loader.loadByCode(cache, MpdSubstance::class, substanceRepository::findAll) { it.code }
     fun getMedicinalProducts() = Loader.loadByCode(cache, MpdMedicinalProduct::class, medicinalProductRepository::findAll) { it.suklCode }
+    fun getCompositionFlags() = Loader.loadByCode(cache, MpdCompositionFlag::class, compositionFlagRepository::findAll) { it.code }
 
     @Suppress("UNCHECKED_CAST")
     private object Loader {
