@@ -23,7 +23,7 @@ data class EreceptDispense(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
     @Column(name = "district_code", nullable = false)
-    val districtCode: String,
+    override val districtCode: String,
 
     @Column(name = "year", nullable = false)
     val year: Int,
@@ -37,5 +37,5 @@ data class EreceptDispense(
 
     @Column(name = "quantity", nullable = false)
     val quantity: Int
-)
+) : HasDistrictCode
 

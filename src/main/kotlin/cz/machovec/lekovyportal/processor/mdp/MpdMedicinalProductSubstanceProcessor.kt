@@ -58,12 +58,20 @@ class MpdMedicinalProductSubstanceProcessor(
 
         val rawData = rows.mapNotNull { row ->
             try {
+                val suklCode = row[columnIndexMap.getValue(COLUMN_SUKL_CODE)].trim()
+                val substanceCode = row.getOrNull(columnIndexMap[COLUMN_SUBSTANCE_CODE] ?: -1)?.trim()
+                val compositionFlag = columnIndexMap[COLUMN_COMPOSITION_FLAG]?.let { row.getOrNull(it)?.trim() }
+
+                if (compositionFlag == "X" && substanceCode.isNullOrBlank()) {
+                    return@mapNotNull null
+                }
+
                 MpdSubstanceRowData(
-                    suklCode = row[columnIndexMap.getValue(COLUMN_SUKL_CODE)].trim(),
-                    substanceCode = row.getOrNull(columnIndexMap[COLUMN_SUBSTANCE_CODE] ?: -1)?.trim(),
-                    substanceName = row.getOrNull(columnIndexMap[COLUMN_SUBSTANCE_CODE] ?: -1)?.trim(),
+                    suklCode = suklCode,
+                    substanceCode = substanceCode,
+                    substanceName = substanceCode,
                     sequenceNumber = columnIndexMap[COLUMN_SEQUENCE]?.let { row.getOrNull(it)?.toIntOrNull() },
-                    compositionFlag = columnIndexMap[COLUMN_COMPOSITION_FLAG]?.let { row.getOrNull(it)?.trim() },
+                    compositionFlag = compositionFlag,
                     amountFrom = columnIndexMap[COLUMN_AMOUNT_FROM]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } },
                     amountTo = columnIndexMap[COLUMN_AMOUNT_TO]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } },
                     measurementUnitCode = columnIndexMap[COLUMN_MEASUREMENT_UNIT]?.let { row.getOrNull(it)?.trim() }
@@ -139,7 +147,13 @@ class MpdMedicinalProductSubstanceProcessor(
         val changesResult = detectChanges(existingRecords, importedEntities, importedDatasetValidFrom)
         val missingResult = detectNewlyMissing(existingRecords, importedEntities, importedDatasetValidFrom)
 
-        repository.saveAll(changesResult.recordsToSave + missingResult.newlyMissingRecords)
+        val allRecordsToSave = changesResult.recordsToSave + missingResult.newlyMissingRecords
+
+        logger.info { "Persisting ${allRecordsToSave.size} entities to database..." }
+        val timeStart = System.currentTimeMillis()
+        repository.saveAll(allRecordsToSave)
+        val timeEnd = System.currentTimeMillis()
+        logger.info { "Database saveAll() done in ${timeEnd - timeStart} ms" }
         attributeChangeRepository.saveAll(changesResult.attributeChanges)
         temporaryAbsenceRepository.saveAll(changesResult.reactivations)
 
