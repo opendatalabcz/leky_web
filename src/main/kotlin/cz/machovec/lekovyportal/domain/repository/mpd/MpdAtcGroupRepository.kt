@@ -9,4 +9,6 @@ interface MpdAtcGroupRepository : JpaRepository<MpdAtcGroup, Long> {
     fun findByCode(code: String): MpdAtcGroup?
 
     fun findAllByCodeIn(codes: Set<String>): List<MpdAtcGroup>
+
+    fun findAllByOrderByNameAsc(): List<MpdAtcGroup>
 }

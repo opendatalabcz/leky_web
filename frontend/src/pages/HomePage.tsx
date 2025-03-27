@@ -1,8 +1,14 @@
+import {Basket} from "../components/Basket"
+import {TabSwitcher} from "../components/TabSwitcher"
+import {DrugSelectionPanel} from "../components/DrugSelectionPanel";
+
 export function HomePage() {
     return (
-        <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">Datové přehledy</h1>
-            <p>Zde budou vizualizace, filtry, tabulky a další funkce aplikace.</p>
+        <div>
+            <h1>Datové přehledy</h1>
+            <DrugSelectionPanel />
+            <Basket />
+            <TabSwitcher />
         </div>
     )
 }
