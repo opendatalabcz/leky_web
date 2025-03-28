@@ -1,57 +1,107 @@
-import React, { useEffect, useState } from "react"
-import Select from "react-select"
-import { fetchAtcGroups } from "../services/atcService"
+import React, {useEffect, useState} from "react"
 
-export type FilterValues = {
-    atcGroup: string
-    medicineName: string
+export interface FilterValues {
+    atcGroupId: number | null
+    substanceId: number | null
+    medicinalProductQuery: string
     period: string
 }
 
-type FiltersProps = {
+interface Props {
     filters: FilterValues
-    onChange: (values: FilterValues) => void
+    onChange: (updated: FilterValues) => void
 }
 
-type Option = {
-    value: string
-    label: string
+interface AtcGroupOption {
+    id: number
+    name: string
+    code: string
 }
 
-export function Filters({ filters, onChange }: FiltersProps) {
-    const [options, setOptions] = useState<Option[]>([])
+interface SubstanceOption {
+    id: number
+    name: string
+    code: string
+}
 
+export function Filters({ filters, onChange }: Props) {
+    const [atcOptions, setAtcOptions] = useState<AtcGroupOption[]>([])
+    const [substanceSuggestions, setSubstanceSuggestions] = useState<SubstanceOption[]>([])
+    const [substanceQuery, setSubstanceQuery] = useState("")
+
+    // Fetch ATC groups on load
     useEffect(() => {
-        fetchAtcGroups()
-            .then(groups => {
-                const opts = groups.map(g => ({
-                    value: g.id.toString(),
-                    label: `${g.name} (${g.code})`
-                }))
-                setOptions(opts)
-            })
-            .catch(err => console.error("Chyba při načítání ATC skupin", err))
+        fetch("/api/atc-groups")
+            .then(res => res.json())
+            .then(data => setAtcOptions(data))
     }, [])
 
-    const handleSelectChange = (selected: Option | null) => {
-        onChange({
-            ...filters,
-            atcGroup: selected?.value ?? ""
-        })
-    }
+    // Fetch substance suggestions
+    useEffect(() => {
+        if (substanceQuery.length < 3) {
+            setSubstanceSuggestions([])
+            return
+        }
+
+        const delay = setTimeout(() => {
+            fetch(`/api/substances?query=${substanceQuery}`)
+                .then(res => res.json())
+                .then(data => setSubstanceSuggestions(data))
+        }, 300)
+
+        return () => clearTimeout(delay)
+    }, [substanceQuery])
 
     return (
-        <div style={{ marginBottom: "1.5rem" }}>
-            <label style={{ display: "block", marginBottom: "0.5rem" }}>
-                ATC skupina:
-            </label>
-            <Select
-                options={options}
-                value={options.find(o => o.value === filters.atcGroup) || null}
-                onChange={handleSelectChange}
-                placeholder="Vyberte nebo napište ATC skupinu..."
-                isClearable
-            />
+        <div className="filter-panel">
+            <div>
+                <label>
+                    Léčivý přípravek / SÚKL kód / Reg. číslo:
+                    <input
+                        type="text"
+                        value={filters.medicinalProductQuery}
+                        onChange={(e) =>
+                            onChange({ ...filters, medicinalProductQuery: e.target.value })
+                        }
+                        placeholder="např. paracetamol, 123456, 54/432/01-C"
+                    />
+                </label>
+                <br/>
+                <label>ATC skupina:</label>
+                <select
+                    value={filters.atcGroupId ?? ""}
+                    onChange={e => onChange({ ...filters, atcGroupId: e.target.value ? Number(e.target.value) : null })}
+                >
+                    <option value="">-- Vyberte ATC skupinu --</option>
+                    {atcOptions.map(atc => (
+                        <option key={atc.id} value={atc.id}>
+                            {atc.name} ({atc.code})
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div>
+                <label>Látka (substance):</label>
+                <input
+                    type="text"
+                    placeholder="Začněte psát..."
+                    onChange={e => {
+                        setSubstanceQuery(e.target.value)
+                        onChange({ ...filters, substanceId: null })
+                    }}
+                    list="substance-options"
+                />
+                <datalist id="substance-options">
+                    {substanceSuggestions.map(sub => (
+                        <option
+                            key={sub.id}
+                            value={`${sub.name} (${sub.code})`}
+                            onClick={() => onChange({ ...filters, substanceId: sub.id })}
+                        />
+                    ))}
+                </datalist>
+            </div>
         </div>
     )
 }

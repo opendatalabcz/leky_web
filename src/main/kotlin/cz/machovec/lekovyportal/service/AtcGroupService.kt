@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.service
 
-import cz.machovec.lekovyportal.api.dto.AtcGroupDto
+import cz.machovec.lekovyportal.api.dto.AtcGroupResponse
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAtcGroupRepository
 import org.springframework.stereotype.Service
 
@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service
 class AtcGroupService(
     private val atcGroupRepository: MpdAtcGroupRepository
 ) {
-    fun getAll(): List<AtcGroupDto> {
+    fun getAll(): List<AtcGroupResponse> {
         return atcGroupRepository.findAllByOrderByNameAsc()
-            .map { AtcGroupDto(it.id!!, it.code, it.name) }
+            .map { AtcGroupResponse(it.id!!, it.code, it.name) }
     }
 }

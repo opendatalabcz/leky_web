@@ -1,11 +1,12 @@
-import React, { useState } from "react"
-import { Filters, FilterValues } from "./Filters"
-import { DrugTable } from "./DrugTable"
+import React, {useState} from "react"
+import {Filters, FilterValues} from "./Filters"
+import {DrugTable} from "./DrugTable"
 
 export function DrugSelectionPanel() {
     const [filters, setFilters] = useState<FilterValues>({
-        atcGroup: "",
-        medicineName: "",
+        atcGroupId: null,
+        substanceId: null,
+        medicinalProductQuery: "",
         period: ""
     })
 
