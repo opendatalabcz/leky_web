@@ -11,6 +11,7 @@ export interface FilterValues {
 interface Props {
     filters: FilterValues
     onChange: (updated: FilterValues) => void
+    onSearchClick: () => void
 }
 
 interface AtcGroupOption {
@@ -25,7 +26,7 @@ interface SubstanceOption {
     code: string
 }
 
-export function Filters({ filters, onChange }: Props) {
+export function Filters({ filters, onChange, onSearchClick }: Props) {
     const [atcOptions, setAtcOptions] = useState<AtcGroupOption[]>([])
     const [substanceSuggestions, setSubstanceSuggestions] = useState<SubstanceOption[]>([])
     const [substanceQuery, setSubstanceQuery] = useState("")
@@ -108,7 +109,7 @@ export function Filters({ filters, onChange }: Props) {
                 </label>
             </div>
             <div className="filter-actions">
-                <button type="button" onClick={() => console.log("Vyhledat kliknuto!")}>
+                <button type="button" onClick={onSearchClick}>
                     Vyhledat
                 </button>
             </div>
