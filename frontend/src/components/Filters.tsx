@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from "react"
+import "./Filters.css"
 
 export interface FilterValues {
     atcGroupId: number | null
@@ -29,14 +30,12 @@ export function Filters({ filters, onChange }: Props) {
     const [substanceSuggestions, setSubstanceSuggestions] = useState<SubstanceOption[]>([])
     const [substanceQuery, setSubstanceQuery] = useState("")
 
-    // Fetch ATC groups on load
     useEffect(() => {
         fetch("/api/atc-groups")
             .then(res => res.json())
             .then(data => setAtcOptions(data))
     }, [])
 
-    // Fetch substance suggestions
     useEffect(() => {
         if (substanceQuery.length < 3) {
             setSubstanceSuggestions([])
@@ -53,8 +52,8 @@ export function Filters({ filters, onChange }: Props) {
     }, [substanceQuery])
 
     return (
-        <div className="filter-panel">
-            <div>
+        <div className="filters-container">
+            <div className="filter-row">
                 <label>
                     Léčivý přípravek / SÚKL kód / Reg. číslo:
                     <input
@@ -66,41 +65,52 @@ export function Filters({ filters, onChange }: Props) {
                         placeholder="např. paracetamol, 123456, 54/432/01-C"
                     />
                 </label>
-                <br/>
-                <label>ATC skupina:</label>
-                <select
-                    value={filters.atcGroupId ?? ""}
-                    onChange={e => onChange({ ...filters, atcGroupId: e.target.value ? Number(e.target.value) : null })}
-                >
-                    <option value="">-- Vyberte ATC skupinu --</option>
-                    {atcOptions.map(atc => (
-                        <option key={atc.id} value={atc.id}>
-                            {atc.name} ({atc.code})
-                        </option>
-                    ))}
-                </select>
             </div>
 
-            <div>
-                <label>Látka (substance):</label>
-                <input
-                    type="text"
-                    placeholder="Začněte psát..."
-                    onChange={e => {
-                        setSubstanceQuery(e.target.value)
-                        onChange({ ...filters, substanceId: null })
-                    }}
-                    list="substance-options"
-                />
-                <datalist id="substance-options">
-                    {substanceSuggestions.map(sub => (
-                        <option
-                            key={sub.id}
-                            value={`${sub.name} (${sub.code})`}
-                            onClick={() => onChange({ ...filters, substanceId: sub.id })}
-                        />
-                    ))}
-                </datalist>
+            <div className="filter-row row-cols">
+                <label>
+                    ATC skupina:
+                    <select
+                        value={filters.atcGroupId ?? ""}
+                        onChange={e =>
+                            onChange({ ...filters, atcGroupId: e.target.value ? Number(e.target.value) : null })
+                        }
+                    >
+                        <option value="">-- Vyberte ATC skupinu --</option>
+                        {atcOptions.map(atc => (
+                            <option key={atc.id} value={atc.id}>
+                                {atc.name} ({atc.code})
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                <label>
+                    Látka (substance):
+                    <input
+                        type="text"
+                        placeholder="Začněte psát..."
+                        onChange={e => {
+                            setSubstanceQuery(e.target.value)
+                            onChange({ ...filters, substanceId: null })
+                        }}
+                        list="substance-options"
+                    />
+                    <datalist id="substance-options">
+                        {substanceSuggestions.map(sub => (
+                            <option
+                                key={sub.id}
+                                value={`${sub.name} (${sub.code})`}
+                                onClick={() => onChange({ ...filters, substanceId: sub.id })}
+                            />
+                        ))}
+                    </datalist>
+                </label>
+            </div>
+            <div className="filter-actions">
+                <button type="button" onClick={() => console.log("Vyhledat kliknuto!")}>
+                    Vyhledat
+                </button>
             </div>
         </div>
     )
