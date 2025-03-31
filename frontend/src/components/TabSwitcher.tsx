@@ -1,36 +1,33 @@
 import React, { useState } from "react"
+import "./TabSwitcher.css"
 
 export function TabSwitcher() {
     const [activeTab, setActiveTab] = useState<"map" | "sankey">("map")
 
     return (
-        <div>
-            <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+        <div className="tab-switcher">
+            <div className="tab-buttons">
                 <button
+                    className={activeTab === "map" ? "tab-button active" : "tab-button"}
                     onClick={() => setActiveTab("map")}
-                    style={{
-                        fontWeight: activeTab === "map" ? "bold" : "normal",
-                        backgroundColor: activeTab === "map" ? "#eee" : "transparent"
-                    }}
                 >
                     Mapa
                 </button>
                 <button
+                    className={activeTab === "sankey" ? "tab-button active" : "tab-button"}
                     onClick={() => setActiveTab("sankey")}
-                    style={{
-                        fontWeight: activeTab === "sankey" ? "bold" : "normal",
-                        backgroundColor: activeTab === "sankey" ? "#eee" : "transparent"
-                    }}
                 >
                     Sankey
                 </button>
             </div>
 
-            {activeTab === "map" ? (
-                <div>🗺️ Zde bude mapa</div>
-            ) : (
-                <div>🔀 Zde bude Sankey diagram</div>
-            )}
+            <div className="tab-content">
+                {activeTab === "map" ? (
+                    <div>🗺️ Zde bude mapa</div>
+                ) : (
+                    <div>🔀 Zde bude Sankey diagram</div>
+                )}
+            </div>
         </div>
     )
 }
