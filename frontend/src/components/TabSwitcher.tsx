@@ -1,32 +1,29 @@
 import React, { useState } from "react"
+import { MapTab } from "./MapTab"
 import "./TabSwitcher.css"
 
 export function TabSwitcher() {
     const [activeTab, setActiveTab] = useState<"map" | "sankey">("map")
 
     return (
-        <div className="tab-switcher">
+        <div>
             <div className="tab-buttons">
                 <button
-                    className={activeTab === "map" ? "tab-button active" : "tab-button"}
+                    className={`tab-button ${activeTab === "map" ? "active" : ""}`}
                     onClick={() => setActiveTab("map")}
                 >
-                    Mapa
+                    🗺️ Mapa
                 </button>
                 <button
-                    className={activeTab === "sankey" ? "tab-button active" : "tab-button"}
+                    className={`tab-button ${activeTab === "sankey" ? "active" : ""}`}
                     onClick={() => setActiveTab("sankey")}
                 >
-                    Sankey
+                    🔀 Sankey
                 </button>
             </div>
 
-            <div className="tab-content">
-                {activeTab === "map" ? (
-                    <div>🗺️ Zde bude mapa</div>
-                ) : (
-                    <div>🔀 Zde bude Sankey diagram</div>
-                )}
+            <div style={{ marginTop: "1rem" }}>
+                {activeTab === "map" ? <MapTab /> : <div>🔀 Sankey bude tady</div>}
             </div>
         </div>
     )
