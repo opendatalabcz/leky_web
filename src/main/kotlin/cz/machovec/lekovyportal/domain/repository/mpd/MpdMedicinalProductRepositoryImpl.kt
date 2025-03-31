@@ -3,6 +3,7 @@ package cz.machovec.lekovyportal.domain.repository.mpd
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAtcGroup
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProductSubstance
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdSubstance
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.persistence.criteria.Predicate
@@ -25,8 +26,8 @@ class MpdMedicinalProductRepositoryImpl(
         }
 
         if (substanceId != null) {
-            val join = root.join<MpdMedicinalProduct, MpdMedicinalProductSubstance>("substances")
-            predicates += cb.equal(join.get<Long>("substance").get<Long>("id"), substanceId)
+            val substanceJoin = root.join<MpdMedicinalProduct, MpdMedicinalProductSubstance>("substances")
+            predicates += cb.equal(substanceJoin.get<MpdSubstance>("substance").get<Long>("id"), substanceId)
         }
 
         if (!query.isNullOrBlank()) {

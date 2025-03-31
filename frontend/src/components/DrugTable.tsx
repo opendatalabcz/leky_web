@@ -35,7 +35,6 @@ export function DrugTable({
                 if (filters.medicinalProductQuery) params.append("query", filters.medicinalProductQuery)
                 if (filters.period) params.append("period", filters.period)
 
-                console.log("WTFF")
                 const response = await fetch(`/api/medicinal-products?${params.toString()}`)
                 const data = await response.json()
                 setDrugs(data)

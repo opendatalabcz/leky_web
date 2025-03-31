@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from "react"
 import "./Filters.css"
+import {SubstanceSelect} from "./SubstanceSelect";
 
 export interface FilterValues {
     atcGroupId: number | null
@@ -20,37 +21,14 @@ interface AtcGroupOption {
     code: string
 }
 
-interface SubstanceOption {
-    id: number
-    name: string
-    code: string
-}
-
 export function Filters({ filters, onChange, onSearchClick }: Props) {
     const [atcOptions, setAtcOptions] = useState<AtcGroupOption[]>([])
-    const [substanceSuggestions, setSubstanceSuggestions] = useState<SubstanceOption[]>([])
-    const [substanceQuery, setSubstanceQuery] = useState("")
 
     useEffect(() => {
         fetch("/api/atc-groups")
             .then(res => res.json())
             .then(data => setAtcOptions(data))
     }, [])
-
-    useEffect(() => {
-        if (substanceQuery.length < 3) {
-            setSubstanceSuggestions([])
-            return
-        }
-
-        const delay = setTimeout(() => {
-            fetch(`/api/substances?query=${substanceQuery}`)
-                .then(res => res.json())
-                .then(data => setSubstanceSuggestions(data))
-        }, 300)
-
-        return () => clearTimeout(delay)
-    }, [substanceQuery])
 
     return (
         <div className="filters-container">
@@ -86,28 +64,12 @@ export function Filters({ filters, onChange, onSearchClick }: Props) {
                     </select>
                 </label>
 
-                <label>
-                    Látka (substance):
-                    <input
-                        type="text"
-                        placeholder="Začněte psát..."
-                        onChange={e => {
-                            setSubstanceQuery(e.target.value)
-                            onChange({ ...filters, substanceId: null })
-                        }}
-                        list="substance-options"
-                    />
-                    <datalist id="substance-options">
-                        {substanceSuggestions.map(sub => (
-                            <option
-                                key={sub.id}
-                                value={`${sub.name} (${sub.code})`}
-                                onClick={() => onChange({ ...filters, substanceId: sub.id })}
-                            />
-                        ))}
-                    </datalist>
-                </label>
+                <SubstanceSelect
+                    selectedSubstanceId={filters.substanceId}
+                    onChange={(id) => onChange({ ...filters, substanceId: id })}
+                />
             </div>
+
             <div className="filter-actions">
                 <button type="button" onClick={onSearchClick}>
                     Vyhledat

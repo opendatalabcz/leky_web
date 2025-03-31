@@ -2,6 +2,7 @@ package cz.machovec.lekovyportal.api
 
 import cz.machovec.lekovyportal.api.dto.MedicinalProductResponse
 import cz.machovec.lekovyportal.service.MedicinalProductService
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 class MedicinalProductController(
     private val medicinalProductService: MedicinalProductService
 ) {
+    private val logger = LoggerFactory.getLogger(MedicinalProductController::class.java)
 
     @GetMapping
     fun searchMedicinalProducts(
@@ -20,7 +22,7 @@ class MedicinalProductController(
         @RequestParam(required = false) query: String?,
         @RequestParam(required = false) period: String?
     ): List<MedicinalProductResponse> {
-        println("Searching medicinal products")
+        logger.info("Searching medicinal products with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, period=$period")
         return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query)
     }
 }
