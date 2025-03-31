@@ -24,4 +24,12 @@ class MedicinalProductController(
         logger.info("Searching medicinal products: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query")
         return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query)
     }
+
+    @GetMapping("/by-ids")
+    fun getMedicinalProductsByIds(
+        @RequestParam ids: List<Long>
+    ): List<MedicinalProductResponse> {
+        logger.info("CART - fetching medicinal products by IDs: ${ids.joinToString(", ")}")
+        return medicinalProductService.findByIds(ids)
+    }
 }

@@ -32,4 +32,23 @@ class MedicinalProductService(
             )
         }
     }
+
+    fun findByIds(ids: List<Long>): List<MedicinalProductResponse> {
+        return medicinalProductRepository.findAllById(ids).map { product ->
+            MedicinalProductResponse(
+                id = product.id!!,
+                name = product.name,
+                suklCode = product.suklCode,
+                registrationNumber = product.registrationNumber,
+                supplementaryInformation = product.supplementaryInformation,
+                atcGroup = product.atcGroup?.let {
+                    AtcGroupResponse(
+                        id = it.id!!,
+                        code = it.code,
+                        name = it.name
+                    )
+                }
+            )
+        }
+    }
 }

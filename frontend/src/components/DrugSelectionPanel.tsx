@@ -1,7 +1,7 @@
-import React, { useState } from "react"
-import { Filters, FilterValues } from "./Filters"
-import { DrugTable } from "./DrugTable"
-import "./DrugSelectionPanel.css"
+import {useState} from "react"
+import {Filters, FilterValues} from "./Filters"
+import {DrugTable} from "./DrugTable"
+import {Cart} from "./Cart"
 
 export function DrugSelectionPanel() {
     const [filters, setFilters] = useState<FilterValues>({
@@ -13,21 +13,9 @@ export function DrugSelectionPanel() {
 
     const [shouldSearch, setShouldSearch] = useState(false)
 
-    const handleFilterChange = (updated: FilterValues) => {
-        setFilters(updated)
-    }
-
-    const handleSearchClick = () => {
-        setShouldSearch(true)
-    }
-
-    const handleSearchComplete = () => {
-        setShouldSearch(false)
-    }
-
-    const handleAddToCart = (drugId: string) => {
-        console.log("Přidat do košíku:", drugId)
-    }
+    const handleFilterChange = (updated: FilterValues) => setFilters(updated)
+    const handleSearchClick = () => setShouldSearch(true)
+    const handleSearchComplete = () => setShouldSearch(false)
 
     return (
         <section className="drug-selection-panel">
@@ -39,10 +27,10 @@ export function DrugSelectionPanel() {
             />
             <DrugTable
                 filters={filters}
-                onSelectDrug={handleAddToCart}
                 triggerSearch={shouldSearch}
                 onSearchComplete={handleSearchComplete}
             />
+            <Cart />
         </section>
     )
 }

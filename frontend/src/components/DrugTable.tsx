@@ -1,32 +1,32 @@
 import React, { useEffect, useState } from "react"
 import { FilterValues } from "./Filters"
 import "./DrugTable.css"
+import {useCart} from "./CartContext";
 
-type Drug = {
+export type Drug = {
     id: string
     name: string
-    supplementaryInformation?: string
     suklCode: string
-    registrationNumber?: string
+    registrationNumber: string | null
+    supplementaryInformation: string | null
     atcGroup?: {
-        name: string
         code: string
-    }
+        name: string
+    } | null
 }
 
 type DrugTableProps = {
     filters: FilterValues
     triggerSearch: boolean
     onSearchComplete: () => void
-    onSelectDrug: (drugId: string) => void
 }
 
 export function DrugTable({
                               filters,
                               triggerSearch,
                               onSearchComplete,
-                              onSelectDrug
                           }: DrugTableProps) {
+    const { addToCart } = useCart()
     const [drugs, setDrugs] = useState<Drug[]>([])
     const [loading, setLoading] = useState(false)
 
@@ -83,7 +83,7 @@ export function DrugTable({
                             <td>{drug.registrationNumber || "-"}</td>
                             <td>{drug.atcGroup ? `${drug.atcGroup.name} (${drug.atcGroup.code})` : "-"}</td>
                             <td>
-                                <button onClick={() => onSelectDrug(drug.id)}>
+                                <button onClick={() => addToCart(Number(drug.id))}>
                                     Přidat
                                 </button>
                             </td>
