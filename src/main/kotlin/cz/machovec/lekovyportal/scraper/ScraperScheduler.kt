@@ -16,7 +16,7 @@ class ScraperScheduler(
     private val messagePublisher: MessagePublisher,
     private val lek13Service: Lek13Service,
 ) {
-    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 0 * * ?")
     fun doScraping() {
         mpdHistoryService.collectNewMessages().forEach { messagePublisher.publish(it) }
 
