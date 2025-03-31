@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from "react"
 import { FilterValues } from "./Filters"
+import "./DrugTable.css"
 
 type Drug = {
     id: string
     name: string
+    supplementaryInformation?: string
+    suklCode: string
+    registrationNumber?: string
+    atcGroup?: {
+        name: string
+        code: string
+    }
 }
 
 type DrugTableProps = {
@@ -50,15 +58,19 @@ export function DrugTable({
     }, [triggerSearch, filters, onSearchComplete])
 
     return (
-        <div style={{ marginTop: "2rem" }}>
+        <div className="drug-table-container">
             <h3>Výsledky vyhledávání</h3>
             {loading && <p>Načítání dat...</p>}
             {!loading && drugs.length === 0 && <p>Žádné výsledky</p>}
             {!loading && drugs.length > 0 && (
-                <table>
+                <table className="drug-table">
                     <thead>
                     <tr>
-                        <th>Název léčiva</th>
+                        <th>Název</th>
+                        <th>Doplněk názvu</th>
+                        <th>SÚKL kód</th>
+                        <th>Registrační číslo</th>
+                        <th>ATC skupina</th>
                         <th>Akce</th>
                     </tr>
                     </thead>
@@ -66,8 +78,14 @@ export function DrugTable({
                     {drugs.map((drug) => (
                         <tr key={drug.id}>
                             <td>{drug.name}</td>
+                            <td>{drug.supplementaryInformation || "-"}</td>
+                            <td>{drug.suklCode}</td>
+                            <td>{drug.registrationNumber || "-"}</td>
+                            <td>{drug.atcGroup ? `${drug.atcGroup.name} (${drug.atcGroup.code})` : "-"}</td>
                             <td>
-                                <button onClick={() => onSelectDrug(drug.id)}>Přidat do košíku</button>
+                                <button onClick={() => onSelectDrug(drug.id)}>
+                                    Přidat
+                                </button>
                             </td>
                         </tr>
                     ))}

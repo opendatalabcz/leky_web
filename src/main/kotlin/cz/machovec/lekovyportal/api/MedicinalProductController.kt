@@ -19,10 +19,9 @@ class MedicinalProductController(
     fun searchMedicinalProducts(
         @RequestParam(required = false) atcGroupId: Long?,
         @RequestParam(required = false) substanceId: Long?,
-        @RequestParam(required = false) query: String?,
-        @RequestParam(required = false) period: String?
+        @RequestParam(required = false) query: String?
     ): List<MedicinalProductResponse> {
-        logger.info("Searching medicinal products with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, period=$period")
+        logger.info("Searching medicinal products: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query")
         return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query)
     }
 }
