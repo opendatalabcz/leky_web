@@ -19,6 +19,10 @@ class DistrictDataController(
     fun getDistrictAggregates(@RequestBody request: DistrictDataRequest): Map<String, Int> {
         logger.info("District map aggregation — type=${request.filterType}, ids=${request.medicinalProductIds.joinToString(",")}")
 
-        return districtDataService.aggregateByDistrict(request)
+        val data = districtDataService.aggregateByDistrict(request)
+
+        logger.info("Returning district aggregates: ${data.entries.joinToString { "${it.key}=${it.value}" }}")
+
+        return data
     }
 }
