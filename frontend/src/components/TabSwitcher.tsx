@@ -12,18 +12,18 @@ export function TabSwitcher() {
                     className={`tab-button ${activeTab === "map" ? "active" : ""}`}
                     onClick={() => setActiveTab("map")}
                 >
-                    🗺️ Mapa
+                    Mapa
                 </button>
                 <button
                     className={`tab-button ${activeTab === "sankey" ? "active" : ""}`}
                     onClick={() => setActiveTab("sankey")}
                 >
-                    🔀 Sankey
+                    Sankey
                 </button>
             </div>
 
             <div style={{ marginTop: "1rem" }}>
-                {activeTab === "map" ? <MapTab /> : <div>🔀 Sankey bude tady</div>}
+                {activeTab === "map" ? <MapTab /> : <div>Sankey bude tady</div>}
             </div>
         </div>
     )
