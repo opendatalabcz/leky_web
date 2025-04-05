@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -163,6 +164,9 @@ data class MpdMedicinalProduct(
 
     @Column(name = "medicinal_product_type")
     val medicinalProductType: String?,
+
+    @OneToMany(mappedBy = "medicinalProduct", fetch = FetchType.LAZY)
+    val substances: List<MpdMedicinalProductSubstance> = emptyList()
 ) : BaseMpdEntity<MpdMedicinalProduct>() {
 
     override fun getUniqueKey(): String = suklCode

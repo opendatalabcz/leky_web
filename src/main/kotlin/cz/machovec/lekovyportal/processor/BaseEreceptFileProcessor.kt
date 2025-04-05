@@ -29,8 +29,6 @@ abstract class BaseEreceptFileProcessor<T>(
     private val PRAGUE_CODE = "3100"
 
     protected open val aggregatePrague: Boolean = true
-    private val pragueMap = mutableMapOf<String, T>()
-    private val nonPrague = mutableListOf<T>()
 
     @Transactional
     override fun processFile(msg: NewFileMessage) {
@@ -87,11 +85,7 @@ abstract class BaseEreceptFileProcessor<T>(
             parseCsv(fileBytes, monthsToProcess)
         }
 
-        val finalRecords = if (aggregatePrague) {
-            nonPrague + pragueMap.values
-        } else {
-            parsedRecords
-        }
+        val finalRecords = parsedRecords
 
         if (finalRecords.isEmpty()) {
             logger.info { "No records to save for $datasetType." }
@@ -147,6 +141,7 @@ abstract class BaseEreceptFileProcessor<T>(
 
         val processedMonths = mutableSetOf<Int>()
         val parsed = mutableListOf<T>()
+        val pragueMap = mutableMapOf<String, T>()
         var skipped = 0
 
         dataLines.forEachIndexed { index, cols ->
@@ -155,38 +150,28 @@ abstract class BaseEreceptFileProcessor<T>(
             val month = cols[3].toIntOrNull() ?: return@forEachIndexed
             if (month !in allowedMonths) return@forEachIndexed
 
-            val record = parseCsvRecord(cols.toList())?.entity
-            if (record == null) {
-                skipped++
-                if (skipped <= 5) {
-                    logger.warn { "Skipped line $index – unable to parse entity" }
-                }
-                return@forEachIndexed
-            }
+            val result = parseCsvRecord(cols.toList()) ?: return@forEachIndexed
+            val entity = result.entity
 
             processedMonths += month
-            val handled = handleParsedEntity(record)
-            if (handled != null) parsed += handled
+
+            if (aggregatePrague && entity.districtCode == PRAGUE_CODE) {
+                val key = extractAggregationKey(entity)
+                val existing = pragueMap[key]
+
+                if (existing != null) {
+                    pragueMap[key] = mergeByQuantity(existing, entity)
+                } else {
+                    pragueMap[key] = entity
+                }
+            } else {
+                parsed += entity
+            }
         }
 
-        logger.info { "Parsed ${parsed.size + pragueMap.size} records. Skipped: $skipped" }
-        return parsed to processedMonths
-    }
-
-
-    private fun handleParsedEntity(entity: T): T? {
-        if (!aggregatePrague || entity.districtCode != PRAGUE_CODE) return entity
-
-        val key = extractAggregationKey(entity)
-        val existing = pragueMap[key]
-
-        if (existing != null) {
-            pragueMap[key] = mergeByQuantity(existing, entity)
-        } else {
-            pragueMap[key] = entity
-        }
-
-        return null
+        val combined = parsed + pragueMap.values
+        logger.info { "Parsed ${combined.size} records. Skipped: $skipped" }
+        return combined to processedMonths
     }
 }
 

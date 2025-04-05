@@ -1,50 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import DistrictMap from './DistrictMap';
+import {BrowserRouter, Route, Routes} from "react-router-dom"
+import {Navbar} from "./components/Navbar"
+import {HomePage} from "./pages/HomePage"
+import {AboutPage} from "./pages/AboutPage"
+import MapOverviewPage from "./pages/MapOverviewPage";
 
-function App() {
-    const [geojsonData, setGeojsonData] = useState(null);
-    const [districtData, setDistrictData] = useState(null);
-    const [filter, setFilter] = useState('prescribed');
+import {CartProvider} from "./components/CartContext"
 
-    useEffect(() => {
-        fetch('/okresy.json')
-            .then((response) => response.json())
-            .then((data) => setGeojsonData(data));
-
-        fetchDistrictData(filter);
-    }, []);
-
-    const fetchDistrictData = (selectedFilter: string) => {
-        fetch(`/api/district-data?filter=${selectedFilter}`)
-            .then((response) => response.json())
-            .then((data) => setDistrictData(data));
-    };
-
-    const handleFilterChange = (event : React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedFilter = event.target.value;
-        setFilter(selectedFilter);
-        fetchDistrictData(selectedFilter);
-    };
-
-    if (!geojsonData || !districtData) {
-        return <div>Načítám data...</div>;
-    }
-
+export default function App() {
     return (
-        <div>
-            <h1>Mapa okresů</h1>
-            <div>
-                <label htmlFor="filter">Vyber typ dat:</label>
-                <select id="filter" value={filter} onChange={handleFilterChange}>
-                    <option value="prescribed">Předepsané</option>
-                    <option value="dispensed">Vydané</option>
-                    <option value="difference">Rozdíl</option>
-                </select>
-            </div>
-
-            <DistrictMap geojsonData={geojsonData} districtData={districtData} filter={filter}/>
-        </div>
-    );
+        <CartProvider>
+            <BrowserRouter>
+                <Navbar />
+                <main style={{ padding: "2rem" }}>
+                    <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/about" element={<AboutPage />} />
+                        <Route path="/map" element={<MapOverviewPage />} />
+                    </Routes>
+                </main>
+            </BrowserRouter>
+        </CartProvider>
+    )
 }
-
-export default App;

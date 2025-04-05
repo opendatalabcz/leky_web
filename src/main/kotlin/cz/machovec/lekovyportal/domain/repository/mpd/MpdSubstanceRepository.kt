@@ -9,4 +9,6 @@ interface MpdSubstanceRepository : JpaRepository<MpdSubstance, Long> {
     fun findByCode(code: String): MpdSubstance?
 
     fun findAllByCodeIn(codes: Set<String>): List<MpdSubstance>
+
+    fun findTop30ByNameContainingIgnoreCaseOrCodeContainingIgnoreCase(name: String, code: String): List<MpdSubstance>
 }

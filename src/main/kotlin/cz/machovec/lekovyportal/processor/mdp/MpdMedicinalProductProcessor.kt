@@ -8,6 +8,7 @@ import cz.machovec.lekovyportal.domain.repository.mpd.MpdMedicinalProductReposit
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -179,9 +180,11 @@ class MpdMedicinalProductProcessor(
             }
 
             val registrationProcess = headerIndex[COLUMN_REGISTRATION_PROCESS]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getRegistrationProcesses()[it] }
-            val dailyDoseAmount = headerIndex[COLUMN_DAILY_DOSE_AMOUNT]?.let { row.getOrNull(it)?.trim()?.toBigDecimalOrNull() }
+            val dailyDoseAmount = headerIndex[COLUMN_DAILY_DOSE_AMOUNT]
+                ?.let { parseDecimal(row.getOrNull(it)) }
             val dailyDoseUnit = headerIndex[COLUMN_DAILY_DOSE_UNIT]?.let { row.getOrNull(it)?.trim() }?.let { referenceDataProvider.getMeasurementUnits()[it] }
-            val dailyDosePackaging = headerIndex[COLUMN_DAILY_DOSE_PACKAGING]?.let { row.getOrNull(it)?.trim()?.toBigDecimalOrNull() }
+            val dailyDosePackaging = headerIndex[COLUMN_DAILY_DOSE_PACKAGING]
+                ?.let { parseDecimal(row.getOrNull(it)) }
             val whoSource = headerIndex[COLUMN_WHO_SOURCE]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } }
             val substanceList = headerIndex[COLUMN_SUBSTANCE_LIST]?.let { row.getOrNull(it)?.trim()?.ifBlank { null } }
 
@@ -265,4 +268,9 @@ class MpdMedicinalProductProcessor(
         if (code.isNotBlank() && countryCode.isNotBlank())
             referenceDataProvider.getOrganisations()[code.trim() to countryCode.trim()]
         else null
+
+    private fun parseDecimal(value: String?): BigDecimal? =
+        value?.trim()
+            ?.replace(",", ".")
+            ?.toBigDecimalOrNull()
 }

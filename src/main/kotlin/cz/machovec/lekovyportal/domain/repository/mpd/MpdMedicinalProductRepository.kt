@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface MpdMedicinalProductRepository : JpaRepository<MpdMedicinalProduct, Long> {
+interface MpdMedicinalProductRepository : JpaRepository<MpdMedicinalProduct, Long>, MpdMedicinalProductRepositoryCustom {
     fun findBySuklCode(suklCode: String): MpdMedicinalProduct?
 
     fun findAllBySuklCodeIn(suklCodes: Set<String>): List<MpdMedicinalProduct>
