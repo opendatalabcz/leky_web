@@ -11,9 +11,6 @@ export function Navbar() {
             <Link to="/" className={isActive("/") ? "nav-link active" : "nav-link"}>
                 Datové přehledy
             </Link>
-            <Link to="/map" className={isActive("/map") ? "nav-link active" : "nav-link"}>
-                Mapa
-            </Link>
             <Link to="/about" className={isActive("/about") ? "nav-link active" : "nav-link"}>
                 O projektu
             </Link>

@@ -1,11 +1,20 @@
 import { Box, Typography } from "@mui/material"
 import { YearMonthPicker } from "./YearMonthPicker"
-import { useState } from "react"
+import { FC } from "react"
 
-export function VisualizationSettings() {
-    const [dateFrom, setDateFrom] = useState<Date | null>(null)
-    const [dateTo, setDateTo] = useState<Date | null>(null)
+type Props = {
+    dateFrom: Date | null
+    dateTo: Date | null
+    onChangeDateFrom: (date: Date | null) => void
+    onChangeDateTo: (date: Date | null) => void
+}
 
+export const VisualizationSettings: FC<Props> = ({
+    dateFrom,
+    dateTo,
+    onChangeDateFrom,
+    onChangeDateTo
+}) => {
     return (
         <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -16,13 +25,13 @@ export function VisualizationSettings() {
                 <YearMonthPicker
                     label="Období od"
                     value={dateFrom}
-                    onChange={setDateFrom}
+                    onChange={onChangeDateFrom}
                     maxDate={dateTo ?? undefined}
                 />
                 <YearMonthPicker
                     label="Období do"
                     value={dateTo}
-                    onChange={setDateTo}
+                    onChange={onChangeDateTo}
                     minDate={dateFrom ?? undefined}
                 />
             </Box>

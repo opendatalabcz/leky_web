@@ -2,14 +2,18 @@ import React, { useEffect, useState } from "react"
 import { useCart } from "./CartContext"
 import DistrictMap from "./DistrictMap"
 import { FeatureCollection } from "geojson"
-
-type FilterType = "prescribed" | "dispensed" | "difference"
+import { VisualizationSettings } from "./VisualizationSettings"
+import { format } from "date-fns"
+import { EReceptFilterType } from "../types/EReceptFilterType" // importuj enum
 
 export function MapTab() {
     const { cartIds } = useCart()
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
     const [districtValuesByCode, setDistrictValuesByCode] = useState<Record<string, number> | null>(null)
-    const [filterType, setFilterType] = useState<FilterType>("prescribed")
+    const [filterType, setFilterType] = useState<EReceptFilterType>(EReceptFilterType.PRESCRIBED)
+
+    const [dateFrom, setDateFrom] = useState<Date | null>(null)
+    const [dateTo, setDateTo] = useState<Date | null>(null)
 
     useEffect(() => {
         fetch("/okresy.json")
@@ -25,7 +29,9 @@ export function MapTab() {
 
         const payload = {
             medicinalProductIds: cartIds,
-            filterType
+            filterType,
+            dateFrom: dateFrom ? format(dateFrom, "yyyy-MM") : null,
+            dateTo: dateTo ? format(dateTo, "yyyy-MM") : null
         }
 
         console.log("➡️ Odesílám payload na BE:", payload)
@@ -49,17 +55,24 @@ export function MapTab() {
         <div className="map-tab">
             <h3>Vizualizace na mapě</h3>
 
+            <VisualizationSettings
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onChangeDateFrom={setDateFrom}
+                onChangeDateTo={setDateTo}
+            />
+
             <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "1rem" }}>
                 <div>
                     <label>Typ dat:</label>
                     <select
                         value={filterType}
-                        onChange={(e) => setFilterType(e.target.value as FilterType)}
+                        onChange={(e) => setFilterType(e.target.value as EReceptFilterType)}
                         style={{ padding: "0.4rem", fontSize: "1rem", marginLeft: "0.5rem" }}
                     >
-                        <option value="prescribed">Předepsané</option>
-                        <option value="dispensed">Vydané</option>
-                        <option value="difference">Rozdíl</option>
+                        <option value={EReceptFilterType.PRESCRIBED}>Předepsané</option>
+                        <option value={EReceptFilterType.DISPENSED}>Vydané</option>
+                        <option value={EReceptFilterType.DIFFERENCE}>Rozdíl</option>
                     </select>
                 </div>
 

@@ -17,7 +17,10 @@ class DistrictDataController(
 
     @PostMapping
     fun getDistrictAggregates(@RequestBody request: DistrictDataRequest): Map<String, Int> {
-        logger.info("District map aggregation — type=${request.filterType}, ids=${request.medicinalProductIds.joinToString(",")}")
+        logger.info(
+            "District map aggregation — type=${request.filterType}, ids=${request.medicinalProductIds.joinToString(",")}, " +
+                    "dateFrom=${request.dateFrom}, dateTo=${request.dateTo}"
+        )
 
         val data = districtDataService.aggregateByDistrict(request)
 
