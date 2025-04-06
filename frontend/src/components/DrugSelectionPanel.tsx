@@ -15,10 +15,16 @@ export function DrugSelectionPanel() {
 
     const [shouldSearch, setShouldSearch] = useState(false)
 
+    const [filtersVersion, setFiltersVersion] = useState(0)
+
     const [groupedDrugs, setGroupedDrugs] = useState<any[]>([])
     const [loadingGrouped, setLoadingGrouped] = useState(false)
 
-    const handleFilterChange = (updated: FilterValues) => setFilters(updated)
+    const handleFilterChange = (updated: FilterValues) => {
+        setFilters(updated)
+        setFiltersVersion(prev => prev + 1) // bump version when filters change
+    }
+
     const handleSearchClick = () => setShouldSearch(true)
     const handleSearchComplete = () => setShouldSearch(false)
 
@@ -62,11 +68,16 @@ export function DrugSelectionPanel() {
                     filters={filters}
                     triggerSearch={shouldSearch}
                     onSearchComplete={handleSearchComplete}
+                    filtersVersion={filtersVersion}
+                    setTriggerSearch={setShouldSearch}
                 />
             ) : (
                 <GroupedDrugTable
-                    data={groupedDrugs}
-                    loading={loadingGrouped}
+                    filters={filters}
+                    triggerSearch={shouldSearch}
+                    onSearchComplete={handleSearchComplete}
+                    filtersVersion={filtersVersion}
+                    setTriggerSearch={setShouldSearch}
                 />
             )}
 
