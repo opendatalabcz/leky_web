@@ -69,27 +69,24 @@ export function Filters({ filters, onChange, onSearchClick }: Props) {
                 </button>
             </div>
 
-            <div className="filter-row">
-                <label>
-                    Léčivý přípravek / SÚKL kód / Registrační číslo / Léčivý přípravek + síla:
+            <div className="filter-row row-cols">
+                <label className="full-col">
+                    Název / SÚKL kód / Registrační číslo / Název + síla:
                     <input
                         type="text"
                         value={filters.medicinalProductQuery}
                         onChange={(e) =>
-                            onChange({...filters, medicinalProductQuery: e.target.value})
+                            onChange({ ...filters, medicinalProductQuery: e.target.value })
                         }
                         placeholder="např. Paralen / 272209 / 54/432/01-C / Paralen 500"
                     />
                 </label>
-            </div>
-
-            <div className="filter-row row-cols">
                 <label>
                     ATC skupina:
                     <select
                         value={filters.atcGroupId ?? ""}
                         onChange={e =>
-                            onChange({...filters, atcGroupId: e.target.value ? Number(e.target.value) : null})
+                            onChange({ ...filters, atcGroupId: e.target.value ? Number(e.target.value) : null })
                         }
                     >
                         <option value="">-- Vyberte ATC skupinu --</option>
@@ -103,7 +100,7 @@ export function Filters({ filters, onChange, onSearchClick }: Props) {
 
                 <SubstanceSelect
                     selectedSubstanceId={filters.substanceId}
-                    onChange={(id) => onChange({...filters, substanceId: id})}
+                    onChange={(id) => onChange({ ...filters, substanceId: id })}
                 />
             </div>
         </form>
