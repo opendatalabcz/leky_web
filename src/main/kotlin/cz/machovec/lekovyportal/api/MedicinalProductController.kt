@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.api
 
+import cz.machovec.lekovyportal.api.dto.MedicinalProductGroupedByRegNumberResponse
 import cz.machovec.lekovyportal.api.dto.MedicinalProductResponse
 import cz.machovec.lekovyportal.service.MedicinalProductService
 import org.slf4j.LoggerFactory
@@ -19,10 +20,20 @@ class MedicinalProductController(
     fun searchMedicinalProducts(
         @RequestParam(required = false) atcGroupId: Long?,
         @RequestParam(required = false) substanceId: Long?,
-        @RequestParam(required = false) query: String?
+        @RequestParam(required = false) query: String?,
     ): List<MedicinalProductResponse> {
         logger.info("Searching medicinal products: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query")
         return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query)
+    }
+
+    @GetMapping("/grouped-by-reg-number")
+    fun searchMedicinalProductsGroupedByRegNumber(
+        @RequestParam(required = false) atcGroupId: Long?,
+        @RequestParam(required = false) substanceId: Long?,
+        @RequestParam(required = false) query: String?
+    ): List<MedicinalProductGroupedByRegNumberResponse> {
+        logger.info("Searching medicinal products grouped by registration number: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query")
+        return medicinalProductService.searchMedicinalProductsGroupedByRegNumber(atcGroupId, substanceId, query)
     }
 
     @GetMapping("/by-ids")

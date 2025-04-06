@@ -42,6 +42,7 @@ export function DrugTable({
                 if (filters.substanceId) params.append("substanceId", filters.substanceId.toString())
                 if (filters.medicinalProductQuery) params.append("query", filters.medicinalProductQuery)
                 if (filters.period) params.append("period", filters.period)
+                params.append("searchMode", filters.searchMode)
 
                 const response = await fetch(`/api/medicinal-products?${params.toString()}`)
                 const data = await response.json()
@@ -66,9 +67,9 @@ export function DrugTable({
                 <table className="drug-table">
                     <thead>
                     <tr>
+                        <th>SÚKL kód</th>
                         <th>Název</th>
                         <th>Doplněk názvu</th>
-                        <th>SÚKL kód</th>
                         <th>Registrační číslo</th>
                         <th>ATC skupina</th>
                         <th>Akce</th>
@@ -77,9 +78,9 @@ export function DrugTable({
                     <tbody>
                     {drugs.map((drug) => (
                         <tr key={drug.id}>
+                            <td>{drug.suklCode}</td>
                             <td>{drug.name}</td>
                             <td>{drug.supplementaryInformation || "-"}</td>
-                            <td>{drug.suklCode}</td>
                             <td>{drug.registrationNumber || "-"}</td>
                             <td>{drug.atcGroup ? `${drug.atcGroup.name} (${drug.atcGroup.code})` : "-"}</td>
                             <td>
