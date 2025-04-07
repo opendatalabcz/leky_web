@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from "react"
 import { useCart } from "./CartContext"
 import DistrictMap from "./DistrictMap"
+import { CalculationMode } from "../types/CalculationMode"
 import { FeatureCollection } from "geojson"
 import { VisualizationSettings } from "./VisualizationSettings"
 import { format } from "date-fns"
-import { EReceptFilterType } from "../types/EReceptFilterType" // importuj enum
+import { EReceptFilterType } from "../types/EReceptFilterType"
+import { NormalisationMode } from "../types/NormalisationMode"
 
 export function MapTab() {
     const { cartIds } = useCart()
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
     const [districtValuesByCode, setDistrictValuesByCode] = useState<Record<string, number> | null>(null)
     const [filterType, setFilterType] = useState<EReceptFilterType>(EReceptFilterType.PRESCRIBED)
+    const [calculationMode, setCalculationMode] = useState<CalculationMode>(CalculationMode.UNITS)
+    const [normalisationMode, setNormalisationMode] = useState<NormalisationMode>(NormalisationMode.ABSOLUTE)
 
     const [dateFrom, setDateFrom] = useState<Date | null>(null)
     const [dateTo, setDateTo] = useState<Date | null>(null)
@@ -30,6 +34,8 @@ export function MapTab() {
         const payload = {
             medicinalProductIds: cartIds,
             filterType,
+            calculationMode,
+            normalisationMode,
             dateFrom: dateFrom ? format(dateFrom, "yyyy-MM") : null,
             dateTo: dateTo ? format(dateTo, "yyyy-MM") : null
         }
@@ -60,6 +66,10 @@ export function MapTab() {
                 dateTo={dateTo}
                 onChangeDateFrom={setDateFrom}
                 onChangeDateTo={setDateTo}
+                calculationMode={calculationMode}
+                onChangeCalculationMode={setCalculationMode}
+                normalisationMode={normalisationMode}
+                onChangeNormalisationMode={setNormalisationMode}
             />
 
             <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "1rem" }}>
