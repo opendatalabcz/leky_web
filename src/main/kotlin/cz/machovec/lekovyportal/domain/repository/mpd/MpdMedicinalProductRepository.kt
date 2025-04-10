@@ -8,5 +8,7 @@ import org.springframework.stereotype.Repository
 interface MpdMedicinalProductRepository : JpaRepository<MpdMedicinalProduct, Long>, MpdMedicinalProductRepositoryCustom {
     fun findBySuklCode(suklCode: String): MpdMedicinalProduct?
 
+    fun findAllByIdIn(ids: List<Long>): List<MpdMedicinalProduct>
+
     fun findAllBySuklCodeIn(suklCodes: Set<String>): List<MpdMedicinalProduct>
 }

@@ -15,7 +15,7 @@ class EReceptRepositoryImpl : EReceptRepository {
         medicinalProductIds: List<Long>,
         dateFrom: YearMonth?,
         dateTo: YearMonth?
-    ): List<DistrictAggregateRow> {
+    ): List<EReceptDistrictDataRow> {
         if (medicinalProductIds.isEmpty()) return emptyList()
 
         val fromYear = dateFrom?.year
@@ -27,6 +27,7 @@ class EReceptRepositoryImpl : EReceptRepository {
             append("""
                 SELECT 
                     d.code AS district_code,
+                    c.medicinal_product_id,
                     SUM(c.prescribed_quantity) AS prescribed,
                     SUM(c.dispensed_quantity) AS dispensed,
                     d.population
@@ -68,7 +69,7 @@ class EReceptRepositoryImpl : EReceptRepository {
                     GROUP BY district_code, medicinal_product_id
                 ) AS c
                 JOIN district d ON d.code = c.district_code
-                GROUP BY d.code, d.population
+                GROUP BY d.code, c.medicinal_product_id, d.population
             """.trimIndent())
         }
 
@@ -83,17 +84,19 @@ class EReceptRepositoryImpl : EReceptRepository {
         val results = query.resultList as List<Array<Any>>
 
         return results.map { row ->
-            val code = row[0] as String
-            val prescribed = (row[1] as Number).toInt()
-            val dispensed = (row[2] as Number).toInt()
-            val population = (row[3] as Number).toInt()
-            DistrictAggregateRow(code, prescribed, dispensed, population)
+            val districtCode = row[0] as String
+            val medicinalProductId = (row[1] as Number).toLong()
+            val prescribed = (row[2] as Number).toInt()
+            val dispensed = (row[3] as Number).toInt()
+            val population = (row[4] as Number).toInt()
+            EReceptDistrictDataRow(districtCode, medicinalProductId, prescribed, dispensed, population)
         }
     }
 }
 
-data class DistrictAggregateRow(
+data class EReceptDistrictDataRow(
     val districtCode: String,
+    val medicinalProductId: Long,
     val prescribed: Int,
     val dispensed: Int,
     val population: Int

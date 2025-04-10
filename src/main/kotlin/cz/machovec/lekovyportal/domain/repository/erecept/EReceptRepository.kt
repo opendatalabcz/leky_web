@@ -7,5 +7,5 @@ interface EReceptRepository {
         medicinalProductIds: List<Long>,
         dateFrom: YearMonth? = null,
         dateTo: YearMonth? = null
-    ): List<DistrictAggregateRow>
+    ): List<EReceptDistrictDataRow>
 }

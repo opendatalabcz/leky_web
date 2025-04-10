@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.api.enum
 
-enum class EReceptFilterType {
+enum class EReceptDataTypeAggregation {
     PRESCRIBED,
     DISPENSED,
     DIFFERENCE
