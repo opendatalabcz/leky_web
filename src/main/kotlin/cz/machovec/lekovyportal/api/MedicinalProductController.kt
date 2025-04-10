@@ -1,6 +1,8 @@
 package cz.machovec.lekovyportal.api
 
+import cz.machovec.lekovyportal.api.dto.MedicinalProductGroupedByRegNumberResponse
 import cz.machovec.lekovyportal.api.dto.MedicinalProductResponse
+import cz.machovec.lekovyportal.api.dto.PagedResponse
 import cz.machovec.lekovyportal.service.MedicinalProductService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
@@ -19,10 +21,22 @@ class MedicinalProductController(
     fun searchMedicinalProducts(
         @RequestParam(required = false) atcGroupId: Long?,
         @RequestParam(required = false) substanceId: Long?,
-        @RequestParam(required = false) query: String?
-    ): List<MedicinalProductResponse> {
-        logger.info("Searching medicinal products: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query")
-        return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query)
+        @RequestParam(required = false) query: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int
+    ): PagedResponse<MedicinalProductResponse> {
+        return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query, page, size)
+    }
+
+    @GetMapping("/grouped-by-reg-number")
+    fun searchMedicinalProductsGroupedByRegNumber(
+        @RequestParam(required = false) atcGroupId: Long?,
+        @RequestParam(required = false) substanceId: Long?,
+        @RequestParam(required = false) query: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "10") size: Int
+    ): PagedResponse<MedicinalProductGroupedByRegNumberResponse> {
+        return medicinalProductService.searchMedicinalProductsGroupedByRegNumber(atcGroupId, substanceId, query, page, size)
     }
 
     @GetMapping("/by-ids")

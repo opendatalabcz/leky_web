@@ -1,5 +1,5 @@
+import {DrugSelectionPanel} from "../components/DrugSelectionPanel"
 import {TabSwitcher} from "../components/TabSwitcher"
-import {DrugSelectionPanel} from "../components/DrugSelectionPanel";
 
 export function HomePage() {
     return (

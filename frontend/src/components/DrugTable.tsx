@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react"
 import { FilterValues } from "./Filters"
 import "./DrugTable.css"
-import {useCart} from "./CartContext";
+import { useCart } from "./CartContext"
+import { Pagination } from "./Pagination"
 
 export type Drug = {
     id: string
@@ -19,16 +20,34 @@ type DrugTableProps = {
     filters: FilterValues
     triggerSearch: boolean
     onSearchComplete: () => void
+    filtersVersion: number
+    setTriggerSearch: (value: boolean) => void
+}
+
+type PagedResponse<T> = {
+    content: T[]
+    totalPages: number
+    totalElements: number
+    page: number
+    size: number
 }
 
 export function DrugTable({
                               filters,
                               triggerSearch,
                               onSearchComplete,
+                              filtersVersion,
+                              setTriggerSearch
                           }: DrugTableProps) {
     const { addToCart } = useCart()
     const [drugs, setDrugs] = useState<Drug[]>([])
     const [loading, setLoading] = useState(false)
+    const [currentPage, setCurrentPage] = useState(0)
+    const [totalPages, setTotalPages] = useState(0)
+
+    useEffect(() => {
+        setCurrentPage(0)
+    }, [filtersVersion])
 
     useEffect(() => {
         if (!triggerSearch) return
@@ -42,10 +61,15 @@ export function DrugTable({
                 if (filters.substanceId) params.append("substanceId", filters.substanceId.toString())
                 if (filters.medicinalProductQuery) params.append("query", filters.medicinalProductQuery)
                 if (filters.period) params.append("period", filters.period)
+                params.append("searchMode", filters.searchMode)
+                params.append("page", currentPage.toString())
+                params.append("size", "10")
 
                 const response = await fetch(`/api/medicinal-products?${params.toString()}`)
-                const data = await response.json()
-                setDrugs(data)
+                const data: PagedResponse<Drug> = await response.json()
+
+                setDrugs(data.content)
+                setTotalPages(data.totalPages)
             } catch (error) {
                 console.error("Chyba při načítání léčiv:", error)
             } finally {
@@ -55,7 +79,12 @@ export function DrugTable({
         }
 
         fetchDrugs()
-    }, [triggerSearch, filters, onSearchComplete])
+    }, [triggerSearch, currentPage, filters, onSearchComplete])
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page)
+        setTriggerSearch(true)
+    }
 
     return (
         <div className="drug-table-container">
@@ -63,34 +92,46 @@ export function DrugTable({
             {loading && <p>Načítání dat...</p>}
             {!loading && drugs.length === 0 && <p>Žádné výsledky</p>}
             {!loading && drugs.length > 0 && (
-                <table className="drug-table">
-                    <thead>
-                    <tr>
-                        <th>Název</th>
-                        <th>Doplněk názvu</th>
-                        <th>SÚKL kód</th>
-                        <th>Registrační číslo</th>
-                        <th>ATC skupina</th>
-                        <th>Akce</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {drugs.map((drug) => (
-                        <tr key={drug.id}>
-                            <td>{drug.name}</td>
-                            <td>{drug.supplementaryInformation || "-"}</td>
-                            <td>{drug.suklCode}</td>
-                            <td>{drug.registrationNumber || "-"}</td>
-                            <td>{drug.atcGroup ? `${drug.atcGroup.name} (${drug.atcGroup.code})` : "-"}</td>
-                            <td>
-                                <button onClick={() => addToCart(Number(drug.id))}>
-                                    Přidat
-                                </button>
-                            </td>
+                <>
+                    <table className="drug-table">
+                        <thead>
+                        <tr>
+                            <th>SÚKL kód</th>
+                            <th>Název</th>
+                            <th>Doplněk názvu</th>
+                            <th>Registrační číslo</th>
+                            <th>ATC skupina</th>
+                            <th>Akce</th>
                         </tr>
-                    ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        {drugs.map((drug) => (
+                            <tr key={drug.id}>
+                                <td>{drug.suklCode}</td>
+                                <td>{drug.name}</td>
+                                <td>{drug.supplementaryInformation || "-"}</td>
+                                <td>{drug.registrationNumber || "-"}</td>
+                                <td>
+                                    {drug.atcGroup
+                                        ? `${drug.atcGroup.name} (${drug.atcGroup.code})`
+                                        : "-"}
+                                </td>
+                                <td>
+                                    <button onClick={() => addToCart(Number(drug.id))}>
+                                        Přidat
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                    />
+                </>
             )}
         </div>
     )

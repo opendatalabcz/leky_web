@@ -1,15 +1,41 @@
 import React, { useEffect, useState } from "react"
 import { useCart } from "./CartContext"
 import DistrictMap from "./DistrictMap"
+import { CalculationMode } from "../types/CalculationMode"
 import { FeatureCollection } from "geojson"
+import { VisualizationSettings } from "./VisualizationSettings"
+import { format } from "date-fns"
+import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
+import { NormalisationMode } from "../types/NormalisationMode"
 
-type FilterType = "prescribed" | "dispensed" | "difference"
+type MedicineProductInfo = {
+    id: number
+    suklCode: string
+}
+
+type EReceptDistrictDataResponse = {
+    aggregationType: EReceptDataTypeAggregation
+    calculationMode: CalculationMode
+    normalisationMode: NormalisationMode
+    dateFrom: string | null
+    dateTo: string | null
+    districtValues: Record<string, number>
+    includedMedicineProducts: MedicineProductInfo[]
+    ignoredMedicineProducts: MedicineProductInfo[]
+}
 
 export function MapTab() {
     const { cartIds } = useCart()
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
     const [districtValuesByCode, setDistrictValuesByCode] = useState<Record<string, number> | null>(null)
-    const [filterType, setFilterType] = useState<FilterType>("prescribed")
+    const [ignoredProducts, setIgnoredProducts] = useState<MedicineProductInfo[]>([])
+
+    const [aggregationType, setAggregationType] = useState<EReceptDataTypeAggregation>(EReceptDataTypeAggregation.PRESCRIBED)
+    const [calculationMode, setCalculationMode] = useState<CalculationMode>(CalculationMode.UNITS)
+    const [normalisationMode, setNormalisationMode] = useState<NormalisationMode>(NormalisationMode.ABSOLUTE)
+
+    const [dateFrom, setDateFrom] = useState<Date | null>(null)
+    const [dateTo, setDateTo] = useState<Date | null>(null)
 
     useEffect(() => {
         fetch("/okresy.json")
@@ -25,7 +51,11 @@ export function MapTab() {
 
         const payload = {
             medicinalProductIds: cartIds,
-            filterType
+            aggregationType,
+            calculationMode,
+            normalisationMode,
+            dateFrom: dateFrom ? format(dateFrom, "yyyy-MM") : null,
+            dateTo: dateTo ? format(dateTo, "yyyy-MM") : null
         }
 
         console.log("➡️ Odesílám payload na BE:", payload)
@@ -37,11 +67,13 @@ export function MapTab() {
                 body: JSON.stringify(payload)
             })
 
-            const data = await res.json()
-            console.log("Data z BE:", data)
-            setDistrictValuesByCode(data)
+            const response: EReceptDistrictDataResponse = await res.json()
+            console.log("✅ Data z BE:", response)
+
+            setDistrictValuesByCode(response.districtValues)
+            setIgnoredProducts(response.ignoredMedicineProducts)
         } catch (err) {
-            console.error("Chyba při načítání dat pro mapu:", err)
+            console.error("❌ Chyba při načítání dat pro mapu:", err)
         }
     }
 
@@ -49,17 +81,28 @@ export function MapTab() {
         <div className="map-tab">
             <h3>Vizualizace na mapě</h3>
 
+            <VisualizationSettings
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onChangeDateFrom={setDateFrom}
+                onChangeDateTo={setDateTo}
+                calculationMode={calculationMode}
+                onChangeCalculationMode={setCalculationMode}
+                normalisationMode={normalisationMode}
+                onChangeNormalisationMode={setNormalisationMode}
+            />
+
             <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "1rem" }}>
                 <div>
                     <label>Typ dat:</label>
                     <select
-                        value={filterType}
-                        onChange={(e) => setFilterType(e.target.value as FilterType)}
+                        value={aggregationType}
+                        onChange={(e) => setAggregationType(e.target.value as EReceptDataTypeAggregation)}
                         style={{ padding: "0.4rem", fontSize: "1rem", marginLeft: "0.5rem" }}
                     >
-                        <option value="prescribed">Předepsané</option>
-                        <option value="dispensed">Vydané</option>
-                        <option value="difference">Rozdíl</option>
+                        <option value={EReceptDataTypeAggregation.PRESCRIBED}>Předepsané</option>
+                        <option value={EReceptDataTypeAggregation.DISPENSED}>Vydané</option>
+                        <option value={EReceptDataTypeAggregation.DIFFERENCE}>Rozdíl</option>
                     </select>
                 </div>
 
@@ -79,11 +122,18 @@ export function MapTab() {
                 </button>
             </div>
 
+            {ignoredProducts.length > 0 && (
+                <p style={{ color: "#b00" }}>
+                    Některé léčivé přípravky nebyly zahrnuty do výpočtu (např. chybí DDD):{" "}
+                    {ignoredProducts.map(p => p.suklCode).join(", ")}
+                </p>
+            )}
+
             {geojsonData && districtValuesByCode ? (
                 <DistrictMap
                     geojsonData={geojsonData}
                     districtData={districtValuesByCode}
-                    filter={filterType}
+                    filter={aggregationType}
                 />
             ) : (
                 <p style={{ color: "#666" }}>Zatím nejsou načtena žádná data.</p>

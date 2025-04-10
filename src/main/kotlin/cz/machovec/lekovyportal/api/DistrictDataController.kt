@@ -1,6 +1,7 @@
 package cz.machovec.lekovyportal.api
 
 import cz.machovec.lekovyportal.api.dto.DistrictDataRequest
+import cz.machovec.lekovyportal.api.dto.EReceptDistrictDataResponse
 import cz.machovec.lekovyportal.service.DistrictDataService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
@@ -16,13 +17,18 @@ class DistrictDataController(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostMapping
-    fun getDistrictAggregates(@RequestBody request: DistrictDataRequest): Map<String, Int> {
-        logger.info("District map aggregation — type=${request.filterType}, ids=${request.medicinalProductIds.joinToString(",")}")
+    fun getDistrictAggregates(@RequestBody request: DistrictDataRequest): EReceptDistrictDataResponse {
+        logger.info(
+            "District map aggregation — aggregationType=${request.aggregationType}, " +
+                    "ids=${request.medicinalProductIds.joinToString(",")}, " +
+                    "dateFrom=${request.dateFrom}, dateTo=${request.dateTo}, " +
+                    "calculationMode=${request.calculationMode}, " +
+                    "normalisationMode=${request.normalisationMode}"
+        )
 
-        val data = districtDataService.aggregateByDistrict(request)
+        val response = districtDataService.aggregateByDistrict(request)
 
-        logger.info("Returning district aggregates: ${data.entries.joinToString { "${it.key}=${it.value}" }}")
-
-        return data
+        logger.info("Returning district data: ${response.districtValues.entries.joinToString { "${it.key}=${it.value}" }}")
+        return response
     }
 }

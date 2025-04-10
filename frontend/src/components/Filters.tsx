@@ -1,8 +1,14 @@
-import React, {useEffect, useState} from "react"
+import React, { useEffect, useState } from "react"
 import "./Filters.css"
-import {SubstanceSelect} from "./SubstanceSelect";
+import { SubstanceSelect } from "./SubstanceSelect"
+
+export enum SearchMode {
+    SUKL_CODE = "SUKL_CODE",
+    REGISTRATION_NUMBER = "REGISTRATION_NUMBER"
+}
 
 export interface FilterValues {
+    searchMode: SearchMode
     atcGroupId: number | null
     substanceId: number | null
     medicinalProductQuery: string
@@ -31,22 +37,50 @@ export function Filters({ filters, onChange, onSearchClick }: Props) {
     }, [])
 
     return (
-        <div className="filters-container">
-            <div className="filter-row">
-                <label>
-                    Léčivý přípravek / SÚKL kód / Reg. číslo:
+        <form
+            className="filters-container"
+            onSubmit={(e) => {
+                e.preventDefault()
+                onSearchClick()
+            }}
+        >
+            <div className="filter-header">
+                <span className="filter-title">Vyhledávání léčiva:</span>
+
+                <div className="filter-mode-switch">
+                    <button
+                        type="button"
+                        className={`mode-button ${filters.searchMode === SearchMode.SUKL_CODE ? "active" : ""}`}
+                        onClick={() => onChange({ ...filters, searchMode: SearchMode.SUKL_CODE })}
+                    >
+                        Dle kódu SÚKL
+                    </button>
+                    <button
+                        type="button"
+                        className={`mode-button ${filters.searchMode === SearchMode.REGISTRATION_NUMBER ? "active" : ""}`}
+                        onClick={() => onChange({ ...filters, searchMode: SearchMode.REGISTRATION_NUMBER })}
+                    >
+                        Dle Registračního čísla
+                    </button>
+                </div>
+
+                <button type="submit" className="search-button">
+                    Vyhledat
+                </button>
+            </div>
+
+            <div className="filter-row row-cols">
+                <label className="full-col">
+                    Název / SÚKL kód / Registrační číslo / Název + síla:
                     <input
                         type="text"
                         value={filters.medicinalProductQuery}
                         onChange={(e) =>
                             onChange({ ...filters, medicinalProductQuery: e.target.value })
                         }
-                        placeholder="např. paracetamol, 123456, 54/432/01-C"
+                        placeholder="např. Paralen / 272209 / 54/432/01-C / Paralen 500"
                     />
                 </label>
-            </div>
-
-            <div className="filter-row row-cols">
                 <label>
                     ATC skupina:
                     <select
@@ -69,12 +103,6 @@ export function Filters({ filters, onChange, onSearchClick }: Props) {
                     onChange={(id) => onChange({ ...filters, substanceId: id })}
                 />
             </div>
-
-            <div className="filter-actions">
-                <button type="button" onClick={onSearchClick}>
-                    Vyhledat
-                </button>
-            </div>
-        </div>
+        </form>
     )
 }

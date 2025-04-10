@@ -2,23 +2,22 @@ import React from "react"
 import { GeoJSON, GeoJSONProps, MapContainer } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import { Feature, FeatureCollection, Geometry } from "geojson"
-
-type FilterType = "prescribed" | "dispensed" | "difference"
+import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
 
 interface Props {
     geojsonData: FeatureCollection
     districtData: Record<string, number>
-    filter: FilterType
+    filter: EReceptDataTypeAggregation
 }
 
 export default function DistrictMap({ geojsonData, districtData, filter }: Props) {
-    const getColor = (value: number, filter: FilterType): string => {
+    const getColor = (value: number, filter: EReceptDataTypeAggregation): string => {
         const prescribedColors = ["#D3E5FF", "#A4C8FF", "#76ABFF", "#478EFF", "#176AFF", "#0044CC"]
         const dispensedColors = ["#FFD3D3", "#FFA4A4", "#FF7676", "#FF4747", "#FF1717", "#CC0000"]
 
         const colorScale =
-            filter === "prescribed" ? prescribedColors :
-                filter === "dispensed" ? dispensedColors :
+            filter === EReceptDataTypeAggregation.PRESCRIBED ? prescribedColors :
+                filter === EReceptDataTypeAggregation.DISPENSED ? dispensedColors :
                     value > 0 ? prescribedColors : dispensedColors
 
         const absValue = Math.abs(value)
