@@ -31,8 +31,8 @@ export function YearMonthPicker({
                 maxDate={maxDate}
                 slotProps={{
                     textField: {
-                        size: "small", // 🔹 zmenší výšku inputu
-                        style: { minWidth: "160px" } // nebo šířka dle potřeby (třeba 160–180px)
+                        size: "small",
+                        style: { minWidth: "160px" }
                     }
                 }}
             />

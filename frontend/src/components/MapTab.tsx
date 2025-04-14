@@ -5,11 +5,11 @@ import {useUnifiedCart} from "./UnifiedCartContext"
 import DistrictMap from "./DistrictMap"
 import {MedicineSelectorModal} from "./MedicinaSelectorModal"
 import {SelectedMedicinalProductSummary} from "./SelectedMedicinalProductSummary"
-import {MapFiltersPanel} from "./MapFiltersPanel"
+import {EReceptFiltersPanel} from "./EReceptFiltersPanel"
 import {Button} from "@mui/material"
-import {CalculationMode} from "../types/CalculationMode"
+import {MedicinalUnitMode} from "../types/MedicinalUnitMode"
 import {EReceptDataTypeAggregation} from "../types/EReceptDataTypeAggregation"
-import {NormalisationMode} from "../types/NormalisationMode"
+import {PopulationNormalisationMode} from "../types/PopulationNormalisationMode"
 import "./MapTab.css"
 import {SummaryTiles} from "./SummaryTiles";
 
@@ -20,8 +20,8 @@ type MedicineProductInfo = {
 
 type EReceptDistrictDataResponse = {
     aggregationType: EReceptDataTypeAggregation
-    calculationMode: CalculationMode
-    normalisationMode: NormalisationMode
+    calculationMode: MedicinalUnitMode
+    normalisationMode: PopulationNormalisationMode
     dateFrom: string | null
     dateTo: string | null
     districtValues: Record<string, number>
@@ -39,8 +39,8 @@ export function MapTab() {
     const [activeTab, setActiveTab] = useState<"map" | "sankey">("map")
 
     const [aggregationType, setAggregationType] = useState<EReceptDataTypeAggregation>(EReceptDataTypeAggregation.PRESCRIBED)
-    const [calculationMode, setCalculationMode] = useState<CalculationMode>(CalculationMode.UNITS)
-    const [normalisationMode, setNormalisationMode] = useState<NormalisationMode>(NormalisationMode.ABSOLUTE)
+    const [calculationMode, setCalculationMode] = useState<MedicinalUnitMode>(MedicinalUnitMode.PACKAGES)
+    const [normalisationMode, setNormalisationMode] = useState<PopulationNormalisationMode>(PopulationNormalisationMode.ABSOLUTE)
 
     const [dateFrom, setDateFrom] = useState<Date | null>(null)
     const [dateTo, setDateTo] = useState<Date | null>(null)
@@ -89,7 +89,7 @@ export function MapTab() {
     return (
         <div className="map-tab">
             <div className="map-header-row">
-                <MapFiltersPanel
+                <EReceptFiltersPanel
                     dateFrom={dateFrom}
                     dateTo={dateTo}
                     onChangeDateFrom={setDateFrom}
