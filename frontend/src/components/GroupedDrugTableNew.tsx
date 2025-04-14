@@ -1,45 +1,46 @@
 import React, { useEffect, useState } from "react"
-import "./DrugTable.css"
-import { FilterValues } from "./Filters"
+import { MedicinalProductFilterValues } from "../types/MedicinalProductFilterValues"
 import { Pagination } from "./Pagination"
+import { useUnifiedCart } from "./UnifiedCartContext"
 
-type GroupedDrug = {
+export type GroupedDrug = {
     registrationNumber: string
-    suklCodes: string[]
     names: string[]
+    suklCodes: string[]
     strengths: string[]
-    dosageForms: { id: number; code: string; name?: string }[]
-    administrationRoutes: { id: number; code: string; name?: string }[]
-    atcGroups: { id: number; code: string; name: string }[]
+    dosageForms: { code: string, name?: string }[]
+    administrationRoutes: { code: string, name?: string }[]
+    atcGroups: { code: string, name: string }[]
 }
 
 type PagedResponse<T> = {
     content: T[]
     totalPages: number
-    totalElements: number
     page: number
     size: number
+    totalElements: number
 }
 
 type Props = {
-    filters: FilterValues
+    filters: MedicinalProductFilterValues
     triggerSearch: boolean
     onSearchComplete: () => void
     filtersVersion: number
-    setTriggerSearch: (value: boolean) => void
+    setTriggerSearch: (val: boolean) => void
 }
 
-export function GroupedDrugTable({
-                                     filters,
-                                     triggerSearch,
-                                     onSearchComplete,
-                                     filtersVersion,
-                                     setTriggerSearch
-                                 }: Props) {
+export const GroupedDrugTableNew: React.FC<Props> = ({
+    filters,
+    triggerSearch,
+    onSearchComplete,
+    filtersVersion,
+    setTriggerSearch
+}) => {
     const [data, setData] = useState<GroupedDrug[]>([])
-    const [loading, setLoading] = useState(false)
     const [currentPage, setCurrentPage] = useState(0)
     const [totalPages, setTotalPages] = useState(0)
+    const [loading, setLoading] = useState(false)
+    const { addRegistrationNumber } = useUnifiedCart()
 
     useEffect(() => {
         setCurrentPage(0)
@@ -65,8 +66,8 @@ export function GroupedDrugTable({
 
                 setData(json.content)
                 setTotalPages(json.totalPages)
-            } catch (err) {
-                console.error("Chyba při načítání seskupených léčiv:", err)
+            } catch (e) {
+                console.error("Chyba při načítání:", e)
             } finally {
                 setLoading(false)
                 onSearchComplete()
@@ -74,7 +75,7 @@ export function GroupedDrugTable({
         }
 
         fetchData()
-    }, [triggerSearch, currentPage, filters, onSearchComplete])
+    }, [triggerSearch, filters, currentPage])
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page)
@@ -83,34 +84,38 @@ export function GroupedDrugTable({
 
     return (
         <div className="drug-table-container">
-            <h3>Výsledky vyhledávání (podle registračního čísla)</h3>
-            {loading && <p>Načítání dat...</p>}
-            {!loading && data.length === 0 && <p>Žádné výsledky</p>}
-
+            {loading && <p>Načítání...</p>}
+            {!loading && data.length === 0 && <p>Žádné výsledky.</p>}
             {!loading && data.length > 0 && (
                 <>
                     <table className="drug-table">
                         <thead>
                         <tr>
                             <th>Registrační číslo</th>
-                            <th>Název</th>
-                            <th>Síla</th>
-                            <th>Léková forma</th>
-                            <th>Cesta podání</th>
-                            <th>ATC skupina</th>
-                            <th>Počet SÚKL kódů</th>
+                            <th>Názvy</th>
+                            <th>Síly</th>
+                            <th>Lékové formy</th>
+                            <th>Cesty podání</th>
+                            <th>ATC skupiny</th>
+                            <th>SÚKL kódy</th>
+                            <th>Akce</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {data.map((drug) => (
+                        {data.map(drug => (
                             <tr key={drug.registrationNumber}>
                                 <td>{drug.registrationNumber}</td>
-                                <td>{renderList(drug.names)}</td>
-                                <td>{renderList(drug.strengths)}</td>
-                                <td>{renderObjectList(drug.dosageForms)}</td>
-                                <td>{renderObjectList(drug.administrationRoutes)}</td>
-                                <td>{renderObjectList(drug.atcGroups)}</td>
+                                <td>{drug.names.join(", ")}</td>
+                                <td>{drug.strengths.join(", ")}</td>
+                                <td>{drug.dosageForms.map(d => d.name || d.code).join(", ")}</td>
+                                <td>{drug.administrationRoutes.map(r => r.name || r.code).join(", ")}</td>
+                                <td>{drug.atcGroups.map(a => `${a.name} (${a.code})`).join(", ")}</td>
                                 <td>{drug.suklCodes.length}</td>
+                                <td>
+                                    <button onClick={() => addRegistrationNumber(drug.registrationNumber)}>
+                                        Přidat
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                         </tbody>
@@ -124,33 +129,5 @@ export function GroupedDrugTable({
                 </>
             )}
         </div>
-    )
-}
-
-function renderList(items: string[]) {
-    if (items.length === 1) return items[0]
-    return (
-        <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
-            {items.map((item, idx) => (
-                <li key={idx}>{item}</li>
-            ))}
-        </ul>
-    )
-}
-
-function renderObjectList(items: { code: string; name?: string }[]) {
-    if (items.length === 1) {
-        const { code, name } = items[0]
-        return name ? `${name} (${code})` : code
-    }
-
-    return (
-        <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
-            {items.map((item, idx) => (
-                <li key={idx}>
-                    {item.name ? `${item.name} (${item.code})` : item.code}
-                </li>
-            ))}
-        </ul>
     )
 }

@@ -1,11 +1,10 @@
-import {DrugSelectionPanel} from "../components/DrugSelectionPanel"
-import {TabSwitcher} from "../components/TabSwitcher"
+import {MapTab} from "../components/MapTab";
+import React from "react";
 
 export function HomePage() {
     return (
         <div>
-            <DrugSelectionPanel />
-            <TabSwitcher />
+            <MapTab />
         </div>
     )
 }

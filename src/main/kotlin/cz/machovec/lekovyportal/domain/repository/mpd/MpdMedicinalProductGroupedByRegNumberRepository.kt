@@ -11,4 +11,6 @@ interface MpdMedicinalProductGroupedByRegNumberRepository {
         query: String?,
         pageable: Pageable
     ): Page<MpdMedicinalProductGroupedByRegNumberDto>
+
+    fun findByRegistrationNumbers(regNumbers: List<String>): List<MpdMedicinalProductGroupedByRegNumberDto>
 }

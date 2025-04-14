@@ -1,30 +1,25 @@
-import React, { useState } from "react"
-import { MapTab } from "./MapTab"
-import "./TabSwitcher.css"
+import React from "react"
 
-export function TabSwitcher() {
-    const [activeTab, setActiveTab] = useState<"map" | "sankey">("map")
+type Props = {
+    activeTab: "map" | "sankey"
+    onChangeTab: (tab: "map" | "sankey") => void
+}
 
+export const TabSwitcher: React.FC<Props> = ({ activeTab, onChangeTab }) => {
     return (
-        <div>
-            <div className="tab-buttons">
-                <button
-                    className={`tab-button ${activeTab === "map" ? "active" : ""}`}
-                    onClick={() => setActiveTab("map")}
-                >
-                    Mapa
-                </button>
-                <button
-                    className={`tab-button ${activeTab === "sankey" ? "active" : ""}`}
-                    onClick={() => setActiveTab("sankey")}
-                >
-                    Sankey
-                </button>
-            </div>
-
-            <div style={{ marginTop: "1rem" }}>
-                {activeTab === "map" ? <MapTab /> : <div>Sankey bude tady</div>}
-            </div>
+        <div className="tab-switcher">
+            <button
+                className={activeTab === "map" ? "active" : ""}
+                onClick={() => onChangeTab("map")}
+            >
+                Mapa
+            </button>
+            <button
+                className={activeTab === "sankey" ? "active" : ""}
+                onClick={() => onChangeTab("sankey")}
+            >
+                Sankey
+            </button>
         </div>
     )
 }

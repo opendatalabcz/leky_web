@@ -23,7 +23,7 @@ class MedicinalProductController(
         @RequestParam(required = false) substanceId: Long?,
         @RequestParam(required = false) query: String?,
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductResponse> {
         return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query, page, size)
     }
@@ -34,7 +34,7 @@ class MedicinalProductController(
         @RequestParam(required = false) substanceId: Long?,
         @RequestParam(required = false) query: String?,
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "10") size: Int
+        @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductGroupedByRegNumberResponse> {
         return medicinalProductService.searchMedicinalProductsGroupedByRegNumber(atcGroupId, substanceId, query, page, size)
     }
@@ -45,5 +45,13 @@ class MedicinalProductController(
     ): List<MedicinalProductResponse> {
         logger.info("CART - fetching medicinal products by IDs: ${ids.joinToString(", ")}")
         return medicinalProductService.findByIds(ids)
+    }
+
+    @GetMapping("/grouped-by-reg-numbers")
+    fun getGroupedMedicinalProductsByRegNumbers(
+        @RequestParam regNumbers: List<String>
+    ): List<MedicinalProductGroupedByRegNumberResponse> {
+        logger.info("CART - fetching grouped medicinal products by regNumbers: ${regNumbers.joinToString()}")
+        return medicinalProductService.findGroupedByRegNumbers(regNumbers)
     }
 }

@@ -1,12 +1,17 @@
-import React, { useEffect, useState } from "react"
-import { useCart } from "./CartContext"
-import DistrictMap from "./DistrictMap"
-import { CalculationMode } from "../types/CalculationMode"
-import { FeatureCollection } from "geojson"
-import { VisualizationSettings } from "./VisualizationSettings"
+import React, { useCallback, useEffect, useState } from "react"
 import { format } from "date-fns"
+import { FeatureCollection } from "geojson"
+import { useUnifiedCart } from "./UnifiedCartContext"
+import DistrictMap from "./DistrictMap"
+import { MedicineSelectorModal } from "./MedicinaSelectorModal"
+import { SelectedMedicinalProductSummary } from "./SelectedMedicinalProductSummary"
+import { MapFiltersPanel } from "./MapFiltersPanel"
+import { Button } from "@mui/material"
+import { CalculationMode } from "../types/CalculationMode"
 import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
 import { NormalisationMode } from "../types/NormalisationMode"
+import "./MapTab.css"
+import {TabSwitcher} from "./TabSwitcher";
 
 type MedicineProductInfo = {
     id: number
@@ -25,10 +30,13 @@ type EReceptDistrictDataResponse = {
 }
 
 export function MapTab() {
-    const { cartIds } = useCart()
+    const { suklIds } = useUnifiedCart()
+
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
     const [districtValuesByCode, setDistrictValuesByCode] = useState<Record<string, number> | null>(null)
     const [ignoredProducts, setIgnoredProducts] = useState<MedicineProductInfo[]>([])
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState<"map" | "sankey">("map")
 
     const [aggregationType, setAggregationType] = useState<EReceptDataTypeAggregation>(EReceptDataTypeAggregation.PRESCRIBED)
     const [calculationMode, setCalculationMode] = useState<CalculationMode>(CalculationMode.UNITS)
@@ -43,22 +51,21 @@ export function MapTab() {
             .then(setGeojsonData)
     }, [])
 
-    const handleFetchData = async () => {
-        if (cartIds.length === 0) {
-            alert("Košík je prázdný.")
+    const handleFetchData = useCallback(async () => {
+        if (suklIds.length === 0) {
+            setDistrictValuesByCode(null)
+            setIgnoredProducts([])
             return
         }
 
         const payload = {
-            medicinalProductIds: cartIds,
+            medicinalProductIds: suklIds,
             aggregationType,
             calculationMode,
             normalisationMode,
             dateFrom: dateFrom ? format(dateFrom, "yyyy-MM") : null,
             dateTo: dateTo ? format(dateTo, "yyyy-MM") : null
         }
-
-        console.log("➡️ Odesílám payload na BE:", payload)
 
         try {
             const res = await fetch("/api/district-data", {
@@ -68,76 +75,75 @@ export function MapTab() {
             })
 
             const response: EReceptDistrictDataResponse = await res.json()
-            console.log("✅ Data z BE:", response)
-
             setDistrictValuesByCode(response.districtValues)
             setIgnoredProducts(response.ignoredMedicineProducts)
         } catch (err) {
             console.error("❌ Chyba při načítání dat pro mapu:", err)
         }
-    }
+    }, [suklIds, aggregationType, calculationMode, normalisationMode, dateFrom, dateTo])
+
+    useEffect(() => {
+        handleFetchData()
+    }, [handleFetchData])
 
     return (
         <div className="map-tab">
-            <h3>Vizualizace na mapě</h3>
+            <div className="map-header-row">
+                <TabSwitcher activeTab={activeTab} onChangeTab={setActiveTab} />
 
-            <VisualizationSettings
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-                onChangeDateFrom={setDateFrom}
-                onChangeDateTo={setDateTo}
-                calculationMode={calculationMode}
-                onChangeCalculationMode={setCalculationMode}
-                normalisationMode={normalisationMode}
-                onChangeNormalisationMode={setNormalisationMode}
-            />
-
-            <div style={{ display: "flex", gap: "1rem", alignItems: "flex-end", marginBottom: "1rem" }}>
-                <div>
-                    <label>Typ dat:</label>
-                    <select
-                        value={aggregationType}
-                        onChange={(e) => setAggregationType(e.target.value as EReceptDataTypeAggregation)}
-                        style={{ padding: "0.4rem", fontSize: "1rem", marginLeft: "0.5rem" }}
-                    >
-                        <option value={EReceptDataTypeAggregation.PRESCRIBED}>Předepsané</option>
-                        <option value={EReceptDataTypeAggregation.DISPENSED}>Vydané</option>
-                        <option value={EReceptDataTypeAggregation.DIFFERENCE}>Rozdíl</option>
-                    </select>
-                </div>
-
-                <button
-                    onClick={handleFetchData}
-                    style={{
-                        padding: "0.5rem 1.2rem",
-                        backgroundColor: "#007bff",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontWeight: 500
-                    }}
-                >
-                    Zobrazit
-                </button>
+                <MapFiltersPanel
+                    dateFrom={dateFrom}
+                    dateTo={dateTo}
+                    onChangeDateFrom={setDateFrom}
+                    onChangeDateTo={setDateTo}
+                    calculationMode={calculationMode}
+                    onChangeCalculationMode={setCalculationMode}
+                    normalisationMode={normalisationMode}
+                    onChangeNormalisationMode={setNormalisationMode}
+                    aggregationType={aggregationType}
+                    onChangeAggregationType={setAggregationType}
+                />
             </div>
 
-            {ignoredProducts.length > 0 && (
-                <p style={{ color: "#b00" }}>
-                    Některé léčivé přípravky nebyly zahrnuty do výpočtu (např. chybí DDD):{" "}
-                    {ignoredProducts.map(p => p.suklCode).join(", ")}
-                </p>
-            )}
+            <MedicineSelectorModal
+                open={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+            />
 
-            {geojsonData && districtValuesByCode ? (
-                <DistrictMap
-                    geojsonData={geojsonData}
-                    districtData={districtValuesByCode}
-                    filter={aggregationType}
-                />
-            ) : (
-                <p style={{ color: "#666" }}>Zatím nejsou načtena žádná data.</p>
-            )}
+            <div className="map-content">
+                <div className="map-sidebar">
+                    <Button
+                        variant="outlined"
+                        onClick={() => setIsModalOpen(true)}
+                        style={{ marginBottom: "1rem" }}
+                    >
+                        Vybrat léčiva
+                    </Button>
+
+                    <SelectedMedicinalProductSummary />
+                </div>
+
+                <div className="map-area">
+                    {ignoredProducts.length > 0 && (
+                        <p className="ignored-products">
+                            Některé léčivé přípravky nebyly zahrnuty do výpočtu (např. chybí DDD):{" "}
+                            {ignoredProducts.map(p => p.suklCode).join(", ")}
+                        </p>
+                    )}
+
+                    {activeTab === "map" && geojsonData ? (
+                        <DistrictMap
+                            geojsonData={geojsonData}
+                            districtData={districtValuesByCode ?? {}}
+                            filter={aggregationType}
+                        />
+                    ) : activeTab === "sankey" ? (
+                        <p className="map-loading">Sankey diagram se připravuje...</p>
+                    ) : (
+                        <p className="map-loading">Načítám podkladovou mapu...</p>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }

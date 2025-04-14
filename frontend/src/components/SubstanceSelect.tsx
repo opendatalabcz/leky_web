@@ -37,7 +37,6 @@ export function SubstanceSelect({ selectedSubstanceId, onChange }: Props) {
     return (
         <div>
             <label>
-                Látka (substance):
                 <AsyncSelect
                     cacheOptions
                     loadOptions={loadOptions}

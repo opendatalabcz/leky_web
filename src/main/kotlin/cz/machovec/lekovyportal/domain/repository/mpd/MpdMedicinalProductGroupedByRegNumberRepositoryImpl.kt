@@ -87,4 +87,47 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
 
         return PageImpl(resultList, pageable, totalCount)
     }
+
+    override fun findByRegistrationNumbers(regNumbers: List<String>): List<MpdMedicinalProductGroupedByRegNumberDto> {
+        if (regNumbers.isEmpty()) return emptyList()
+
+        val sql = """
+            SELECT 
+                registration_number,
+                sukl_codes,
+                names,
+                strengths,
+                dosage_form_ids,
+                administration_route_ids,
+                atc_group_ids
+            FROM v_medicinal_product_grouped_by_reg_number
+            WHERE registration_number = ANY(?)
+            ORDER BY registration_number
+        """.trimIndent()
+
+        val results = mutableListOf<MpdMedicinalProductGroupedByRegNumberDto>()
+
+        em.unwrap(org.hibernate.Session::class.java).doWork { connection ->
+            connection.prepareStatement(sql).use { ps ->
+                val array = connection.createArrayOf("text", regNumbers.toTypedArray())
+                ps.setArray(1, array)
+
+                val rs = ps.executeQuery()
+                while (rs.next()) {
+                    results += MpdMedicinalProductGroupedByRegNumberDto(
+                        registrationNumber = rs.getString("registration_number"),
+                        suklCodes = (rs.getArray("sukl_codes").array as Array<*>).filterIsInstance<String>(),
+                        names = (rs.getArray("names").array as Array<*>).filterIsInstance<String>(),
+                        strengths = (rs.getArray("strengths").array as Array<*>).filterIsInstance<String>(),
+                        dosageFormIds = (rs.getArray("dosage_form_ids").array as Array<*>).filterIsInstance<Long>(),
+                        administrationRouteIds = (rs.getArray("administration_route_ids").array as Array<*>).filterIsInstance<Long>(),
+                        atcGroupIds = (rs.getArray("atc_group_ids").array as Array<*>).filterIsInstance<Long>()
+                    )
+                }
+            }
+        }
+
+        return results
+    }
+
 }

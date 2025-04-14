@@ -123,4 +123,40 @@ class MedicinalProductService(
             )
         }
     }
+
+    fun findGroupedByRegNumbers(regNumbers: List<String>): List<MedicinalProductGroupedByRegNumberResponse> {
+        if (regNumbers.isEmpty()) return emptyList()
+
+        val grouped = groupedViewRepository.findByRegistrationNumbers(regNumbers)
+
+        val dosageForms = dosageFormRepository.findAllById(
+            grouped.flatMap { it.dosageFormIds }.toSet()
+        ).associateBy { it.id }
+
+        val adminRoutes = administrationRouteRepository.findAllById(
+            grouped.flatMap { it.administrationRouteIds }.toSet()
+        ).associateBy { it.id }
+
+        val atcGroups = atcGroupRepository.findAllById(
+            grouped.flatMap { it.atcGroupIds }.toSet()
+        ).associateBy { it.id }
+
+        return grouped.map { view ->
+            MedicinalProductGroupedByRegNumberResponse(
+                registrationNumber = view.registrationNumber,
+                suklCodes = view.suklCodes,
+                names = view.names,
+                strengths = view.strengths,
+                dosageForms = view.dosageFormIds.mapNotNull { id ->
+                    dosageForms[id]?.let { DosageFormResponse(it.id!!, it.code, it.name) }
+                },
+                administrationRoutes = view.administrationRouteIds.mapNotNull { id ->
+                    adminRoutes[id]?.let { AdministrationRouteResponse(it.id!!, it.code, it.name) }
+                },
+                atcGroups = view.atcGroupIds.mapNotNull { id ->
+                    atcGroups[id]?.let { AtcGroupResponse(it.id!!, it.code, it.name) }
+                }
+            )
+        }
+    }
 }

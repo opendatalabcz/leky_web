@@ -1,0 +1,66 @@
+.medicinal-product-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 0.6rem 0.8rem;
+    background-color: #f0f6ff;
+    border: 1px solid #cce0ff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.filter-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+}
+
+.filter-row > * {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.filter-label {
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+}
+
+.medicinal-product-filters input,
+.medicinal-product-filters select {
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.filter-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+}
+
+.filter-actions button {
+    padding: 0.4rem 1rem;
+    background-color: #007bff;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.filter-actions button:hover {
+    background-color: #0056b3;
+}

@@ -1,0 +1,44 @@
+.map-tab {
+    margin-top: 1.5rem;
+}
+
+.map-content {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-top: 2rem;
+}
+
+.map-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.map-area {
+    flex: 1;
+    min-width: 0;
+}
+
+.ignored-products {
+    color: #b00;
+    margin-bottom: 1rem;
+}
+
+.map-loading {
+    color: #666;
+    font-style: italic;
+}
+
+.map-header-row {
+    display: flex;
+    align-items: center;
+    gap: 10rem;
+    flex-wrap: wrap; /* pokud to musí být responsivní */
+}
+
+.tab-switcher,
+.map-filters-panel {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}

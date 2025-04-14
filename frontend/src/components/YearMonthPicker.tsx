@@ -13,12 +13,12 @@ type YearMonthPickerProps = {
 }
 
 export function YearMonthPicker({
-    label,
-    value,
-    onChange,
-    minDate,
-    maxDate
-}: YearMonthPickerProps) {
+                                    label,
+                                    value,
+                                    onChange,
+                                    minDate,
+                                    maxDate
+                                }: YearMonthPickerProps) {
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={cs}>
             <DatePicker
@@ -29,6 +29,12 @@ export function YearMonthPicker({
                 onChange={onChange}
                 minDate={minDate}
                 maxDate={maxDate}
+                slotProps={{
+                    textField: {
+                        size: "small", // 🔹 zmenší výšku inputu
+                        style: { minWidth: "160px" } // nebo šířka dle potřeby (třeba 160–180px)
+                    }
+                }}
             />
         </LocalizationProvider>
     )
