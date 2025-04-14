@@ -1,17 +1,16 @@
-import React, { useCallback, useEffect, useState } from "react"
-import { format } from "date-fns"
-import { FeatureCollection } from "geojson"
-import { useUnifiedCart } from "./UnifiedCartContext"
+import React, {useCallback, useEffect, useState} from "react"
+import {format} from "date-fns"
+import {FeatureCollection} from "geojson"
+import {useUnifiedCart} from "./UnifiedCartContext"
 import DistrictMap from "./DistrictMap"
-import { MedicineSelectorModal } from "./MedicinaSelectorModal"
-import { SelectedMedicinalProductSummary } from "./SelectedMedicinalProductSummary"
-import { MapFiltersPanel } from "./MapFiltersPanel"
-import { Button } from "@mui/material"
-import { CalculationMode } from "../types/CalculationMode"
-import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
-import { NormalisationMode } from "../types/NormalisationMode"
+import {MedicineSelectorModal} from "./MedicinaSelectorModal"
+import {SelectedMedicinalProductSummary} from "./SelectedMedicinalProductSummary"
+import {MapFiltersPanel} from "./MapFiltersPanel"
+import {Button} from "@mui/material"
+import {CalculationMode} from "../types/CalculationMode"
+import {EReceptDataTypeAggregation} from "../types/EReceptDataTypeAggregation"
+import {NormalisationMode} from "../types/NormalisationMode"
 import "./MapTab.css"
-import {TabSwitcher} from "./TabSwitcher";
 import {SummaryTiles} from "./SummaryTiles";
 
 type MedicineProductInfo = {
@@ -90,8 +89,6 @@ export function MapTab() {
     return (
         <div className="map-tab">
             <div className="map-header-row">
-                <TabSwitcher activeTab={activeTab} onChangeTab={setActiveTab} />
-
                 <MapFiltersPanel
                     dateFrom={dateFrom}
                     dateTo={dateTo}
