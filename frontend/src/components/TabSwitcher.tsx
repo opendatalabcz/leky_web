@@ -12,13 +12,13 @@ export const TabSwitcher: React.FC<Props> = ({ activeTab, onChangeTab }) => {
                 className={activeTab === "map" ? "active" : ""}
                 onClick={() => onChangeTab("map")}
             >
-                Mapa
+                eRecept
             </button>
             <button
                 className={activeTab === "sankey" ? "active" : ""}
                 onClick={() => onChangeTab("sankey")}
             >
-                Sankey
+                Distribuční tok
             </button>
         </div>
     )

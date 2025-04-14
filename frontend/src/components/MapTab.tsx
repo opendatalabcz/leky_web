@@ -12,6 +12,7 @@ import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
 import { NormalisationMode } from "../types/NormalisationMode"
 import "./MapTab.css"
 import {TabSwitcher} from "./TabSwitcher";
+import {SummaryTiles} from "./SummaryTiles";
 
 type MedicineProductInfo = {
     id: number
@@ -143,6 +144,12 @@ export function MapTab() {
                         <p className="map-loading">Načítám podkladovou mapu...</p>
                     )}
                 </div>
+
+                {activeTab === "map" && (
+                    <div className="map-summary-sidebar">
+                        <SummaryTiles />
+                    </div>
+                )}
             </div>
         </div>
     )

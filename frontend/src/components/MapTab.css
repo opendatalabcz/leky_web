@@ -32,8 +32,8 @@
 .map-header-row {
     display: flex;
     align-items: center;
-    gap: 10rem;
-    flex-wrap: wrap; /* pokud to musí být responsivní */
+    gap: 6rem;
+    flex-wrap: wrap;
 }
 
 .tab-switcher,
