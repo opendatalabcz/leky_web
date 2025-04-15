@@ -10,6 +10,7 @@ import { FeatureCollection } from "geojson"
 import { useUnifiedCart } from "../components/UnifiedCartContext"
 import { getEReceptDistrictData } from "../services/ereceptService"
 import { format } from "date-fns"
+import {SummaryTiles} from "../components/SummaryTiles";
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
@@ -109,27 +110,33 @@ export function EReceptPage() {
                         }
                     />
 
-                    <Box mt={2} height={500}>
-                        {geojsonData ? (
-                            <DistrictMap
-                                geojsonData={geojsonData}
-                                districtData={districtData}
-                                filter={prescriptionDispense.aggregationType}
-                            />
-                        ) : (
-                            <Box
-                                height="100%"
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                                border="1px dashed #ccc"
-                                borderRadius={2}
-                            >
-                                <Typography variant="body2" color="text.secondary">
-                                    Načítání mapy...
-                                </Typography>
-                            </Box>
-                        )}
+                    <Box mt={2} display="flex" gap={2}>
+                        <Box flex={1} height={500}>
+                            {geojsonData ? (
+                                <DistrictMap
+                                    geojsonData={geojsonData}
+                                    districtData={districtData}
+                                    filter={prescriptionDispense.aggregationType}
+                                />
+                            ) : (
+                                <Box
+                                    height="100%"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                    border="1px dashed #ccc"
+                                    borderRadius={2}
+                                >
+                                    <Typography variant="body2" color="text.secondary">
+                                        Načítání mapy...
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Box>
+
+                        <Box width={180}>
+                            <SummaryTiles />
+                        </Box>
                     </Box>
                 </Box>
             </Box>
