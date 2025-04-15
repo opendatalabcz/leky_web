@@ -5,6 +5,7 @@ import { EReceptFiltersPanel } from "../components/EReceptFiltersPanel"
 import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import {DataStatusFooter} from "../components/DataStatusFooter";
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices"
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
@@ -18,16 +19,25 @@ export function EReceptPage() {
 
             <Box display="flex" gap={4} alignItems="flex-start">
                 <Box width={300} flexShrink={0}>
-                    <Button
-                        variant="contained"
-                        fullWidth
-                        onClick={() => setIsModalOpen(true)}
-                        sx={{ mb: 2 }}
-                    >
-                        Vybrat léčiva
-                    </Button>
-
                     <Paper variant="outlined" sx={{ p: 2 }}>
+
+                        <Button
+                            variant="contained"
+                            fullWidth
+                            onClick={() => setIsModalOpen(true)}
+                            sx={{
+                                mb: 2,
+                                backgroundColor: "#34558a",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                "&:hover": {
+                                    backgroundColor: "#2c4773"
+                                }
+                            }}
+                        >
+                            Vybrat léčiva
+                        </Button>
+
                         <SelectedMedicinalProductSummary />
                     </Paper>
                 </Box>
