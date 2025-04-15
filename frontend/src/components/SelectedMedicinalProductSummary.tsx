@@ -33,7 +33,7 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
                     borderBottom: "1px solid #d0d7e2"
                 }}
             >
-                Vybraná léčiva:
+                Vybrané léčiva:
             </Box>
 
             <Box sx={{ p: 2 }}>
@@ -50,7 +50,7 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
                             <Stack spacing={1}>
                                 {drugs.length === 0 ? (
                                     <Typography variant="body2" color="text.secondary">
-                                        Žádná
+                                        -
                                     </Typography>
                                 ) : (
                                     drugs.map((d) => (
@@ -95,7 +95,7 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
                             <Stack spacing={1}>
                                 {groupedDrugs.length === 0 ? (
                                     <Typography variant="body2" color="text.secondary">
-                                        Žádná
+                                        -
                                     </Typography>
                                 ) : (
                                     groupedDrugs.map((g) => (

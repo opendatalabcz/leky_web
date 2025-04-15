@@ -1,14 +1,51 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Box, Button, Typography, Paper } from "@mui/material"
 import { useFilters } from "../components/FilterContext"
 import { EReceptFiltersPanel } from "../components/EReceptFiltersPanel"
 import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
+import DistrictMap from "../components/DistrictMap"
+import { FeatureCollection } from "geojson"
+import { useUnifiedCart } from "../components/UnifiedCartContext"
+import { getEReceptDistrictData } from "../services/ereceptService"
+import { format } from "date-fns"
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
+    const { drugs, groupedDrugs } = useUnifiedCart()
     const [isModalOpen, setIsModalOpen] = useState(false)
+
+    const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
+    const [districtData, setDistrictData] = useState<Record<string, number>>({})
+
+    useEffect(() => {
+        fetch("/okresy.json")
+            .then(res => res.json())
+            .then(setGeojsonData)
+            .catch(err => console.error("GeoJSON load error", err))
+    }, [])
+
+    useEffect(() => {
+        if (!common.dateFrom || !common.dateTo) return
+
+        const payload = {
+            dateFrom: format(common.dateFrom, "yyyy-MM"),
+            dateTo: format(common.dateTo, "yyyy-MM"),
+            calculationMode: common.calculationMode,
+            aggregationType: prescriptionDispense.aggregationType,
+            normalisationMode: prescriptionDispense.normalisationMode,
+            medicinalProductIds: [
+                ...drugs.map(d => Number(d.id)),
+            ]
+        }
+
+        getEReceptDistrictData(payload)
+            .then(response => {
+                setDistrictData(response.districtValues)
+            })
+            .catch(err => console.error("Chyba při načítání dat z API:", err))
+    }, [common, prescriptionDispense, drugs, groupedDrugs])
 
     return (
         <Box>
@@ -72,18 +109,27 @@ export function EReceptPage() {
                         }
                     />
 
-                    <Box
-                        mt={2}
-                        height={500}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        border="1px dashed #ccc"
-                        borderRadius={2}
-                    >
-                        <Typography variant="body2" color="text.secondary">
-                            [Zde bude mapa nebo vizualizace]
-                        </Typography>
+                    <Box mt={2} height={500}>
+                        {geojsonData ? (
+                            <DistrictMap
+                                geojsonData={geojsonData}
+                                districtData={districtData}
+                                filter={prescriptionDispense.aggregationType}
+                            />
+                        ) : (
+                            <Box
+                                height="100%"
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                                border="1px dashed #ccc"
+                                borderRadius={2}
+                            >
+                                <Typography variant="body2" color="text.secondary">
+                                    Načítání mapy...
+                                </Typography>
+                            </Box>
+                        )}
                     </Box>
                 </Box>
             </Box>
