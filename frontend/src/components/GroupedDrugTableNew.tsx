@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from "react"
+import {
+    DataGrid,
+    GridColDef,
+    GridRenderCellParams,
+    GridRowSelectionModel
+} from "@mui/x-data-grid"
 import { MedicinalProductFilterValues } from "../types/MedicinalProductFilterValues"
-import { Pagination } from "./Pagination"
 import { useUnifiedCart } from "./UnifiedCartContext"
+import { Button, Box } from "@mui/material"
 
 export type GroupedDrug = {
     registrationNumber: string
@@ -27,20 +33,29 @@ type Props = {
     onSearchComplete: () => void
     filtersVersion: number
     setTriggerSearch: (val: boolean) => void
+    onAddOne: (regNum: string) => void
+    onAddSelected?: () => void
+    onSelectionUpdate?: (count: number, selectedIds: string[]) => void
 }
 
 export const GroupedDrugTableNew: React.FC<Props> = ({
-    filters,
-    triggerSearch,
-    onSearchComplete,
-    filtersVersion,
-    setTriggerSearch
-}) => {
+                                                         filters,
+                                                         triggerSearch,
+                                                         onSearchComplete,
+                                                         filtersVersion,
+                                                         setTriggerSearch,
+                                                         onAddOne,
+                                                         onAddSelected,
+                                                         onSelectionUpdate
+                                                     }) => {
     const [data, setData] = useState<GroupedDrug[]>([])
     const [currentPage, setCurrentPage] = useState(0)
-    const [totalPages, setTotalPages] = useState(0)
+    const [totalElements, setTotalElements] = useState(0)
     const [loading, setLoading] = useState(false)
+    const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
     const { addRegistrationNumber } = useUnifiedCart()
+
+    const pageSize = 5
 
     useEffect(() => {
         setCurrentPage(0)
@@ -51,7 +66,6 @@ export const GroupedDrugTableNew: React.FC<Props> = ({
 
         const fetchData = async () => {
             setLoading(true)
-
             try {
                 const params = new URLSearchParams()
                 if (filters.atcGroupId) params.append("atcGroupId", filters.atcGroupId.toString())
@@ -59,13 +73,13 @@ export const GroupedDrugTableNew: React.FC<Props> = ({
                 if (filters.medicinalProductQuery) params.append("query", filters.medicinalProductQuery)
                 if (filters.period) params.append("period", filters.period)
                 params.append("page", currentPage.toString())
-                params.append("size", "5")
+                params.append("size", pageSize.toString())
 
                 const res = await fetch(`/api/medicinal-products/grouped-by-reg-number?${params.toString()}`)
                 const json: PagedResponse<GroupedDrug> = await res.json()
 
                 setData(json.content)
-                setTotalPages(json.totalPages)
+                setTotalElements(json.totalElements)
             } catch (e) {
                 console.error("Chyba při načítání:", e)
             } finally {
@@ -77,57 +91,97 @@ export const GroupedDrugTableNew: React.FC<Props> = ({
         fetchData()
     }, [triggerSearch, filters, currentPage])
 
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page)
-        setTriggerSearch(true)
+    const handleAddSelected = () => {
+        const selectedIds = selectionModel as string[]
+        selectedIds.forEach(id => addRegistrationNumber(id))
+        onAddSelected?.()
     }
 
-    return (
-        <div className="drug-table-container">
-            {loading && <p>Načítání...</p>}
-            {!loading && data.length === 0 && <p>Žádné výsledky.</p>}
-            {!loading && data.length > 0 && (
-                <>
-                    <table className="drug-table">
-                        <thead>
-                        <tr>
-                            <th>Registrační číslo</th>
-                            <th>Názvy</th>
-                            <th>Síly</th>
-                            <th>Lékové formy</th>
-                            <th>Cesty podání</th>
-                            <th>ATC skupiny</th>
-                            <th>SÚKL kódy</th>
-                            <th>Akce</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {data.map(drug => (
-                            <tr key={drug.registrationNumber}>
-                                <td>{drug.registrationNumber}</td>
-                                <td>{drug.names.join(", ")}</td>
-                                <td>{drug.strengths.join(", ")}</td>
-                                <td>{drug.dosageForms.map(d => d.name || d.code).join(", ")}</td>
-                                <td>{drug.administrationRoutes.map(r => r.name || r.code).join(", ")}</td>
-                                <td>{drug.atcGroups.map(a => `${a.name} (${a.code})`).join(", ")}</td>
-                                <td>{drug.suklCodes.length}</td>
-                                <td>
-                                    <button onClick={() => addRegistrationNumber(drug.registrationNumber)}>
-                                        Přidat
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
+    useEffect(() => {
+        const selectedIds = selectionModel as string[]
+        onSelectionUpdate?.(selectedIds.length, selectedIds)
+    }, [selectionModel, onSelectionUpdate])
 
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                    />
-                </>
-            )}
-        </div>
+    const columns: GridColDef[] = [
+        { field: "registrationNumber", headerName: "Registrační číslo", flex: 1 },
+        {
+            field: "names",
+            headerName: "Názvy",
+            flex: 2,
+            valueGetter: (params: { row?: GroupedDrug }) => params.row?.names.join(", ") ?? "-"
+        },
+        {
+            field: "strengths",
+            headerName: "Síly",
+            flex: 1,
+            valueGetter: (params: { row?: GroupedDrug }) => params.row?.strengths.join(", ") ?? "-"
+        },
+        {
+            field: "dosageForms",
+            headerName: "Lékové formy",
+            flex: 1.5,
+            valueGetter: (params: { row?: GroupedDrug }) =>
+                params.row?.dosageForms.map(d => d.name || d.code).join(", ") ?? "-"
+        },
+        {
+            field: "administrationRoutes",
+            headerName: "Cesty podání",
+            flex: 1.5,
+            valueGetter: (params: { row?: GroupedDrug }) =>
+                params.row?.administrationRoutes.map(r => r.name || r.code).join(", ") ?? "-"
+        },
+        {
+            field: "atcGroups",
+            headerName: "ATC skupiny",
+            flex: 2,
+            valueGetter: (params: { row?: GroupedDrug }) =>
+                params.row?.atcGroups.map(a => `${a.name} (${a.code})`).join(", ") ?? "-"
+        },
+        {
+            field: "suklCodes",
+            headerName: "Počet kódů",
+            flex: 1,
+            valueGetter: (params: { row?: GroupedDrug }) => params.row?.suklCodes.length ?? 0
+        },
+        {
+            field: "action",
+            headerName: "Akce",
+            flex: 1,
+            renderCell: (params: GridRenderCellParams<GroupedDrug>) => (
+                <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => onAddOne(params.row.registrationNumber)}
+                >
+                    Přidat
+                </Button>
+            ),
+            sortable: false,
+            filterable: false
+        }
+    ]
+
+    return (
+        <Box>
+            <DataGrid<GroupedDrug>
+                autoHeight
+                rows={data}
+                columns={columns}
+                rowCount={totalElements}
+                pageSizeOptions={[pageSize]}
+                paginationModel={{ page: currentPage, pageSize }}
+                paginationMode="server"
+                checkboxSelection
+                disableRowSelectionOnClick
+                onRowSelectionModelChange={setSelectionModel}
+                loading={loading}
+                onPaginationModelChange={({ page }) => {
+                    setCurrentPage(page)
+                    setTriggerSearch(true)
+                }}
+                getRowId={(row) => row.registrationNumber}
+                disableColumnMenu
+            />
+        </Box>
     )
 }

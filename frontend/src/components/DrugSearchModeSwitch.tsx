@@ -1,5 +1,5 @@
 import React from "react"
-import "./DrugSearchModeSwitch.css"
+import { ToggleButton, ToggleButtonGroup, Typography, Box } from "@mui/material"
 import { MedicinalProductSearchMode } from "../types/MedicinalProductSearchMode"
 
 type Props = {
@@ -7,24 +7,47 @@ type Props = {
     onChange: (mode: MedicinalProductSearchMode) => void
 }
 
-export const DrugSearchModeSwitch: React.FC<Props> = ({ searchMode, onChange }) => (
-    <div className="drug-search-mode-switch">
-        <span className="filter-title">Zobrazit výsledky dle:</span>
-        <div className="filter-mode-switch">
-            <button
-                type="button"
-                className={`mode-button ${searchMode === MedicinalProductSearchMode.SUKL_CODE ? "active" : ""}`}
-                onClick={() => onChange(MedicinalProductSearchMode.SUKL_CODE)}
+export const DrugSearchModeSwitch: React.FC<Props> = ({ searchMode, onChange }) => {
+    const handleChange = (_: React.MouseEvent<HTMLElement>, newMode: MedicinalProductSearchMode | null) => {
+        if (newMode !== null) {
+            onChange(newMode)
+        }
+    }
+
+    return (
+        <Box mb={2} display="flex" alignItems="center" gap={2}>
+            <Typography variant="subtitle2" sx={{ fontSize: "1rem", whiteSpace: "nowrap" }}>
+                Zobrazit výsledky dle:
+            </Typography>
+            <ToggleButtonGroup
+                value={searchMode}
+                exclusive
+                onChange={handleChange}
+                sx={{
+                    "& .MuiToggleButton-root": {
+                        textTransform: "none",
+                        fontWeight: 500,
+                        fontSize: "0.95rem",
+                        borderColor: "#ccc",
+                        px: 2,
+                        py: 0.5
+                    },
+                    "& .MuiToggleButton-root.Mui-selected": {
+                        backgroundColor: "#34558a",
+                        color: "white",
+                        "&:hover": {
+                            backgroundColor: "#2c4773"
+                        }
+                    }
+                }}
             >
-                Dle kódu SÚKL
-            </button>
-            <button
-                type="button"
-                className={`mode-button ${searchMode === MedicinalProductSearchMode.REGISTRATION_NUMBER ? "active" : ""}`}
-                onClick={() => onChange(MedicinalProductSearchMode.REGISTRATION_NUMBER)}
-            >
-                Dle Registračního čísla
-            </button>
-        </div>
-    </div>
-)
+                <ToggleButton value={MedicinalProductSearchMode.SUKL_CODE}>
+                    Dle kódu SÚKL
+                </ToggleButton>
+                <ToggleButton value={MedicinalProductSearchMode.REGISTRATION_NUMBER}>
+                    Dle Registračního čísla
+                </ToggleButton>
+            </ToggleButtonGroup>
+        </Box>
+    )
+}

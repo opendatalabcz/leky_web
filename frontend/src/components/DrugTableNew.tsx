@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from "react"
+import {
+    DataGrid,
+    GridColDef,
+    GridRenderCellParams,
+    GridRowSelectionModel
+} from "@mui/x-data-grid"
 import { MedicinalProductFilterValues } from "../types/MedicinalProductFilterValues"
-import { Pagination } from "./Pagination"
 import { useUnifiedCart } from "./UnifiedCartContext"
-import "./DrugTableNew.css"
+import { Button, Box } from "@mui/material"
 
 export type Drug = {
     id: number
@@ -27,20 +32,29 @@ type Props = {
     onSearchComplete: () => void
     filtersVersion: number
     setTriggerSearch: (val: boolean) => void
+    onAddOne: (id: number) => void
+    onAddSelected?: () => void
+    onSelectionUpdate?: (count: number, selectedIds: number[]) => void
 }
 
 export const DrugTableNew: React.FC<Props> = ({
-    filters,
-    triggerSearch,
-    onSearchComplete,
-    filtersVersion,
-    setTriggerSearch
-}) => {
+                                                  filters,
+                                                  triggerSearch,
+                                                  onSearchComplete,
+                                                  filtersVersion,
+                                                  setTriggerSearch,
+                                                  onAddOne,
+                                                  onAddSelected,
+                                                  onSelectionUpdate
+                                              }) => {
     const [data, setData] = useState<Drug[]>([])
     const [currentPage, setCurrentPage] = useState(0)
-    const [totalPages, setTotalPages] = useState(0)
+    const [totalElements, setTotalElements] = useState(0)
     const [loading, setLoading] = useState(false)
+    const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
     const { addSuklId } = useUnifiedCart()
+
+    const pageSize = 5
 
     useEffect(() => {
         setCurrentPage(0)
@@ -60,13 +74,13 @@ export const DrugTableNew: React.FC<Props> = ({
                 if (filters.period) params.append("period", filters.period)
                 params.append("searchMode", filters.searchMode)
                 params.append("page", currentPage.toString())
-                params.append("size", "5")
+                params.append("size", pageSize.toString())
 
                 const res = await fetch(`/api/medicinal-products?${params.toString()}`)
                 const json: PagedResponse<Drug> = await res.json()
 
                 setData(json.content)
-                setTotalPages(json.totalPages)
+                setTotalElements(json.totalElements)
             } catch (e) {
                 console.error("Chyba při načítání dat:", e)
             } finally {
@@ -78,51 +92,81 @@ export const DrugTableNew: React.FC<Props> = ({
         fetchData()
     }, [triggerSearch, filters, currentPage])
 
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page)
-        setTriggerSearch(true)
+    // Akce pro hromadné přidání vybraných
+    const handleAddSelected = () => {
+        const selectedIds = selectionModel as number[]
+        selectedIds.forEach(id => addSuklId(id))
+        onAddSelected?.()
     }
 
-    return (
-        <div className="drug-table-container">
-            {loading && <p>Načítání...</p>}
-            {!loading && data.length === 0 && <p>Žádné výsledky.</p>}
-            {!loading && data.length > 0 && (
-                <>
-                    <table className="drug-table">
-                        <thead>
-                        <tr>
-                            <th>SÚKL kód</th>
-                            <th>Název</th>
-                            <th>Doplněk</th>
-                            <th>Registrační číslo</th>
-                            <th>ATC skupina</th>
-                            <th>Akce</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {data.map(drug => (
-                            <tr key={drug.id}>
-                                <td>{drug.suklCode}</td>
-                                <td>{drug.name}</td>
-                                <td>{drug.supplementaryInformation || "-"}</td>
-                                <td>{drug.registrationNumber || "-"}</td>
-                                <td>{drug.atcGroup ? `${drug.atcGroup.name} (${drug.atcGroup.code})` : "-"}</td>
-                                <td>
-                                    <button onClick={() => addSuklId(drug.id)}>Přidat</button>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
+    useEffect(() => {
+        const selectedIds = selectionModel as number[]
+        onSelectionUpdate?.(selectedIds.length, selectedIds)
+    }, [selectionModel, onSelectionUpdate])
 
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                    />
-                </>
-            )}
-        </div>
+    const columns: GridColDef[] = [
+        { field: "suklCode", headerName: "SÚKL kód", flex: 1 },
+        { field: "name", headerName: "Název", flex: 2 },
+        {
+            field: "supplementaryInformation",
+            headerName: "Doplněk",
+            flex: 2,
+            valueGetter: (params: { row?: Drug }) => params.row?.supplementaryInformation ?? "-"
+        },
+        {
+            field: "registrationNumber",
+            headerName: "Registrační číslo",
+            flex: 1,
+            valueGetter: (params: { row?: Drug }) => params.row?.registrationNumber ?? "-"
+        },
+        {
+            field: "atcGroup",
+            headerName: "ATC skupina",
+            flex: 2,
+            valueGetter: (params: { row?: Drug }) => {
+                const atc = params.row?.atcGroup
+                return atc ? `${atc.name} (${atc.code})` : "-"
+            }
+        },
+        {
+            field: "action",
+            headerName: "Akce",
+            flex: 1,
+            renderCell: (params: GridRenderCellParams<Drug>) => (
+                <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => onAddOne(params.row.id)}
+                >
+                    Přidat
+                </Button>
+            ),
+            sortable: false,
+            filterable: false
+        }
+    ]
+
+    return (
+        <Box>
+            <DataGrid<Drug>
+                autoHeight
+                rows={data}
+                columns={columns}
+                rowCount={totalElements}
+                pageSizeOptions={[pageSize]}
+                paginationModel={{ page: currentPage, pageSize }}
+                paginationMode="server"
+                checkboxSelection
+                disableRowSelectionOnClick
+                onRowSelectionModelChange={setSelectionModel}
+                loading={loading}
+                onPaginationModelChange={({ page }) => {
+                    setCurrentPage(page)
+                    setTriggerSearch(true)
+                }}
+                getRowId={(row) => row.id}
+                disableColumnMenu
+            />
+        </Box>
     )
 }
