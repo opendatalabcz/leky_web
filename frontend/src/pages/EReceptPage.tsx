@@ -4,8 +4,7 @@ import { useFilters } from "../components/FilterContext"
 import { EReceptFiltersPanel } from "../components/EReceptFiltersPanel"
 import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
-import {DataStatusFooter} from "../components/DataStatusFooter";
-import MedicalServicesIcon from "@mui/icons-material/MedicalServices"
+import { DataStatusFooter } from "../components/DataStatusFooter"
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
@@ -14,13 +13,18 @@ export function EReceptPage() {
     return (
         <Box>
             <Typography variant="h5" gutterBottom>
-                Předepisování a výdej
+                Předepisování a výdej léčiv
+            </Typography>
+
+            <Typography variant="body1" color="text.secondary" mb={3}>
+                Zjistěte, kolik léčiv se v České republice předepisuje a vydává,
+                a to na základě dat ze systému eRecept. Vyberte léčiva, která vás zajímají,
+                nastavte časové období a způsob zobrazení – výsledky se promítnou do mapy okresů.
             </Typography>
 
             <Box display="flex" gap={4} alignItems="flex-start">
                 <Box width={300} flexShrink={0}>
                     <Paper variant="outlined" sx={{ p: 2 }}>
-
                         <Button
                             variant="contained"
                             fullWidth

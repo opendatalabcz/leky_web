@@ -5,7 +5,6 @@ import {useUnifiedCart} from "./UnifiedCartContext"
 import DistrictMap from "./DistrictMap"
 import {MedicineSelectorModal} from "./MedicineSelectorModal"
 import {SelectedMedicinalProductSummary} from "./SelectedMedicinalProductSummary"
-import {EReceptFiltersPanel} from "./EReceptFiltersPanel"
 import {Button} from "@mui/material"
 import {MedicinalUnitMode} from "../types/MedicinalUnitMode"
 import {EReceptDataTypeAggregation} from "../types/EReceptDataTypeAggregation"
@@ -88,20 +87,6 @@ export function MapTab() {
 
     return (
         <div className="map-tab">
-            <div className="map-header-row">
-                <EReceptFiltersPanel
-                    dateFrom={dateFrom}
-                    dateTo={dateTo}
-                    onChangeDateFrom={setDateFrom}
-                    onChangeDateTo={setDateTo}
-                    calculationMode={calculationMode}
-                    onChangeCalculationMode={setCalculationMode}
-                    normalisationMode={normalisationMode}
-                    onChangeNormalisationMode={setNormalisationMode}
-                    aggregationType={aggregationType}
-                    onChangeAggregationType={setAggregationType}
-                />
-            </div>
 
             <MedicineSelectorModal
                 open={isModalOpen}

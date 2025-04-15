@@ -4,9 +4,9 @@ import {
     FormControl,
     InputLabel,
     MenuItem,
-    Select,
-    SelectChangeEvent
+    Select
 } from "@mui/material"
+import type { SelectChangeEvent } from "@mui/material/Select"
 import { YearMonthPicker } from "./YearMonthPicker"
 import { MedicinalUnitMode, MedicinalUnitModeLabels } from "../types/MedicinalUnitMode"
 import {
@@ -46,86 +46,89 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
     return (
         <Box
             display="flex"
-            gap={4}
             flexWrap="wrap"
-            alignItems="center"
+            gap={2}
             mt={2}
             mb={3}
         >
-            <FormControl>
-                <InputLabel id="aggregation-type-select-label">Typ eReceptů</InputLabel>
-                <Select
-                    id="aggregation-type-select"
-                    labelId="aggregation-type-select-label"
-                    value={aggregationType}
-                    label="Typ eReceptů"
-                    onChange={(e: SelectChangeEvent) =>
-                        onChangeAggregationType(e.target.value as EReceptDataTypeAggregation)
-                    }
-                    size="small"
-                    sx={{ minWidth: 200 }}
-                >
-                    <MenuItem value={EReceptDataTypeAggregation.PRESCRIBED}>Předepsané</MenuItem>
-                    <MenuItem value={EReceptDataTypeAggregation.DISPENSED}>Vydané</MenuItem>
-                    <MenuItem value={EReceptDataTypeAggregation.DIFFERENCE}>Rozdíl</MenuItem>
-                </Select>
-            </FormControl>
+            <Box flex={1} minWidth={180}>
+                <FormControl fullWidth size="small">
+                    <InputLabel id="aggregation-type-select-label">Typ eReceptů</InputLabel>
+                    <Select
+                        id="aggregation-type-select"
+                        labelId="aggregation-type-select-label"
+                        value={aggregationType}
+                        label="Typ eReceptů"
+                        onChange={(e: SelectChangeEvent) =>
+                            onChangeAggregationType(e.target.value as EReceptDataTypeAggregation)
+                        }
+                    >
+                        <MenuItem value={EReceptDataTypeAggregation.PRESCRIBED}>Předepsané</MenuItem>
+                        <MenuItem value={EReceptDataTypeAggregation.DISPENSED}>Vydané</MenuItem>
+                        <MenuItem value={EReceptDataTypeAggregation.DIFFERENCE}>Rozdíl</MenuItem>
+                    </Select>
+                </FormControl>
+            </Box>
 
-            <YearMonthPicker
-                label="Období od"
-                value={dateFrom}
-                onChange={onChangeDateFrom}
-                maxDate={dateTo ?? undefined}
-            />
+            <Box flex={1} minWidth={140}>
+                <YearMonthPicker
+                    label="Období od"
+                    value={dateFrom}
+                    onChange={onChangeDateFrom}
+                    maxDate={dateTo ?? undefined}
+                />
+            </Box>
 
-            <YearMonthPicker
-                label="Období do"
-                value={dateTo}
-                onChange={onChangeDateTo}
-                minDate={dateFrom ?? undefined}
-            />
+            <Box flex={1} minWidth={140}>
+                <YearMonthPicker
+                    label="Období do"
+                    value={dateTo}
+                    onChange={onChangeDateTo}
+                    minDate={dateFrom ?? undefined}
+                />
+            </Box>
 
-            <FormControl>
-                <InputLabel id="medicinal-unit-mode-select-label">Jednotka množství léčiv</InputLabel>
-                <Select
-                    id="medicinal-unit-mode-select"
-                    labelId="medicinal-unit-mode-select-label"
-                    value={calculationMode}
-                    label="Jednotka množství léčiv"
-                    onChange={(e: SelectChangeEvent) =>
-                        onChangeCalculationMode(e.target.value as MedicinalUnitMode)
-                    }
-                    size="small"
-                    sx={{ minWidth: 200 }}
-                >
-                    {Object.values(MedicinalUnitMode).map((mode) => (
-                        <MenuItem key={mode} value={mode}>
-                            {MedicinalUnitModeLabels[mode]}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
+            <Box flex={1} minWidth={200}>
+                <FormControl fullWidth size="small">
+                    <InputLabel id="medicinal-unit-mode-select-label">Jednotka množství léčiv</InputLabel>
+                    <Select
+                        id="medicinal-unit-mode-select"
+                        labelId="medicinal-unit-mode-select-label"
+                        value={calculationMode}
+                        label="Jednotka množství léčiv"
+                        onChange={(e: SelectChangeEvent) =>
+                            onChangeCalculationMode(e.target.value as MedicinalUnitMode)
+                        }
+                    >
+                        {Object.values(MedicinalUnitMode).map((mode) => (
+                            <MenuItem key={mode} value={mode}>
+                                {MedicinalUnitModeLabels[mode]}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Box>
 
-            <FormControl>
-                <InputLabel id="population-normalisation-mode-select-label">Způsob normalizace</InputLabel>
-                <Select
-                    id="population-normalisation-mode-select"
-                    labelId="population-normalisation-mode-select-label"
-                    value={normalisationMode}
-                    label="Způsob normalizace"
-                    onChange={(e: SelectChangeEvent) =>
-                        onChangeNormalisationMode(e.target.value as PopulationNormalisationMode)
-                    }
-                    size="small"
-                    sx={{ minWidth: 200 }}
-                >
-                    {Object.values(PopulationNormalisationMode).map((mode) => (
-                        <MenuItem key={mode} value={mode}>
-                            {PopulationNormalisationModeLabels[mode]}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
+            <Box flex={1} minWidth={200}>
+                <FormControl fullWidth size="small">
+                    <InputLabel id="population-normalisation-mode-select-label">Způsob normalizace</InputLabel>
+                    <Select
+                        id="population-normalisation-mode-select"
+                        labelId="population-normalisation-mode-select-label"
+                        value={normalisationMode}
+                        label="Způsob normalizace"
+                        onChange={(e: SelectChangeEvent) =>
+                            onChangeNormalisationMode(e.target.value as PopulationNormalisationMode)
+                        }
+                    >
+                        {Object.values(PopulationNormalisationMode).map((mode) => (
+                            <MenuItem key={mode} value={mode}>
+                                {PopulationNormalisationModeLabels[mode]}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Box>
         </Box>
     )
 }
