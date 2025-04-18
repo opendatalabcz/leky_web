@@ -24,7 +24,7 @@ class MpdLinkParser : LinkParser {
         val period = runCatching { determineDatasetPeriod(URL(fileUrl).openStream().readBytes()) }.getOrNull()
         val (year, month) = period ?: Pair(fallbackYear, fallbackMonth)
 
-        return ParsedFileInfo(DatasetType.MPD, fileType, year, month)
+        return ParsedFileInfo(DatasetType.MEDICINAL_PRODUCT_DATABASE, fileType, year, month)
     }
 
     private fun determineDatasetPeriod(zipBytes: ByteArray): Pair<Int, Int>? {

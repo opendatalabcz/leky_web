@@ -16,6 +16,6 @@ class NewFileConsumer(
             println("No processor found for datasetType=${msg.datasetType}")
             return
         }
-        processor.processFile(msg)
+        //processor.processFile(msg)
     }
 }

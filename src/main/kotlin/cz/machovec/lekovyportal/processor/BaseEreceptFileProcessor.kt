@@ -36,10 +36,10 @@ abstract class BaseEreceptFileProcessor<T>(
         val month = msg.month
 
         val monthsToProcess: Set<Int> = if (month != null) {
-            val mpdDone = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(DatasetType.MPD, year, month)
+            val MEDICINALPRODUCTDATABASEDone = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(DatasetType.MEDICINAL_PRODUCT_DATABASE, year, month)
             val alreadyDone = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(datasetType, year, month)
 
-            if (!mpdDone) {
+            if (!MEDICINALPRODUCTDATABASEDone) {
                 logger.warn { "MPD not processed for $year-$month → skipping $datasetType" }
                 return
             }
@@ -55,8 +55,8 @@ abstract class BaseEreceptFileProcessor<T>(
             else if (year == now.year) (1 until now.monthValue).toSet()
             else emptySet()
 
-            val processedMpd = processedDatasetRepository
-                .findAllByDatasetTypeAndYear(DatasetType.MPD, year)
+            val processedMEDICINALPRODUCTDATABASE = processedDatasetRepository
+                .findAllByDatasetTypeAndYear(DatasetType.MEDICINAL_PRODUCT_DATABASE, year)
                 .map { it.month }
                 .toSet()
 
@@ -66,7 +66,7 @@ abstract class BaseEreceptFileProcessor<T>(
                 .toSet()
 
             val eligible = completedMonths
-                .filter { it !in processedThis && it in processedMpd }
+                .filter { it !in processedThis && it in processedMEDICINALPRODUCTDATABASE }
                 .toSet()
 
             if (eligible.isEmpty()) {

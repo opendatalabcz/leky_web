@@ -13,7 +13,7 @@ class EreceptPrescriptionFileProcessor(
     processedDatasetRepository: ProcessedDatasetRepository,
     private val referenceDataProvider: MpdReferenceDataProvider
 ) : BaseEreceptFileProcessor<EreceptPrescription>(
-    datasetType = DatasetType.ERECEPT_PRESCRIPTION,
+    datasetType = DatasetType.ERECEPT_PRESCRIPTIONS,
     processedDatasetRepository = processedDatasetRepository,
     batchInsert = { records -> repository.batchInsert(records, batchSize = 1000) },
     parseCsvRecord = fun(cols: List<String>): CsvRecordResult<EreceptPrescription>? {

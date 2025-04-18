@@ -19,13 +19,13 @@ class FileProcessorResolver(
 
     @PostConstruct
     fun init() {
-        processorMap[DatasetType.MPD] = mpdFileProcessor
-        processorMap[DatasetType.ERECEPT_PRESCRIPTION] = ereceptPrescriptionFileProcessor
-        processorMap[DatasetType.ERECEPT_DISPENSE] = ereceptDispenseFileProcessor
-        processorMap[DatasetType.DISTRIBUTION_REG] = regFileProcessor
-        processorMap[DatasetType.DISTRIBUTION_DIS] = disFileProcessor
-        processorMap[DatasetType.DISTRIBUTION_DIS_ABROAD] = disAbroadFileProcessor
-        processorMap[DatasetType.DISTRIBUTION_LEK] = lekFileProcessor
+        processorMap[DatasetType.MEDICINAL_PRODUCT_DATABASE] = mpdFileProcessor
+        processorMap[DatasetType.ERECEPT_PRESCRIPTIONS] = ereceptPrescriptionFileProcessor
+        processorMap[DatasetType.ERECEPT_DISPENSES] = ereceptDispenseFileProcessor
+        processorMap[DatasetType.DISTRIBUTIONS_FROM_MAHS] = regFileProcessor
+        processorMap[DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS] = disFileProcessor
+        processorMap[DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS] = disAbroadFileProcessor
+        processorMap[DatasetType.DISTRIBUTIONS_FROM_PHARMACIES] = lekFileProcessor
     }
 
     fun resolve(datasetType: DatasetType): DatasetFileProcessor? {
