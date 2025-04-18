@@ -1,10 +1,10 @@
 package cz.machovec.lekovyportal.processor
 
 import cz.machovec.lekovyportal.domain.entity.FileType
-import cz.machovec.lekovyportal.domain.entity.distribution.LekDispenseType
-import cz.machovec.lekovyportal.domain.entity.distribution.LekDistribution
+import cz.machovec.lekovyportal.domain.entity.distribution.PharmacyDispenseType
+import cz.machovec.lekovyportal.domain.entity.distribution.DistFromPharmacies
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
-import cz.machovec.lekovyportal.domain.repository.LekDistributionRepository
+import cz.machovec.lekovyportal.domain.repository.dist.DistFromPharmaciesRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
@@ -19,7 +19,7 @@ import java.util.zip.ZipInputStream
 
 @Service
 class LekFileProcessor(
-    private val lekDistributionRepository: LekDistributionRepository,
+    private val distFromPharmaciesRepository: DistFromPharmaciesRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
@@ -51,7 +51,7 @@ class LekFileProcessor(
 
         logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
 
-        lekDistributionRepository.saveAll(records)
+        distFromPharmaciesRepository.saveAll(records)
 
         val processedDataset = ProcessedDataset(
             datasetType = msg.datasetType,
@@ -63,8 +63,8 @@ class LekFileProcessor(
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
     }
 
-    private fun parseZip(zipBytes: ByteArray): List<LekDistribution> {
-        val records = mutableListOf<LekDistribution>()
+    private fun parseZip(zipBytes: ByteArray): List<DistFromPharmacies> {
+        val records = mutableListOf<DistFromPharmacies>()
 
         ZipInputStream(ByteArrayInputStream(zipBytes)).use { zis ->
             var entry = zis.nextEntry
@@ -81,13 +81,13 @@ class LekFileProcessor(
         return records
     }
 
-    private fun parseCsv(csvBytes: ByteArray): List<LekDistribution> {
+    private fun parseCsv(csvBytes: ByteArray): List<DistFromPharmacies> {
         val charset = Charset.forName("Windows-1250")
         val text = InputStreamReader(ByteArrayInputStream(csvBytes), charset).readText()
 
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
-        val records = mutableListOf<LekDistribution>()
+        val records = mutableListOf<DistFromPharmacies>()
 
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(";").map { it.trim('"') }
@@ -97,7 +97,7 @@ class LekFileProcessor(
                 val year = periodParts[0].toIntOrNull() ?: throw IllegalArgumentException("Invalid year in period")
                 val month = periodParts[1].toIntOrNull() ?: throw IllegalArgumentException("Invalid month in period")
 
-                val dispenseType = LekDispenseType.fromString(cols[1])
+                val dispenseType = PharmacyDispenseType.fromInput(cols[1])
                     ?: throw IllegalArgumentException("Invalid purchaser type: ${cols[1]}")
 
                 val suklCode = cols[3]
@@ -109,7 +109,7 @@ class LekFileProcessor(
 
                 val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
-                val record = LekDistribution(
+                val record = DistFromPharmacies(
                     year = year,
                     month = month,
                     medicinalProduct = medicinalProduct!!,

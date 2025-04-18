@@ -15,8 +15,8 @@ import jakarta.persistence.Table
 import java.time.OffsetDateTime
 
 @Entity
-@Table(name = "dis_abroad_distribution")
-data class DisAbroadDistribution(
+@Table(name = "dist_from_distributors")
+data class DistFromDistributors(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
@@ -30,21 +30,18 @@ data class DisAbroadDistribution(
     @Column(name = "month", nullable = false)
     val month: Int,
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medicinal_product_id", nullable = false)
     val medicinalProduct: MpdMedicinalProduct,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "purchaser_type", nullable = false)
-    val purchaserType: DisAbroadPurchaserType,
+    val purchaserType: DistributorPurchaserType,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "movement_type", nullable = false)
     val movementType: MovementType,
 
     @Column(name = "package_count", nullable = false)
-    val packageCount: Int,
-
-    @Column(name = "subject", nullable = false)
-    val subject: String, // TODO: Find dataset to connect via FK. Maybe dlp_organisation?
+    val packageCount: Int
 )

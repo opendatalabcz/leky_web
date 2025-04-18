@@ -1,10 +1,10 @@
 package cz.machovec.lekovyportal.processor
 
-import cz.machovec.lekovyportal.domain.entity.distribution.DisAbroadDistribution
-import cz.machovec.lekovyportal.domain.entity.distribution.DisAbroadPurchaserType
+import cz.machovec.lekovyportal.domain.entity.distribution.DistExportFromDistributors
+import cz.machovec.lekovyportal.domain.entity.distribution.DistributorExportPurchaserType
 import cz.machovec.lekovyportal.domain.entity.distribution.MovementType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
-import cz.machovec.lekovyportal.domain.repository.DisAbroadDistributionRepository
+import cz.machovec.lekovyportal.domain.repository.dist.DistExportFromDistributorsRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
@@ -15,7 +15,7 @@ import java.net.URL
 
 @Service
 class DisAbroadFileProcessor(
-    private val disAbroadDistributionRepository: DisAbroadDistributionRepository,
+    private val distExportFromDistributorsRepository: DistExportFromDistributorsRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
@@ -38,7 +38,7 @@ class DisAbroadFileProcessor(
 
         logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
 
-        disAbroadDistributionRepository.saveAll(records)
+        distExportFromDistributorsRepository.saveAll(records)
 
         val processedDataset = ProcessedDataset(
             datasetType = msg.datasetType,
@@ -50,11 +50,11 @@ class DisAbroadFileProcessor(
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
     }
 
-    private fun parseCsv(csvBytes: ByteArray): List<DisAbroadDistribution> {
+    private fun parseCsv(csvBytes: ByteArray): List<DistExportFromDistributors> {
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
-        val records = mutableListOf<DisAbroadDistribution>()
+        val records = mutableListOf<DistExportFromDistributors>()
 
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(";").map { it.trim('"') }
@@ -64,12 +64,12 @@ class DisAbroadFileProcessor(
                 val year = periodParts[0].toIntOrNull() ?: throw IllegalArgumentException("Invalid year in period")
                 val month = periodParts[1].toIntOrNull() ?: throw IllegalArgumentException("Invalid month in period")
 
-                val purchaserType = DisAbroadPurchaserType.fromString(cols[1])
+                val purchaserType = DistributorExportPurchaserType.fromInput(cols[1])
                     ?: throw IllegalArgumentException("Invalid purchaser type: ${cols[1]}")
 
                 val suklCode = cols[3]
 
-                val movementType = MovementType.fromString(cols[8])
+                val movementType = MovementType.fromInput(cols[8])
                     ?: throw IllegalArgumentException("Invalid movement type: ${cols[8]}")
 
                 val packageCount = cols[9].toIntOrNull() ?: throw IllegalArgumentException("Invalid package count")
@@ -78,7 +78,7 @@ class DisAbroadFileProcessor(
 
                 val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
-                val record = DisAbroadDistribution(
+                val record = DistExportFromDistributors(
                     year = year,
                     month = month,
                     purchaserType = purchaserType,

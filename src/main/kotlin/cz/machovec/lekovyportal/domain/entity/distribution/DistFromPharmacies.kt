@@ -12,11 +12,12 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 
 @Entity
-@Table(name = "dis_distribution")
-data class DisDistribution(
+@Table(name = "dist_from_pharmacies")
+data class DistFromPharmacies(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
@@ -30,18 +31,14 @@ data class DisDistribution(
     @Column(name = "month", nullable = false)
     val month: Int,
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "medicinal_product_id", nullable = false)
     val medicinalProduct: MpdMedicinalProduct,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "purchaser_type", nullable = false)
-    val purchaserType: DisPurchaserType,
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "movement_type", nullable = false)
-    val movementType: MovementType,
+    @Column(name = "dispense_type", nullable = false)
+    val dispenseType: PharmacyDispenseType,
 
     @Column(name = "package_count", nullable = false)
-    val packageCount: Int
+    val packageCount: BigDecimal
 )

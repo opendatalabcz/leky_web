@@ -1,14 +1,16 @@
 package cz.machovec.lekovyportal.domain.entity.distribution
 
-enum class MovementType {
-    DELIVERY, RETURN;
+enum class MovementType(
+    val csvValue: String,
+    val descriptionCs: String
+) {
+    DELIVERY("D", "Dodávka LP"),
+    RETURN("V", "Vratka LP");
 
     companion object {
-        fun fromString(value: String): MovementType? {
-            return when (value.trim().uppercase()) {
-                "D" -> DELIVERY
-                "V" -> RETURN
-                else -> null
+        fun fromInput(value: String): MovementType? {
+            return entries.firstOrNull {
+                it.csvValue == value.trim().uppercase()
             }
         }
     }

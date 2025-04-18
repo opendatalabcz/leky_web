@@ -12,12 +12,11 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
-import java.math.BigDecimal
 import java.time.OffsetDateTime
 
 @Entity
-@Table(name = "lek_distribution")
-data class LekDistribution(
+@Table(name = "dist_from_mahs")
+data class DistFromMahs(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
@@ -36,9 +35,13 @@ data class LekDistribution(
     val medicinalProduct: MpdMedicinalProduct,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "dispense_type", nullable = false)
-    val dispenseType: LekDispenseType,
+    @Column(name = "purchaser_type", nullable = false)
+    val purchaserType: MahPurchaserType,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "movement_type", nullable = false)
+    val movementType: MovementType,
 
     @Column(name = "package_count", nullable = false)
-    val packageCount: BigDecimal
+    val packageCount: Int
 )

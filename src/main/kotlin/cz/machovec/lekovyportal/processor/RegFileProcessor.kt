@@ -2,10 +2,10 @@ package cz.machovec.lekovyportal.processor
 
 import cz.machovec.lekovyportal.domain.entity.distribution.MovementType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
-import cz.machovec.lekovyportal.domain.entity.distribution.RegDistribution
-import cz.machovec.lekovyportal.domain.entity.distribution.RegPurchaserType
+import cz.machovec.lekovyportal.domain.entity.distribution.DistFromMahs
+import cz.machovec.lekovyportal.domain.entity.distribution.MahPurchaserType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.domain.repository.RegDistributionRepository
+import cz.machovec.lekovyportal.domain.repository.dist.DistFromMahsRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
@@ -15,7 +15,7 @@ import java.net.URL
 
 @Service
 class RegFileProcessor(
-    private val regDistributionRepository: RegDistributionRepository,
+    private val distFromMahsRepository: DistFromMahsRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
@@ -38,7 +38,7 @@ class RegFileProcessor(
 
         logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
 
-        regDistributionRepository.saveAll(records)
+        distFromMahsRepository.saveAll(records)
 
         val processedDataset = ProcessedDataset(
             datasetType = msg.datasetType,
@@ -50,11 +50,11 @@ class RegFileProcessor(
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
     }
 
-    private fun parseCsv(csvBytes: ByteArray): List<RegDistribution> {
+    private fun parseCsv(csvBytes: ByteArray): List<DistFromMahs> {
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
-        val records = mutableListOf<RegDistribution>()
+        val records = mutableListOf<DistFromMahs>()
 
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(";").map { it.trim('"') }
@@ -64,19 +64,19 @@ class RegFileProcessor(
                 val year = periodParts[0].toIntOrNull() ?: throw IllegalArgumentException("Invalid year in period")
                 val month = periodParts[1].toIntOrNull() ?: throw IllegalArgumentException("Invalid month in period")
 
-                val purchaserType = RegPurchaserType.fromString(cols[1])
+                val purchaserType = MahPurchaserType.fromInput(cols[1])
                     ?: throw IllegalArgumentException("Invalid purchaser type: ${cols[1]}")
 
                 val suklCode = cols[3]
 
-                val movementType = MovementType.fromString(cols[8])
+                val movementType = MovementType.fromInput(cols[8])
                     ?: throw IllegalArgumentException("Invalid movement type: ${cols[8]}")
 
                 val packageCount = cols[9].toIntOrNull() ?: throw IllegalArgumentException("Invalid package count")
 
                 val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
-                val record = RegDistribution(
+                val record = DistFromMahs(
                     year = year,
                     month = month,
                     purchaserType = purchaserType,

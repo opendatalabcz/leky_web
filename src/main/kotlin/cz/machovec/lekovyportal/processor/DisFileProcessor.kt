@@ -1,10 +1,10 @@
 package cz.machovec.lekovyportal.processor
 
-import cz.machovec.lekovyportal.domain.entity.distribution.DisDistribution
-import cz.machovec.lekovyportal.domain.entity.distribution.DisPurchaserType
+import cz.machovec.lekovyportal.domain.entity.distribution.DistFromDistributors
+import cz.machovec.lekovyportal.domain.entity.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.domain.entity.distribution.MovementType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
-import cz.machovec.lekovyportal.domain.repository.DisDistributionRepository
+import cz.machovec.lekovyportal.domain.repository.dist.DistFromDistributorsRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.NewFileMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
@@ -15,7 +15,7 @@ import java.net.URL
 
 @Service
 class DisFileProcessor(
-    private val disDistributionRepository: DisDistributionRepository,
+    private val distFromDistributorsRepository: DistFromDistributorsRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetFileProcessor {
@@ -38,7 +38,7 @@ class DisFileProcessor(
 
         logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
 
-        disDistributionRepository.saveAll(records)
+        distFromDistributorsRepository.saveAll(records)
 
         val processedDataset = ProcessedDataset(
             datasetType = msg.datasetType,
@@ -50,11 +50,11 @@ class DisFileProcessor(
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
     }
 
-    private fun parseCsv(csvBytes: ByteArray): List<DisDistribution> {
+    private fun parseCsv(csvBytes: ByteArray): List<DistFromDistributors> {
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
-        val records = mutableListOf<DisDistribution>()
+        val records = mutableListOf<DistFromDistributors>()
 
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(";").map { it.trim('"') }
@@ -64,19 +64,19 @@ class DisFileProcessor(
                 val year = periodParts[0].toIntOrNull() ?: throw IllegalArgumentException("Invalid year in period")
                 val month = periodParts[1].toIntOrNull() ?: throw IllegalArgumentException("Invalid month in period")
 
-                val purchaserType = DisPurchaserType.fromString(cols[1])
+                val purchaserType = DistributorPurchaserType.fromInput(cols[1])
                     ?: throw IllegalArgumentException("Invalid purchaser type: ${cols[1]}")
 
                 val suklCode = cols[3]
 
-                val movementType = MovementType.fromString(cols[8])
+                val movementType = MovementType.fromInput(cols[8])
                     ?: throw IllegalArgumentException("Invalid movement type: ${cols[8]}")
 
                 val packageCount = cols[9].toIntOrNull() ?: throw IllegalArgumentException("Invalid package count")
 
                 val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
-                val record = DisDistribution(
+                val record = DistFromDistributors(
                     year = year,
                     month = month,
                     purchaserType = purchaserType,
