@@ -1,22 +1,22 @@
-package cz.machovec.lekovyportal.processor
+package cz.machovec.lekovyportal.processor.erecept
 
 import cz.machovec.lekovyportal.domain.entity.DatasetType
-import cz.machovec.lekovyportal.domain.entity.EreceptPrescription
-import cz.machovec.lekovyportal.domain.repository.EreceptPrescriptionRepository
+import cz.machovec.lekovyportal.domain.entity.EreceptDispense
+import cz.machovec.lekovyportal.domain.repository.EreceptDispenseRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import org.springframework.stereotype.Service
 
 @Service
-class EreceptPrescriptionFileProcessor(
-    private val repository: EreceptPrescriptionRepository,
+class EreceptDispenseProcessor(
+    private val repository: EreceptDispenseRepository,
     processedDatasetRepository: ProcessedDatasetRepository,
     private val referenceDataProvider: MpdReferenceDataProvider
-) : BaseEreceptFileProcessor<EreceptPrescription>(
-    datasetType = DatasetType.ERECEPT_PRESCRIPTIONS,
+) : BaseEreceptProcessor<EreceptDispense>(
+    datasetType = DatasetType.ERECEPT_DISPENSES,
     processedDatasetRepository = processedDatasetRepository,
     batchInsert = { records -> repository.batchInsert(records, batchSize = 1000) },
-    parseCsvRecord = fun(cols: List<String>): CsvRecordResult<EreceptPrescription>? {
+    parseCsvRecord = fun(cols: List<String>): CsvRecordResult<EreceptDispense>? {
         val districtCode = cols[0]
         val year = cols[2].toIntOrNull() ?: return null
         val month = cols[3].toIntOrNull() ?: return null
@@ -27,7 +27,7 @@ class EreceptPrescriptionFileProcessor(
             ?: return null
 
         return CsvRecordResult(
-            EreceptPrescription(
+            EreceptDispense(
                 districtCode = districtCode,
                 year = year,
                 month = month,

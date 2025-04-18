@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.processor
+package cz.machovec.lekovyportal.processor.erecept
 
 import com.opencsv.CSVParserBuilder
 import com.opencsv.CSVReaderBuilder
@@ -8,6 +8,7 @@ import cz.machovec.lekovyportal.domain.entity.HasDistrictCode
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
+import cz.machovec.lekovyportal.processor.DatasetProcessor
 import mu.KotlinLogging
 import org.springframework.transaction.annotation.Transactional
 import java.io.ByteArrayInputStream
@@ -17,14 +18,14 @@ import java.util.zip.ZipInputStream
 
 private val logger = KotlinLogging.logger {}
 
-abstract class BaseEreceptFileProcessor<T>(
+abstract class BaseEreceptProcessor<T>(
     private val datasetType: DatasetType,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val batchInsert: (List<T>) -> Unit,
     private val parseCsvRecord: (List<String>) -> CsvRecordResult<T>?,
     private val mergeByQuantity: (T, T) -> T,
     private val extractAggregationKey: (T) -> String
-) : DatasetFileProcessor where T : HasDistrictCode {
+) : DatasetProcessor where T : HasDistrictCode {
 
     private val PRAGUE_CODE = "3100"
 

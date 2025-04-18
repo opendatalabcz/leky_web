@@ -39,7 +39,7 @@ import java.util.zip.ZipInputStream
 private val logger = KotlinLogging.logger {}
 
 @Service
-class MpdFileProcessor(
+class MpdProcessor(
     private val mpdIndicationGroupProcessor: MpdIndicationGroupProcessor,
     private val mpdDopingCategoryProcessor: MpdDopingCategoryProcessor,
     private val mpdMeasurementUnitProcessor: MpdMeasurementUnitProcessor,
@@ -64,7 +64,7 @@ class MpdFileProcessor(
     private val mpdRegistrationExceptionProcessor: MpdRegistrationExceptionProcessor,
     private val mpdCancelledRegistrationProcessor: MpdCancelledRegistrationProcessor,
     private val mpdMedicinalProductSubstanceProcessor: MpdMedicinalProductSubstanceProcessor
-) : DatasetFileProcessor {
+) : DatasetProcessor {
 
     @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {

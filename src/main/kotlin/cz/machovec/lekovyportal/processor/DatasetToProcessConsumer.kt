@@ -6,8 +6,8 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Service
 
 @Service
-class NewFileConsumer(
-    private val resolver: FileProcessorResolver
+class DatasetToProcessConsumer(
+    private val resolver: DatasetProcessorResolver
 ) {
     @RabbitListener(queues = [RabbitConfig.QUEUE_NAME])
     fun handleNewFile(msg: DatasetToProcessMessage) {
@@ -16,6 +16,6 @@ class NewFileConsumer(
             println("No processor found for datasetType=${msg.datasetType}")
             return
         }
-        //processor.processFile(msg)
+        processor.processFile(msg)
     }
 }

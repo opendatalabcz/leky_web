@@ -1,12 +1,13 @@
-package cz.machovec.lekovyportal.processor
+package cz.machovec.lekovyportal.processor.dist
 
-import cz.machovec.lekovyportal.domain.entity.distribution.DistExportFromDistributors
-import cz.machovec.lekovyportal.domain.entity.distribution.DistributorExportPurchaserType
+import cz.machovec.lekovyportal.domain.entity.distribution.DistFromDistributors
+import cz.machovec.lekovyportal.domain.entity.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.domain.entity.distribution.MovementType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
-import cz.machovec.lekovyportal.domain.repository.dist.DistExportFromDistributorsRepository
+import cz.machovec.lekovyportal.domain.repository.dist.DistFromDistributorsRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
+import cz.machovec.lekovyportal.processor.DatasetProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
@@ -14,11 +15,11 @@ import org.springframework.transaction.annotation.Transactional
 import java.net.URL
 
 @Service
-class DisAbroadFileProcessor(
-    private val distExportFromDistributorsRepository: DistExportFromDistributorsRepository,
+class DistFromDistributorsProcessor(
+    private val distFromDistributorsRepository: DistFromDistributorsRepository,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val referenceDataProvider: MpdReferenceDataProvider
-) : DatasetFileProcessor {
+) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
 
@@ -38,7 +39,7 @@ class DisAbroadFileProcessor(
 
         logger.info("Processing file: ${msg.fileUrl}, records count: ${records.size}")
 
-        distExportFromDistributorsRepository.saveAll(records)
+        distFromDistributorsRepository.saveAll(records)
 
         val processedDataset = ProcessedDataset(
             datasetType = msg.datasetType,
@@ -50,11 +51,11 @@ class DisAbroadFileProcessor(
         logger.info { "Dataset ${msg.datasetType} for ${msg.year}-${msg.month} marked as processed." }
     }
 
-    private fun parseCsv(csvBytes: ByteArray): List<DistExportFromDistributors> {
+    private fun parseCsv(csvBytes: ByteArray): List<DistFromDistributors> {
         val text = csvBytes.decodeToString()
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
-        val records = mutableListOf<DistExportFromDistributors>()
+        val records = mutableListOf<DistFromDistributors>()
 
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(";").map { it.trim('"') }
@@ -64,7 +65,7 @@ class DisAbroadFileProcessor(
                 val year = periodParts[0].toIntOrNull() ?: throw IllegalArgumentException("Invalid year in period")
                 val month = periodParts[1].toIntOrNull() ?: throw IllegalArgumentException("Invalid month in period")
 
-                val purchaserType = DistributorExportPurchaserType.fromInput(cols[1])
+                val purchaserType = DistributorPurchaserType.fromInput(cols[1])
                     ?: throw IllegalArgumentException("Invalid purchaser type: ${cols[1]}")
 
                 val suklCode = cols[3]
@@ -74,18 +75,15 @@ class DisAbroadFileProcessor(
 
                 val packageCount = cols[9].toIntOrNull() ?: throw IllegalArgumentException("Invalid package count")
 
-                val subject = cols[10]
-
                 val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
 
-                val record = DistExportFromDistributors(
+                val record = DistFromDistributors(
                     year = year,
                     month = month,
                     purchaserType = purchaserType,
                     medicinalProduct = medicinalProduct!!,
                     movementType = movementType,
-                    packageCount = packageCount,
-                    subject = subject,
+                    packageCount = packageCount
                 )
 
                 records.add(record)

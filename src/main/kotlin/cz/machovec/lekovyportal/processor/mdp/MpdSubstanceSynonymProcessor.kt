@@ -49,7 +49,7 @@ class MpdSubstanceSynonymProcessor(
             val substanceCode = row[headerIndex.getValue(COLUMN_SUBSTANCE)].trim()
             val substance = referenceDataProvider.getSubstances()[substanceCode]
                 ?: return null.also {
-                    logger.warn { "Unknown substance '$substanceCode', skipping row." }
+                    // logger.warn { "Unknown substance '$substanceCode', skipping row." }
                 }
 
             // Optional sequence number
