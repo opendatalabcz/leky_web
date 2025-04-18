@@ -6,7 +6,7 @@ import cz.machovec.lekovyportal.domain.entity.distribution.DistFromMahs
 import cz.machovec.lekovyportal.domain.entity.distribution.MahPurchaserType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.domain.repository.dist.DistFromMahsRepository
-import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
@@ -23,7 +23,7 @@ class RegFileProcessor(
     private val logger = KotlinLogging.logger {}
 
     @Transactional
-    override fun processFile(msg: NewFileMessage) {
+    override fun processFile(msg: DatasetToProcessMessage) {
         val isProcessed = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
             msg.datasetType, msg.year, msg.month ?: 0
         )

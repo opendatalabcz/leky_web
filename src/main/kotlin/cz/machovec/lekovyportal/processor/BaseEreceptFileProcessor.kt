@@ -7,7 +7,7 @@ import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.entity.HasDistrictCode
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import mu.KotlinLogging
 import org.springframework.transaction.annotation.Transactional
 import java.io.ByteArrayInputStream
@@ -31,7 +31,7 @@ abstract class BaseEreceptFileProcessor<T>(
     protected open val aggregatePrague: Boolean = true
 
     @Transactional
-    override fun processFile(msg: NewFileMessage) {
+    override fun processFile(msg: DatasetToProcessMessage) {
         val year = msg.year
         val month = msg.month
 

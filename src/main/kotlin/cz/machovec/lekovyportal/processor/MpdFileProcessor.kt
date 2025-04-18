@@ -2,7 +2,7 @@ package cz.machovec.lekovyportal.processor
 
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.mdp.MpdActiveSubstanceProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAddictionCategoryProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdAdministrationRouteProcessor
@@ -67,7 +67,7 @@ class MpdFileProcessor(
 ) : DatasetFileProcessor {
 
     @Transactional
-    override fun processFile(msg: NewFileMessage) {
+    override fun processFile(msg: DatasetToProcessMessage) {
         logger.info { "Starting processing of dataset=${msg.datasetType}, year=${msg.year}, month=${msg.month}, url=${msg.fileUrl}" }
 
         val fileBytes = URL(msg.fileUrl).readBytes()
@@ -79,7 +79,7 @@ class MpdFileProcessor(
         }
     }
 
-    private fun processYearlyZip(msg: NewFileMessage, annualZipBytes: ByteArray) {
+    private fun processYearlyZip(msg: DatasetToProcessMessage, annualZipBytes: ByteArray) {
         logger.info { "Detected yearly ZIP. Extracting monthly zips..." }
 
         val monthlyZips = extractMonthlyZips(annualZipBytes)
@@ -99,7 +99,7 @@ class MpdFileProcessor(
         logger.info { "Finished processing all monthly zips in annual zip for year=${msg.year}" }
     }
 
-    private fun processMonthlyZip(msg: NewFileMessage, fileBytes: ByteArray) {
+    private fun processMonthlyZip(msg: DatasetToProcessMessage, fileBytes: ByteArray) {
         logger.info { "Processing monthly ZIP for year=${msg.year}, month=${msg.month}" }
 
         if (msg.month == null) return

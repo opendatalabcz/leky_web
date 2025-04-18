@@ -10,7 +10,7 @@ private val logger = KotlinLogging.logger {}
 class RabbitMessagePublisher(
     private val rabbitTemplate: RabbitTemplate
 ) : MessagePublisher {
-    override fun publish(msg: NewFileMessage) {
+    override fun publish(msg: DatasetToProcessMessage) {
         logger.info { "Publishing message to RabbitMQ: datasetType=${msg.datasetType}, year=${msg.year}, month=${msg.month}, fileType=${msg.fileType}" }
 
         rabbitTemplate.convertAndSend(

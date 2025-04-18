@@ -1,7 +1,7 @@
 package cz.machovec.lekovyportal.processor
 
-import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 
 interface DatasetFileProcessor {
-    fun processFile(msg: NewFileMessage)
+    fun processFile(msg: DatasetToProcessMessage)
 }

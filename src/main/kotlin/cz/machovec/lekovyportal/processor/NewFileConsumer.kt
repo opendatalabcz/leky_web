@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.processor
 
-import cz.machovec.lekovyportal.messaging.NewFileMessage
+import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.messaging.RabbitConfig
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Service
@@ -10,7 +10,7 @@ class NewFileConsumer(
     private val resolver: FileProcessorResolver
 ) {
     @RabbitListener(queues = [RabbitConfig.QUEUE_NAME])
-    fun handleNewFile(msg: NewFileMessage) {
+    fun handleNewFile(msg: DatasetToProcessMessage) {
         val processor = resolver.resolve(msg.datasetType)
         if (processor == null) {
             println("No processor found for datasetType=${msg.datasetType}")
