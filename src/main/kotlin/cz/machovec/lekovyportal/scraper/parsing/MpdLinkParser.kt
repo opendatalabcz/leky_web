@@ -2,8 +2,6 @@ package cz.machovec.lekovyportal.scraper.parsing
 
 import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.FileType
-import mu.KotlinLogging
-import org.springframework.stereotype.Component
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.URL
@@ -11,63 +9,37 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.zip.ZipInputStream
 
-private val logger = KotlinLogging.logger {}
-
-@Component
 class MpdLinkParser : LinkParser {
 
-    companion object {
-        private val FILE_TYPE = FileType.ZIP
-        private val DLP_REGEX = Regex("^DLP(\\d{4})(\\d{2})\\d{2}${Regex.escape(FILE_TYPE.extension)}$", RegexOption.IGNORE_CASE)
-    }
+    private val fileType = FileType.ZIP
+    private val nameRegex =
+        Regex("^DLP(\\d{4})(\\d{2})\\d{2}${Regex.escape(fileType.extension)}$", RegexOption.IGNORE_CASE)
 
     override fun parse(fileUrl: String): ParsedFileInfo? {
         val fileName = fileUrl.substringAfterLast("/")
-        val match = DLP_REGEX.matchEntire(fileName) ?: return null
+        val nameMatch = nameRegex.matchEntire(fileName) ?: return null
+        val fallbackYear = nameMatch.groupValues[1].toInt()
+        val fallbackMonth = nameMatch.groupValues[2].toInt()
 
-        val zipBytes = try {
-            URL(fileUrl).readBytes()
-        } catch (e: Exception) {
-            logger.error { "Failed to download file: $fileUrl, error: ${e.message}" }
-            return null
-        }
+        val period = runCatching { determineDatasetPeriod(URL(fileUrl).openStream().readBytes()) }.getOrNull()
+        val (year, month) = period ?: Pair(fallbackYear, fallbackMonth)
 
-        val datasetPeriod = determineDatasetPeriod(zipBytes)
-        if (datasetPeriod == null) {
-            logger.warn { "Could not determine dataset period for $fileUrl, falling back to filename." }
-        }
-
-        val (year, month) = datasetPeriod ?: Pair(
-            match.groupValues[1].toIntOrNull() ?: return null,
-            match.groupValues[2].toIntOrNull() ?: return null
-        )
-
-        //logger.info { "Determined dataset period: $year-$month for file $fileUrl" }
-
-        return ParsedFileInfo(
-            datasetType = DatasetType.MPD,
-            fileType = FILE_TYPE,
-            year = year,
-            month = month
-        )
+        return ParsedFileInfo(DatasetType.MPD, fileType, year, month)
     }
 
-    fun determineDatasetPeriod(zipBytes: ByteArray): Pair<Int, Int>? {
+    private fun determineDatasetPeriod(zipBytes: ByteArray): Pair<Int, Int>? {
         ZipInputStream(zipBytes.inputStream()).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
                 if (!entry.isDirectory && entry.name == "dlp_platnost.csv") {
                     BufferedReader(InputStreamReader(zis)).use { reader ->
-                        val header = reader.readLine()
+                        reader.readLine()
                         val dataLine = reader.readLine() ?: return null
-
-                        val cols = dataLine.split(";").map { it.trim() }
-                        if (cols.size < 2) return null
-
-                        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-                        val validFrom = LocalDate.parse(cols[0], formatter)
-
-                        return Pair(validFrom.year, validFrom.monthValue)
+                        val date = LocalDate.parse(
+                            dataLine.split(";")[0],
+                            DateTimeFormatter.ofPattern("dd.MM.yyyy")
+                        )
+                        return Pair(date.year, date.monthValue)
                     }
                 }
                 entry = zis.nextEntry

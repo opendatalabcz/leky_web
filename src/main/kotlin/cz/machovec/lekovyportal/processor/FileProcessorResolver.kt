@@ -22,12 +22,10 @@ class FileProcessorResolver(
         processorMap[DatasetType.MPD] = mpdFileProcessor
         processorMap[DatasetType.ERECEPT_PRESCRIPTION] = ereceptPrescriptionFileProcessor
         processorMap[DatasetType.ERECEPT_DISPENSE] = ereceptDispenseFileProcessor
-        /*
-        processorMap[DatasetType.DISTRIBUCE_REG] = regFileProcessor
-        processorMap[DatasetType.DISTRIBUCE_DIS] = disFileProcessor
-        processorMap[DatasetType.DISTRIBUCE_DIS_ZAHRANICI] = disAbroadFileProcessor
-        processorMap[DatasetType.DISTRIBUCE_LEK] = lekFileProcessor
-        */
+        processorMap[DatasetType.DISTRIBUTION_REG] = regFileProcessor
+        processorMap[DatasetType.DISTRIBUTION_DIS] = disFileProcessor
+        processorMap[DatasetType.DISTRIBUTION_DIS_ABROAD] = disAbroadFileProcessor
+        processorMap[DatasetType.DISTRIBUTION_LEK] = lekFileProcessor
     }
 
     fun resolve(datasetType: DatasetType): DatasetFileProcessor? {
