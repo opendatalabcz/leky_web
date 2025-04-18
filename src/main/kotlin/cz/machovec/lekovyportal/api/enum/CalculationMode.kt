@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.api.enum
 
 enum class CalculationMode {
-    UNITS,
+    PACKAGES,
     DAILY_DOSES
 }

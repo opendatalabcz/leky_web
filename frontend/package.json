@@ -6,14 +6,15 @@
     "@date-io/date-fns": "^3.2.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@mui/material": "^7.0.1",
+    "@mui/icons-material": "^7.0.2",
+    "@mui/material": "^7.0.2",
+    "@mui/x-data-grid": "^7.28.3",
     "@mui/x-date-pickers": "^7.28.3",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.123",
-    "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "date-fns": "^4.1.0",
     "leaflet": "^1.9.4",
@@ -53,6 +54,7 @@
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
-    "@types/leaflet": "^1.9.17"
+    "@types/leaflet": "^1.9.17",
+    "@types/react": "^18.3.20"
   }
 }

@@ -40,14 +40,14 @@ class DistrictDataService(
         )
 
         val districtValues = when (request.normalisationMode) {
-            NormalisationMode.PER_1000 -> when (request.calculationMode) {
-                CalculationMode.UNITS ->
+            NormalisationMode.PER_1000_CAPITA -> when (request.calculationMode) {
+                CalculationMode.PACKAGES ->
                     aggregateAndNormalize(rows, request.aggregationType) { it.prescribed to it.dispensed }
                 CalculationMode.DAILY_DOSES ->
                     aggregateAndNormalizeWithDDD(rows, included, request.aggregationType)
             }
             NormalisationMode.ABSOLUTE -> when (request.calculationMode) {
-                CalculationMode.UNITS ->
+                CalculationMode.PACKAGES ->
                     aggregate(rows, request.aggregationType) { it.prescribed to it.dispensed }
                 CalculationMode.DAILY_DOSES ->
                     aggregateWithDDD(rows, included, request.aggregationType)

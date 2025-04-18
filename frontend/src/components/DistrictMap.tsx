@@ -74,9 +74,9 @@ export default function DistrictMap({ geojsonData, districtData, filter }: Props
 
     return (
         <MapContainer
-            center={[50, 15.2]}
-            zoom={7.5}
-            style={{ height: "900px", width: "100%" }}
+            center={[49.5, 15]}
+            zoom={7}
+            style={{ height: "500px", width: "100%" }}
             zoomControl={false}
             scrollWheelZoom={false}
             doubleClickZoom={false}
