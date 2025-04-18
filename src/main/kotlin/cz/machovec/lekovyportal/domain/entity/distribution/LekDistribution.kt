@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.domain.entity
+package cz.machovec.lekovyportal.domain.entity.distribution
 
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProduct
 import jakarta.persistence.Column
@@ -12,11 +12,12 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 
 @Entity
-@Table(name = "reg_distribution")
-data class RegDistribution(
+@Table(name = "lek_distribution")
+data class LekDistribution(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
@@ -35,14 +36,9 @@ data class RegDistribution(
     val medicinalProduct: MpdMedicinalProduct,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "purchaser_type", nullable = false)
-    val purchaserType: RegPurchaserType,
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "movement_type", nullable = false)
-    val movementType: MovementType,
+    @Column(name = "dispense_type", nullable = false)
+    val dispenseType: LekDispenseType,
 
     @Column(name = "package_count", nullable = false)
-    val packageCount: Int
+    val packageCount: BigDecimal
 )
-

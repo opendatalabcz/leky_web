@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.domain.entity
+package cz.machovec.lekovyportal.domain.entity.distribution
 
 enum class DisAbroadPurchaserType {
     DISTRIBUTOR_EU,

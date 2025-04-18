@@ -1,0 +1,62 @@
+Table mpd_medicinal_product {
+  id BIGINT [primary key]
+  sukl_code TEXT [not null, unique] // Kód LP přidělený SÚKL
+
+  reporting_obligation BOOLEAN [not null] // LP podléhá povinnému hlášení (H)
+  name TEXT [not null] // Název LP nebo PZLÚ (NAZEV)
+  strength TEXT // Síla LP (SILA)
+  dosage_form_id BIGINT [ref: > mpd_dosage_form.id] // FK na Lékovou formu (FORMA)
+  packaging TEXT // Velikost balení (BALENI)
+  administration_route_id BIGINT [ref: > mpd_administration_route.id] // FK na Cestu podání (CESTA)
+  supplementary_information TEXT // Doplněk názvu LP - kombinace cesty, formy, baleni, sily (DOPLNEK)
+  package_type_id BIGINT [ref: > mpd_package_type.id] // FK na Obal (OBAL)
+
+  marketing_authorization_holder_id BIGINT [ref: > mpd_organisation.id] // FK na Držitele rozhodnutí o registraci (DRZ)
+  current_marketing_authorization_holder_id BIGINT [ref: > mpd_organisation.id] // FK na Aktuálního držitele rozhodnutí o registraci (AKT_DRZ)
+  registration_status_id BIGINT [ref: > mpd_registration_status.id] // FK na Stav registrace (REG)
+  registration_valid_to DATE // Platnost registrace do (V_PLATDO)
+  registration_unlimited BOOLEAN [not null] // LP má Neomezenou platnost registrace (NEOMEZ)
+
+  market_supply_end_date DATE // Datum, do kdy se očekává uvádění na trh (UVADENIDO)
+
+  indication_group_id BIGINT [ref: > mpd_indication_group.id] // FK na Indikační skupinu (IS_)
+  atc_group_id BIGINT [ref: > mpd_atc_group.id] // FK na ATC skupinu (ATC_WHO)
+
+  registration_number TEXT // Registrační číslo (RC)
+
+  parallel_import_id TEXT // Identifikační číslo souběžného dovozu (SDOV)
+  parallel_import_supplier_id BIGINT [ref: > mpd_organisation.id] // FK na Organizaci dovozce (SDOV_DOD)
+
+  registration_process_id BIGINT [ref: > mpd_registration_process.id] // FK na registrační proces (REG_PROC)
+
+  daily_dose_amount NUMERIC(6,3) // Množství léčivé látky v DDD (DDDAMNT_WHO)
+  daily_dose_unit_id BIGINT [ref: > mpd_measurement_unit.id] // FK na jednotku DDD (DDDUN_WHO)
+  daily_dose_packaging NUMERIC(11,4) // Počet DDD v balení (DDDP_WHO)
+
+  who_source TEXT // WHO Index (ZDROJ_WHO)
+  substance_list TEXT // Seznam léčivých látek oddělený čárkami (LL) // TODO
+
+  dispense_type_id BIGINT [ref: > mpd_dispense_type.id] // FK na Typ výdeje (VYDEJ)
+  addiction_category_id BIGINT [ref: > mpd_addiction_category.id] // FK na Kategorii závislosti (ZAV)
+  doping_category_id BIGINT [ref: > mpd_doping_category.id] // FK na Doping (DOPING)
+  government_regulation_category_id BIGINT [ref: > mpd_government_regulation_category.id] // FK na Nařízení vlády (NARVLA)
+
+  deliveries_flag BOOLEAN // LP byl dodáván do lékáren v posledních 6 měsících (DODAVKY)
+
+  ean TEXT // EAN kód (EAN)
+  braille TEXT // Braillovo písmo (S - schváleno, V - výjimka, prázdné - nežádáno) (BRAILLOVO_PISMO)
+
+  expiry_period_duration TEXT // Doba expirace (EXP)
+  expiry_period_unit TEXT // Jednotka doby expirace (H - hodiny, D - dny, W - týdny, M - měsíce) (EXP_T)
+
+  registered_name TEXT // Registrovaný název LP (NAZEV_REG)
+  mrp_number TEXT // Material Requirements Planning number (MRP_CISLO)
+  registration_legal_basis TEXT // Právní základ registrace (PRAVNI_ZAKLAD_REGISTRACE)
+
+  safety_feature BOOLEAN // LP má Ochranný prvek (OCHRANNY_PRVEK)
+  prescription_restriction BOOLEAN // LP má Omezení používání dle SmPC (OMEZENI_PRESKRIPCE_SMP)
+  medicinal_product_type TEXT // Typ léčivého přípravku (TYP_LP)
+
+  valid_from DATE [not null]
+  valid_to DATE
+}

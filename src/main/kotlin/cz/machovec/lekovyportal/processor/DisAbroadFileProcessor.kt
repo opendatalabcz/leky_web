@@ -1,8 +1,8 @@
 package cz.machovec.lekovyportal.processor
 
-import cz.machovec.lekovyportal.domain.entity.DisAbroadDistribution
-import cz.machovec.lekovyportal.domain.entity.DisAbroadPurchaserType
-import cz.machovec.lekovyportal.domain.entity.MovementType
+import cz.machovec.lekovyportal.domain.entity.distribution.DisAbroadDistribution
+import cz.machovec.lekovyportal.domain.entity.distribution.DisAbroadPurchaserType
+import cz.machovec.lekovyportal.domain.entity.distribution.MovementType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.DisAbroadDistributionRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
