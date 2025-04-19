@@ -4,7 +4,7 @@ enum class MahPurchaserType(
     val csvValue: String,
     val descriptionCs: String
 ) {
-    DISTRIBUTOR("DISTRIBUTOR", "Distributor na území ČR"),
+    DISTRIBUTOR("Distributor", "Distributor na území ČR"),
     AUTHORIZED_PERSON("OOV", "Osoba oprávněná k výdeji v ČR");
 
     companion object {

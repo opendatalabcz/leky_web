@@ -10,7 +10,7 @@ class DatasetToProcessConsumer(
     private val resolver: DatasetProcessorResolver
 ) {
     @RabbitListener(queues = [RabbitConfig.QUEUE_NAME])
-    fun handleNewFile(msg: DatasetToProcessMessage) {
+    fun handleNewDatasetToProcess(msg: DatasetToProcessMessage) {
         val processor = resolver.resolve(msg.datasetType)
         if (processor == null) {
             println("No processor found for datasetType=${msg.datasetType}")

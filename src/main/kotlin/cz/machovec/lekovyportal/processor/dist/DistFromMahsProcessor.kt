@@ -12,7 +12,10 @@ import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.io.ByteArrayInputStream
+import java.io.InputStreamReader
 import java.net.URL
+import java.nio.charset.Charset
 
 @Service
 class DistFromMahsProcessor(
@@ -52,10 +55,12 @@ class DistFromMahsProcessor(
     }
 
     private fun parseCsv(csvBytes: ByteArray): List<DistFromMahs> {
-        val text = csvBytes.decodeToString()
-        val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
+        val charset = Charset.forName("Windows-1250")
+        val text = InputStreamReader(ByteArrayInputStream(csvBytes), charset).readText()
 
+        val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
         val records = mutableListOf<DistFromMahs>()
+        val medicinalProducts = referenceDataProvider.getMedicinalProducts()
 
         lines.drop(1).forEachIndexed { index, line ->
             val cols = line.split(";").map { it.trim('"') }
@@ -68,20 +73,21 @@ class DistFromMahsProcessor(
                 val purchaserType = MahPurchaserType.fromInput(cols[1])
                     ?: throw IllegalArgumentException("Invalid purchaser type: ${cols[1]}")
 
-                val suklCode = cols[3]
+                val suklCode = cols[3].padStart(7, '0')
+                val medicinalProduct = medicinalProducts[suklCode]
+                    ?: throw IllegalStateException("MPD not found for code $suklCode")
 
                 val movementType = MovementType.fromInput(cols[8])
                     ?: throw IllegalArgumentException("Invalid movement type: ${cols[8]}")
 
-                val packageCount = cols[9].toIntOrNull() ?: throw IllegalArgumentException("Invalid package count")
-
-                val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
+                val packageCount = cols[9].replace(",", ".").toDoubleOrNull()?.toInt()
+                    ?: throw IllegalArgumentException("Invalid package count: ${cols[9]}")
 
                 val record = DistFromMahs(
                     year = year,
                     month = month,
                     purchaserType = purchaserType,
-                    medicinalProduct = medicinalProduct!!,
+                    medicinalProduct = medicinalProduct,
                     movementType = movementType,
                     packageCount = packageCount
                 )
@@ -91,6 +97,7 @@ class DistFromMahsProcessor(
                 logger.error { "Error parsing line ${index + 2}: ${e.message} | Raw data: $line" }
             }
         }
+
         return records
     }
 }

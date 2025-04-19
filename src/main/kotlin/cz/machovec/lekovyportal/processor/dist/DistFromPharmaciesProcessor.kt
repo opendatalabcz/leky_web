@@ -89,38 +89,34 @@ class DistFromPharmaciesProcessor(
         val lines = text.split("\r\n", "\n").filter { it.isNotBlank() }
 
         val records = mutableListOf<DistFromPharmacies>()
+        val medicinalProducts = referenceDataProvider.getMedicinalProducts()
 
-        lines.drop(1).forEachIndexed { index, line ->
-            val cols = line.split(";").map { it.trim('"') }
+        lines.drop(1).forEachIndexed { idx, line ->
+            val cols = line.split(';').map { it.trim('"') }
 
             try {
-                val periodParts = cols[0].split(".")
-                val year = periodParts[0].toIntOrNull() ?: throw IllegalArgumentException("Invalid year in period")
-                val month = periodParts[1].toIntOrNull() ?: throw IllegalArgumentException("Invalid month in period")
+                val period = cols[0]
+                val year   = period.substringBefore('.').toInt()
+                val month  = period.substringAfter('.').toInt()
 
                 val dispenseType = PharmacyDispenseType.fromInput(cols[1])
-                    ?: throw IllegalArgumentException("Invalid purchaser type: ${cols[1]}")
+                    ?: throw IllegalArgumentException("Unknown dispense type '${cols[1]}'")
 
-                val suklCode = cols[3]
+                val suklCode = cols[3].padStart(7, '0')
+                val mp = medicinalProducts[suklCode]
+                    ?: throw IllegalStateException("MPD not found for code $suklCode")
 
-                val packageCount = cols[8]
-                    .replace(",", ".")
-                    .toBigDecimalOrNull()
-                    ?: throw IllegalArgumentException("Invalid package count: ${cols[8]}")
+                val packageCount = cols[8].replace(',', '.').toBigDecimal()
 
-                val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
-
-                val record = DistFromPharmacies(
+                records += DistFromPharmacies(
                     year = year,
                     month = month,
-                    medicinalProduct = medicinalProduct!!,
+                    medicinalProduct = mp,
                     dispenseType = dispenseType,
-                    packageCount = packageCount,
+                    packageCount = packageCount
                 )
-
-                records.add(record)
             } catch (e: Exception) {
-                logger.error { "Error parsing line ${index + 2}: ${e.message} | Raw data: $line" }
+                logger.error { "Error parsing line ${idx + 2}: ${e.message} | Raw: $line" }
             }
         }
         return records
