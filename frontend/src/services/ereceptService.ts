@@ -84,3 +84,42 @@ export async function fetchDistrictTimeSeries(params: Params) {
     if (!res.ok) throw new Error("Nelze načíst time‑series data")
     return (await res.json()) as DistrictTimeSeriesResponseWithSummary
 }
+
+
+export interface FullTimeSeriesParams {
+    aggregationType: EReceptDataTypeAggregation
+    calculationMode: MedicinalUnitMode
+    normalisationMode: PopulationNormalisationMode
+    medicinalProductIds: number[]
+    granularity: "MONTH" | "YEAR"
+    district?: string | null
+}
+
+export interface FullTimeSeriesEntry {
+    period: string
+    prescribed: number
+    dispensed: number
+    difference: number
+}
+
+export interface FullTimeSeriesResponse {
+    aggregationType: string
+    calculationMode: string
+    normalisationMode: string
+    granularity: "MONTH" | "YEAR"
+    district?: string | null
+    series: FullTimeSeriesEntry[]
+    includedMedicineProducts: MedicineProductInfo[]
+    ignoredMedicineProducts: MedicineProductInfo[]
+}
+
+export async function fetchFullTimeSeries(params: FullTimeSeriesParams): Promise<FullTimeSeriesResponse> {
+    const res = await fetch("/api/erecept/prescription-dispense/time-series/full", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params)
+    })
+
+    if (!res.ok) throw new Error("Nepodařilo se načíst časovou řadu")
+    return res.json()
+}

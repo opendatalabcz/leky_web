@@ -16,12 +16,29 @@ import { SummaryTiles } from "../components/SummaryTiles"
 import { useDistrictAggregate } from "../hooks/useDistrictAggregate"
 import { useDistrictTimeSeries } from "../hooks/useDistrictTimeSeries"
 import { usePreparedDistrictData } from "../hooks/usePreparedDistrictData"
+import { PrescriptionDispenseChart } from "../components/PrescriptionDispenseChart"
+import { useFullTimeSeries } from "../hooks/useFullTimeSeries"
+import { TimeGranularity } from "../types/TimeGranularity"
+
+interface DistrictFeatureProperties {
+    nationalCode: string
+    name: string
+}
+
+interface DistrictFeature extends GeoJSON.Feature {
+    properties: DistrictFeatureProperties
+}
+
+type DistrictFeatureCollection = GeoJSON.FeatureCollection
+
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
     const { drugs } = useUnifiedCart()
 
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
+    const [districtNamesMap, setDistrictNamesMap] = useState<Record<string, string>>({})
+
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     const [isPlaying, setIsPlaying] = useState(false)
@@ -29,10 +46,27 @@ export function EReceptPage() {
     const [months, setMonths] = useState<string[]>([])
     const [monthIndex, setMonthIndex] = useState(0)
 
+    const [granularity, setGranularity] = useState<TimeGranularity>(TimeGranularity.MONTH)
+    const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null)
+    const [availableDistrictCodes, setAvailableDistrictCodes] = useState<string[]>([])
+
     useEffect(() => {
         fetch("/okresy.json")
             .then(res => res.json())
-            .then(setGeojsonData)
+            .then((geo: DistrictFeatureCollection) => {
+                setGeojsonData(geo)
+
+                const nameMap: Record<string, string> = {}
+                geo.features.forEach((feature: any) => {
+                    const code = feature.nationalCode || feature.properties?.nationalCode
+                    const name = feature.name || feature.properties?.name
+                    if (code && name) {
+                        nameMap[code] = name
+                    }
+                })
+
+                setDistrictNamesMap(nameMap)
+            })
     }, [])
 
     useEffect(() => {
@@ -70,11 +104,31 @@ export function EReceptPage() {
     const currentMonthStr = months[monthIndex]
     const monthValues = monthly.get(currentMonthStr) ?? {}
     const monthSummary = monthlySummaries.get(currentMonthStr)
-
     const districtValues = sliderActive ? monthValues : (aggregateQuery.data?.districtValues ?? {})
     const summary = sliderActive ? monthSummary : aggregateQuery.data?.summary
 
-    /* ---------- slider animace ---------- */
+    // Full time series for chart
+    const fullTimeSeriesQuery = useFullTimeSeries(
+        hasDrugs ? {
+            aggregationType: prescriptionDispense.aggregationType,
+            calculationMode: common.calculationMode,
+            normalisationMode: prescriptionDispense.normalisationMode,
+            medicinalProductIds: drugs.map(d => Number(d.id)),
+            granularity: granularity,
+            district: selectedDistrict
+        } : undefined
+    )
+
+    // Collect all district codes from series for dropdown
+    useEffect(() => {
+        if (!seriesQuery.data?.series?.length) return
+        const all = new Set<string>()
+        seriesQuery.data.series.forEach(entry => {
+            Object.keys(entry.values).forEach(code => all.add(code))
+        })
+        setAvailableDistrictCodes(Array.from(all).sort())
+    }, [seriesQuery.data])
+
     useEffect(() => {
         if (!isPlaying) return
         const int = setInterval(() => {
@@ -90,7 +144,6 @@ export function EReceptPage() {
         return () => clearInterval(int)
     }, [isPlaying, months])
 
-    /* ---------- UI ---------- */
     return (
         <Box>
             <Typography variant="h5" gutterBottom>
@@ -103,15 +156,26 @@ export function EReceptPage() {
                 nastavte časové období a způsob zobrazení – výsledky se promítnou do mapy okresů.
             </Typography>
 
-            <Box display="flex" gap={4} alignItems="flex-start">
+            <Box display="flex" gap={2} alignItems="flex-start">
                 <Box width={300} flexShrink={0}>
-                    <Paper variant="outlined" sx={{ p:2 }}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
                         <Button
-                            variant="contained" fullWidth sx={{ mb:2 }}
+                            variant="contained"
+                            fullWidth
                             onClick={() => setIsModalOpen(true)}
+                            sx={{
+                                mb: 2,
+                                backgroundColor: "#34558a",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                "&:hover": {
+                                    backgroundColor: "#2c4773"
+                                }
+                            }}
                         >
                             Vybrat léčiva
                         </Button>
+
                         <SelectedMedicinalProductSummary />
                     </Paper>
                 </Box>
@@ -123,36 +187,35 @@ export function EReceptPage() {
                         onChangeDateFrom={(date) => setCommon({ ...common, dateFrom: date })}
                         onChangeDateTo={(date) => setCommon({ ...common, dateTo: date })}
                         calculationMode={common.calculationMode}
-                        onChangeCalculationMode={(mode) =>
-                            setCommon({ ...common, calculationMode: mode })
-                        }
+                        onChangeCalculationMode={(mode) => setCommon({ ...common, calculationMode: mode })}
                         normalisationMode={prescriptionDispense.normalisationMode}
                         onChangeNormalisationMode={(nm) =>
-                            setPrescriptionDispense({
-                                ...prescriptionDispense,
-                                normalisationMode: nm
-                            })
+                            setPrescriptionDispense({ ...prescriptionDispense, normalisationMode: nm })
                         }
                         aggregationType={prescriptionDispense.aggregationType}
                         onChangeAggregationType={(val) =>
-                            setPrescriptionDispense({
-                                ...prescriptionDispense,
-                                aggregationType: val
-                            })
+                            setPrescriptionDispense({ ...prescriptionDispense, aggregationType: val })
                         }
                     />
 
                     {months.length > 1 && (
                         <Box mt={3} display="flex" alignItems="center" gap={2}>
                             <IconButton onClick={() => { setIsPlaying(p => !p); setSliderActive(true) }}>
-                                {isPlaying ? <Pause/> : <PlayArrow/>}
+                                {isPlaying ? <Pause /> : <PlayArrow />}
                             </IconButton>
                             <Slider
-                                min={0} max={months.length-1} value={monthIndex}
-                                onChange={(_, v) => { setMonthIndex(v as number); setSliderActive(true) }}
-                                valueLabelDisplay="on" valueLabelFormat={i => months[i]} sx={{ flex:1 }}
+                                min={0}
+                                max={months.length - 1}
+                                value={monthIndex}
+                                onChange={(_, v) => {
+                                    setMonthIndex(v as number)
+                                    setSliderActive(true)
+                                }}
+                                valueLabelDisplay="on"
+                                valueLabelFormat={(i) => months[i]}
+                                sx={{ flex: 1 }}
                             />
-                            <Button size="small" onClick={() => setSliderActive(false)}>↺ Celé období</Button>
+                            <Button size="small" onClick={() => setSliderActive(false)}>↺ Celé období</Button>
                         </Box>
                     )}
 
@@ -168,12 +231,31 @@ export function EReceptPage() {
                         </Box>
                         <SummaryTiles summary={summary} />
                     </Box>
+                    <Box mt={6}>
+                        {fullTimeSeriesQuery.isLoading ? (
+                            <Typography mt={4}>Načítám časovou řadu...</Typography>
+                        ) : (
+                            <PrescriptionDispenseChart
+                                data={fullTimeSeriesQuery.data}
+                                selectedDistrict={selectedDistrict}
+                                onDistrictChange={setSelectedDistrict}
+                                districtNameMap={districtNamesMap}
+                                granularity={granularity}
+                                onGranularityChange={setGranularity}
+                                dateFrom={common.dateFrom}
+                                dateTo={common.dateTo}
+                            />
+                        )}
+                    </Box>
                 </Box>
             </Box>
 
-            <DataStatusFooter/>
+            <DataStatusFooter />
 
-            <MedicineSelectorModal open={isModalOpen} onClose={() => setIsModalOpen(false)}/>
+            <MedicineSelectorModal
+                open={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+            />
         </Box>
     )
 }

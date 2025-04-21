@@ -92,6 +92,63 @@ class EReceptRepositoryImpl : EReceptRepository {
             EReceptDistrictDataRow(districtCode, medicinalProductId, prescribed, dispensed, population)
         }
     }
+
+    override fun findRawMonthlyAggregates(medicinalProductIds: List<Long>): List<EReceptRawMonthlyAggregate> {
+        if (medicinalProductIds.isEmpty()) return emptyList()
+
+        val sql = """
+            SELECT 
+                year,
+                month,
+                district_code,
+                medicinal_product_id,
+                SUM(prescribed_quantity) AS prescribed,
+                SUM(dispensed_quantity) AS dispensed
+            FROM (
+                SELECT 
+                    year,
+                    month,
+                    district_code,
+                    medicinal_product_id,
+                    SUM(quantity) AS prescribed_quantity,
+                    0 AS dispensed_quantity
+                FROM erecept_prescription
+                WHERE medicinal_product_id IN (:medicinalProductIds)
+                GROUP BY year, month, district_code, medicinal_product_id
+    
+                UNION ALL
+    
+                SELECT 
+                    year,
+                    month,
+                    district_code,
+                    medicinal_product_id,
+                    0 AS prescribed_quantity,
+                    SUM(quantity) AS dispensed_quantity
+                FROM erecept_dispense
+                WHERE medicinal_product_id IN (:medicinalProductIds)
+                GROUP BY year, month, district_code, medicinal_product_id
+            ) AS combined
+            GROUP BY year, month, district_code, medicinal_product_id
+        """.trimIndent()
+
+        val query = em.createNativeQuery(sql)
+        query.setParameter("medicinalProductIds", medicinalProductIds)
+
+        @Suppress("UNCHECKED_CAST")
+        val results = query.resultList as List<Array<Any>>
+
+        return results.map { row ->
+            EReceptRawMonthlyAggregate(
+                year = (row[0] as Number).toInt(),
+                month = (row[1] as Number).toInt(),
+                districtCode = row[2] as String,
+                medicinalProductId = (row[3] as Number).toLong(),
+                prescribed = (row[4] as Number).toInt(),
+                dispensed = (row[5] as Number).toInt()
+            )
+        }
+    }
 }
 
 data class EReceptDistrictDataRow(
@@ -100,4 +157,13 @@ data class EReceptDistrictDataRow(
     val prescribed: Int,
     val dispensed: Int,
     val population: Int
+)
+
+data class EReceptRawMonthlyAggregate(
+    val year: Int,
+    val month: Int,
+    val districtCode: String,
+    val medicinalProductId: Long,
+    val prescribed: Int,
+    val dispensed: Int
 )
