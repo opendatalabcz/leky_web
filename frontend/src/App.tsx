@@ -5,23 +5,28 @@ import { UnifiedCartProvider } from "./components/UnifiedCartContext"
 import { DistributionPage } from "./pages/DistributionPage"
 import { EReceptPage } from "./pages/EReceptPage"
 import { FilterProvider } from "./components/FilterContext"
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+
+const queryClient = new QueryClient()
 
 export default function App() {
     return (
-        <UnifiedCartProvider>
-            <FilterProvider>
-                <BrowserRouter>
-                    <Navbar />
-                    <main style={{ padding: "2rem" }}>
-                        <Routes>
-                            <Route path="/predepisovani-a-vydej" element={<EReceptPage />} />
-                            <Route path="/distribucni-tok" element={<DistributionPage />} />
-                            <Route path="/o-projektu" element={<AboutPage />} />
-                            <Route path="*" element={<Navigate to="/predepisovani-a-vydej" replace />} />
-                        </Routes>
-                    </main>
-                </BrowserRouter>
-            </FilterProvider>
-        </UnifiedCartProvider>
+        <QueryClientProvider client={queryClient}>
+            <UnifiedCartProvider>
+                <FilterProvider>
+                    <BrowserRouter>
+                        <Navbar />
+                        <main style={{ padding: "2rem" }}>
+                            <Routes>
+                                <Route path="/predepisovani-a-vydej" element={<EReceptPage />} />
+                                <Route path="/distribucni-tok" element={<DistributionPage />} />
+                                <Route path="/o-projektu" element={<AboutPage />} />
+                                <Route path="*" element={<Navigate to="/predepisovani-a-vydej" replace />} />
+                            </Routes>
+                        </main>
+                    </BrowserRouter>
+                </FilterProvider>
+            </UnifiedCartProvider>
+        </QueryClientProvider>
     )
 }
