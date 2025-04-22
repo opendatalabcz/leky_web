@@ -10,6 +10,7 @@ import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel
 import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
+import {SankeyChart} from "../components/distribution/SankeyChart";
 
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
@@ -58,19 +59,7 @@ export function DistributionPage() {
                         }
                     />
 
-                    <Box
-                        mt={2}
-                        height={500}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        border="1px dashed #ccc"
-                        borderRadius={2}
-                    >
-                        <Typography variant="body2" color="text.secondary">
-                            [Zde bude vizualizace distribučního toku]
-                        </Typography>
-                    </Box>
+                    <SankeyChart height={500} />
                 </Box>
             </Box>
 
