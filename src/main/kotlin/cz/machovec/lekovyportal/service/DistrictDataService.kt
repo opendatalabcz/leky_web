@@ -3,6 +3,10 @@ package cz.machovec.lekovyportal.service
 import cz.machovec.lekovyportal.api.dto.DistrictDataRequest
 import cz.machovec.lekovyportal.api.dto.EReceptDistrictDataResponse
 import cz.machovec.lekovyportal.api.dto.MedicineProductInfo
+import cz.machovec.lekovyportal.api.dto.PrescriptionDispenseByDistrictTimeSeriesRequest
+import cz.machovec.lekovyportal.api.dto.PrescriptionDispenseByDistrictTimeSeriesResponse
+import cz.machovec.lekovyportal.api.dto.SummaryValues
+import cz.machovec.lekovyportal.api.dto.TimeSeriesMonthDistrictValues
 import cz.machovec.lekovyportal.api.enum.CalculationMode
 import cz.machovec.lekovyportal.api.enum.EReceptDataTypeAggregation
 import cz.machovec.lekovyportal.api.enum.NormalisationMode
@@ -12,7 +16,6 @@ import cz.machovec.lekovyportal.domain.repository.erecept.EReceptRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdMedicinalProductRepository
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
-
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
@@ -41,18 +44,16 @@ class DistrictDataService(
 
         val districtValues = when (request.normalisationMode) {
             NormalisationMode.PER_1000_CAPITA -> when (request.calculationMode) {
-                CalculationMode.PACKAGES ->
-                    aggregateAndNormalize(rows, request.aggregationType) { it.prescribed to it.dispensed }
-                CalculationMode.DAILY_DOSES ->
-                    aggregateAndNormalizeWithDDD(rows, included, request.aggregationType)
+                CalculationMode.PACKAGES -> aggregateAndNormalize(rows, request.aggregationType) { it.prescribed to it.dispensed }
+                CalculationMode.DAILY_DOSES -> aggregateAndNormalizeWithDDD(rows, included, request.aggregationType)
             }
             NormalisationMode.ABSOLUTE -> when (request.calculationMode) {
-                CalculationMode.PACKAGES ->
-                    aggregate(rows, request.aggregationType) { it.prescribed to it.dispensed }
-                CalculationMode.DAILY_DOSES ->
-                    aggregateWithDDD(rows, included, request.aggregationType)
+                CalculationMode.PACKAGES -> aggregate(rows, request.aggregationType) { it.prescribed to it.dispensed }
+                CalculationMode.DAILY_DOSES -> aggregateWithDDD(rows, included, request.aggregationType)
             }
         }
+
+        val summary = calculateSummaryFromRows(rows)
 
         return EReceptDistrictDataResponse(
             aggregationType = request.aggregationType,
@@ -62,7 +63,61 @@ class DistrictDataService(
             dateTo = request.dateTo,
             districtValues = districtValues,
             includedMedicineProducts = included.map { MedicineProductInfo(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) }
+            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) },
+            summary = summary
+        )
+    }
+
+    fun aggregateSeriesByDistrict(
+        request: PrescriptionDispenseByDistrictTimeSeriesRequest
+    ): PrescriptionDispenseByDistrictTimeSeriesResponse {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM")
+        val from = YearMonth.parse(request.dateFrom, formatter)
+        val to = YearMonth.parse(request.dateTo, formatter)
+
+        val months = generateSequence(from) { current ->
+            if (current < to) current.plusMonths(1) else null
+        }.plus(to).toList()
+
+        val series = mutableListOf<TimeSeriesMonthDistrictValues>()
+        var includedProducts: List<MedicineProductInfo> = emptyList()
+        var ignoredProducts: List<MedicineProductInfo> = emptyList()
+
+        for ((index, month) in months.withIndex()) {
+            val snapshot = aggregateByDistrict(
+                DistrictDataRequest(
+                    dateFrom = month.format(formatter),
+                    dateTo = month.format(formatter),
+                    calculationMode = request.calculationMode,
+                    aggregationType = request.aggregationType,
+                    normalisationMode = request.normalisationMode,
+                    medicinalProductIds = request.medicinalProductIds
+                )
+            )
+
+            if (index == 0) {
+                includedProducts = snapshot.includedMedicineProducts
+                ignoredProducts = snapshot.ignoredMedicineProducts
+            }
+
+            series.add(
+                TimeSeriesMonthDistrictValues(
+                    month = month.format(formatter),
+                    values = snapshot.districtValues,
+                    summary = snapshot.summary
+                )
+            )
+        }
+
+        return PrescriptionDispenseByDistrictTimeSeriesResponse(
+            aggregationType = request.aggregationType,
+            calculationMode = request.calculationMode,
+            normalisationMode = request.normalisationMode,
+            dateFrom = request.dateFrom,
+            dateTo = request.dateTo,
+            series = series,
+            includedMedicineProducts = includedProducts,
+            ignoredMedicineProducts = ignoredProducts
         )
     }
 
@@ -134,5 +189,13 @@ class DistrictDataService(
 
     private fun normalize(value: Int, population: Int): Int {
         return if (population <= 0) 0 else (value / (population / 1000.0)).roundToInt()
+    }
+
+    private fun calculateSummaryFromRows(rows: List<EReceptDistrictDataRow>): SummaryValues {
+        val prescribed = rows.sumOf { it.prescribed }
+        val dispensed = rows.sumOf { it.dispensed }
+        val difference = prescribed - dispensed
+        val percentage = if (prescribed == 0) 0.0 else (difference.toDouble() / prescribed) * 100
+        return SummaryValues(prescribed, dispensed, difference, percentage)
     }
 }

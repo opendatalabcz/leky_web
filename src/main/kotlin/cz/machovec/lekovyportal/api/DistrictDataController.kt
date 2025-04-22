@@ -29,6 +29,13 @@ class DistrictDataController(
         val response = districtDataService.aggregateByDistrict(request)
 
         logger.info("Returning district data: ${response.districtValues.entries.joinToString { "${it.key}=${it.value}" }}")
+        logger.info(
+            "Summary: prescribed=${response.summary.prescribed}, " +
+                    "dispensed=${response.summary.dispensed}, " +
+                    "difference=${response.summary.difference}, " +
+                    "percentage=${"%.1f".format(response.summary.percentageDifference)}%"
+        )
+
         return response
     }
 }

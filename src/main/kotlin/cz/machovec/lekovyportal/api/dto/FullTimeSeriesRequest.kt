@@ -4,19 +4,11 @@ import cz.machovec.lekovyportal.api.enum.CalculationMode
 import cz.machovec.lekovyportal.api.enum.EReceptDataTypeAggregation
 import cz.machovec.lekovyportal.api.enum.NormalisationMode
 
-data class EReceptDistrictDataResponse(
+data class FullTimeSeriesRequest(
+    val medicinalProductIds: List<Long>,
     val aggregationType: EReceptDataTypeAggregation,
     val calculationMode: CalculationMode,
     val normalisationMode: NormalisationMode,
-    val dateFrom: String?,
-    val dateTo: String?,
-    val districtValues: Map<String, Int>,
-    val includedMedicineProducts: List<MedicineProductInfo>,
-    val ignoredMedicineProducts: List<MedicineProductInfo>,
-    val summary: SummaryValues
-)
-
-data class MedicineProductInfo(
-    val id: Long,
-    val suklCode: String
+    val granularity: Granularity,
+    val district: String? = null // pokud není zadán, tak celá ČR
 )

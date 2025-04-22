@@ -1,24 +1,36 @@
 import React from "react"
 import { Box, Typography } from "@mui/material"
 
-type SummaryItem = {
-    label: string
-    value: string
+type Props = {
+    summary?: {
+        prescribed: number
+        dispensed: number
+        difference: number
+        percentageDifference: number
+    }
 }
 
-const summaryData: SummaryItem[] = [
-    { label: "Předepsané", value: "1 200 000" },
-    { label: "Vydané", value: "1 100 000" },
-    { label: "Rozdíl", value: "100 000" },
-    { label: "% Rozdíl", value: "8.3%" }
-]
+export const SummaryTiles: React.FC<Props> = ({ summary }) => {
+    const formatNum = (val: number) => val.toLocaleString("cs-CZ")
+    const formatPct = (val: number) => `${val.toFixed(1).replace(".", ",")}%`
 
-export const SummaryTiles: React.FC = () => {
+    const prescribed = summary?.prescribed ?? 0
+    const dispensed = summary?.dispensed ?? 0
+    const difference = summary?.difference ?? 0
+    const pct = summary ? summary.percentageDifference : 0
+
+    const tiles = [
+        { label: "Předepsané", value: formatNum(prescribed) },
+        { label: "Vydané", value: formatNum(dispensed) },
+        { label: "Rozdíl", value: formatNum(difference) },
+        { label: "% Rozdíl", value: formatPct(pct) },
+    ]
+
     return (
         <Box display="flex" flexDirection="column" gap={1}>
-            {summaryData.map((item, index) => (
+            {tiles.map((item, idx) => (
                 <Box
-                    key={index}
+                    key={idx}
                     sx={{
                         background: "#f8f9fb",
                         borderRadius: 1.5,
@@ -46,3 +58,4 @@ export const SummaryTiles: React.FC = () => {
         </Box>
     )
 }
+

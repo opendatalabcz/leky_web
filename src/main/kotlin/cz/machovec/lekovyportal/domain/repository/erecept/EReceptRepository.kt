@@ -8,4 +8,8 @@ interface EReceptRepository {
         dateFrom: YearMonth? = null,
         dateTo: YearMonth? = null
     ): List<EReceptDistrictDataRow>
+
+    fun findRawMonthlyAggregates(
+        medicinalProductIds: List<Long>
+    ): List<EReceptRawMonthlyAggregate>
 }
