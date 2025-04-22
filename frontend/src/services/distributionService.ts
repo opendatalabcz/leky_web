@@ -39,3 +39,19 @@ export async function fetchDistributionSankey(
 
     return res.json()
 }
+
+export async function fetchDistributionFromDistributorsSankey(
+    req: DistributionSankeyRequest
+): Promise<DistributionSankeyResponse> {
+    const res = await fetch("/api/distribution/graph/from-distributors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req)
+    })
+
+    if (!res.ok) {
+        throw new Error("Nepodařilo se načíst distribuční tok (distributoři → pacienti)")
+    }
+
+    return res.json()
+}
