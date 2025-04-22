@@ -10,10 +10,37 @@ import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel
 import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
+import { SankeyChart } from "../components/distribution/SankeyChart"
+import { useUnifiedCart } from "../components/UnifiedCartContext"
+import { useDistributionSankey } from "../hooks/useDistributionSankey"
+import {format} from "date-fns";
+import {useDistributionFromDistributorsSankey} from "../hooks/useDistributionFromDistributorsSankey";
 
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const { drugs } = useUnifiedCart()
+
+    const hasDrugs = drugs.length > 0
+    const sankeyQuery = useDistributionSankey(
+        hasDrugs && common.dateFrom && common.dateTo
+            ? {
+                dateFrom: format(common.dateFrom, "yyyy-MM"),
+                dateTo: format(common.dateTo, "yyyy-MM"),
+                medicinalProductIds: drugs.map(d => Number(d.id))
+            }
+            : undefined
+    )
+
+    const sankeyyQuery = useDistributionFromDistributorsSankey(
+        hasDrugs && common.dateFrom && common.dateTo
+            ? {
+                dateFrom: format(common.dateFrom, "yyyy-MM"),
+                dateTo: format(common.dateTo, "yyyy-MM"),
+                medicinalProductIds: drugs.map(d => Number(d.id))
+            }
+            : undefined
+    )
 
     return (
         <Box>
@@ -24,7 +51,6 @@ export function DistributionPage() {
             <Box display="flex" gap={4} alignItems="flex-start">
                 <Box width={300} flexShrink={0}>
                     <Paper variant="outlined" sx={{ p: 2 }}>
-
                         <Button
                             variant="contained"
                             fullWidth
@@ -58,19 +84,44 @@ export function DistributionPage() {
                         }
                     />
 
-                    <Box
-                        mt={2}
-                        height={500}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        border="1px dashed #ccc"
-                        borderRadius={2}
-                    >
-                        <Typography variant="body2" color="text.secondary">
-                            [Zde bude vizualizace distribučního toku]
-                        </Typography>
+                    <Box mt={3}>
+                        {
+                            sankeyQuery.isLoading ? (
+                                <Typography>Načítám data...</Typography>
+                            ) : sankeyQuery.data ? (
+                                <SankeyChart
+                                    nodes={sankeyQuery.data.nodes}
+                                    links={sankeyQuery.data.links}
+                                    height={500}
+                                />
+                            ) : (
+                                <Typography color="text.secondary">
+                                    Vyberte léčiva a časové období.
+                                </Typography>
+                            )
+                        }
                     </Box>
+                    <Box mt={6}>
+                        <Typography variant="h6" gutterBottom>
+                            Distribuční tok od distributorů
+                        </Typography>
+                        {
+                            sankeyyQuery.isLoading ? (
+                                <Typography>Načítám data...</Typography>
+                            ) : sankeyyQuery.data ? (
+                                <SankeyChart
+                                    nodes={sankeyyQuery.data.nodes}
+                                    links={sankeyyQuery.data.links}
+                                    height={500}
+                                />
+                            ) : (
+                                <Typography color="text.secondary">
+                                    Vyberte léčiva a časové období.
+                                </Typography>
+                            )
+                        }
+                    </Box>
+
                 </Box>
             </Box>
 
