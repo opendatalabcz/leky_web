@@ -7,18 +7,23 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdCountry
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDispenseType
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdOrganisation
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDispenseTypeRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
 import cz.machovec.lekovyportal.importer.SoftDeleteWithHistory
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCountryRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdDispenseTypeRowMapper
 import cz.machovec.lekovyportal.importer.columns.mpd.MpdCountryColumn
 import cz.machovec.lekovyportal.importer.columns.mpd.MpdDispenseTypeColumn
+import cz.machovec.lekovyportal.importer.columns.mpd.MpdOrganisationColumn
 import cz.machovec.lekovyportal.importer.common.CsvImporter
+import cz.machovec.lekovyportal.importer.mapper.mpd.MpdOrganisationRowMapper
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
+import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -30,10 +35,12 @@ class MpdBundleJob(
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val countryRepo: MpdCountryRepository,
     private val dispenseTypeRepo: MpdDispenseTypeRepository,
+    private val organisationRepository: MpdOrganisationRepository,
     private val csvExtractor: MpdCsvExtractor,
     private val importer: CsvImporter,
     private val remoteFileDownloader: RemoteFileDownloader,
-    private val validityReader: MpdValidityReader
+    private val validityReader: MpdValidityReader,
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -102,6 +109,14 @@ class MpdBundleJob(
                         MpdDispenseTypeRowMapper(validFrom)
                     )
                     SoftDeleteWithHistory<MpdDispenseType>().apply(rows, dispenseTypeRepo)
+                },
+                MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_ORGANISATION) { bytes ->
+                    val rows = importer.import(
+                        bytes,
+                        MpdOrganisationColumn.entries.map { it.toSpec() },
+                        MpdOrganisationRowMapper(validFrom, referenceDataProvider)
+                    )
+                    SoftDeleteWithHistory<MpdOrganisation>().apply(rows, organisationRepository)
                 }
             )
         )
