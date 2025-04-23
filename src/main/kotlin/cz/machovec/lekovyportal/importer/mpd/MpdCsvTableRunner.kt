@@ -1,9 +1,10 @@
 package cz.machovec.lekovyportal.importer.mpd
 
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.importer.common.MissingColumnException
 import mu.KotlinLogging
 
-class MpdCsvTableRunner(private val csvMap: Map<MpdCsvFile, ByteArray>) {
+class MpdCsvTableRunner(private val csvMap: Map<MpdDatasetType, ByteArray>) {
 
     private val log = KotlinLogging.logger {}
 
@@ -22,7 +23,7 @@ class MpdCsvTableRunner(private val csvMap: Map<MpdCsvFile, ByteArray>) {
     }
 
     data class TableStep(
-        val file: MpdCsvFile,
+        val file: MpdDatasetType,
         val required: Boolean = true,
         val action: (ByteArray) -> Unit
     )

@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.importer.mpd
 
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.utils.ZipFileUtils
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import mu.KotlinLogging
@@ -14,7 +15,7 @@ class MpdCsvExtractor {
     fun extractMonthlyCsvFilesFromZip(
         zipBytes: ByteArray,
         msg: DatasetToProcessMessage
-    ): Map<Int, Map<MpdCsvFile, ByteArray>> {
+    ): Map<Int, Map<MpdDatasetType, ByteArray>> {
         return if (msg.month == null) {
             extractMonthlyZipsFromAnnualZip(zipBytes)
         } else {
@@ -22,8 +23,8 @@ class MpdCsvExtractor {
         }
     }
 
-    private fun extractMonthlyZipsFromAnnualZip(annualZip: ByteArray): Map<Int, Map<MpdCsvFile, ByteArray>> {
-        val result = mutableMapOf<Int, Map<MpdCsvFile, ByteArray>>()
+    private fun extractMonthlyZipsFromAnnualZip(annualZip: ByteArray): Map<Int, Map<MpdDatasetType, ByteArray>> {
+        val result = mutableMapOf<Int, Map<MpdDatasetType, ByteArray>>()
 
         ZipFileUtils.extractNestedZips(annualZip).forEach { (zipName, zipBytes) ->
             val month = parseMonthFromNestedZipFilename(zipName)
@@ -37,11 +38,11 @@ class MpdCsvExtractor {
         return result.toSortedMap()
     }
 
-    private fun extractCsvFilesFromMonthlyZip(zipBytes: ByteArray): Map<MpdCsvFile, ByteArray> {
+    private fun extractCsvFilesFromMonthlyZip(zipBytes: ByteArray): Map<MpdDatasetType, ByteArray> {
         val extractedCsvs = ZipFileUtils.extractCsvFiles(zipBytes)
 
         return extractedCsvs.mapNotNull { (fileName, content) ->
-            val key = MpdCsvFile.fromFileName(fileName)
+            val key = MpdDatasetType.fromFileName(fileName)
             if (key == null) {
                 log.debug { "Unknown CSV file: $fileName" }
                 null

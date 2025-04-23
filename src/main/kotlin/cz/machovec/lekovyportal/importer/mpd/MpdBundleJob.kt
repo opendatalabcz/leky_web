@@ -5,6 +5,7 @@ import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdCountry
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDispenseType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
@@ -70,11 +71,11 @@ class MpdBundleJob(
         }
     }
 
-    private fun processMonth(monthToProcess: YearMonth, csvMap: Map<MpdCsvFile, ByteArray>) {
+    private fun processMonth(monthToProcess: YearMonth, csvMap: Map<MpdDatasetType, ByteArray>) {
         val validFrom = if (monthToProcess < VALIDITY_REQUIRED_SINCE) {
             monthToProcess.atDay(1)
         } else {
-            val validityCsv = csvMap[MpdCsvFile.MPD_VALIDITY]
+            val validityCsv = csvMap[MpdDatasetType.MPD_VALIDITY]
             if (validityCsv == null) {
                 logger.warn { "Validity CSV file (dlp_platnost.csv) is missing for $monthToProcess – skipping processing." }
                 return
@@ -86,7 +87,7 @@ class MpdBundleJob(
 
         MpdCsvTableRunner(csvMap).run(
             listOf(
-                MpdCsvTableRunner.TableStep(MpdCsvFile.MPD_COUNTRY) { bytes ->
+                MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_COUNTRY) { bytes ->
                     val rows = importer.import(
                         bytes,
                         MpdCountryColumn.entries.map { it.toSpec() },
@@ -94,7 +95,7 @@ class MpdBundleJob(
                     )
                     SoftDeleteWithHistory<MpdCountry>().apply(rows, countryRepo)
                 },
-                MpdCsvTableRunner.TableStep(MpdCsvFile.MPD_DISPENSE_TYPE) { bytes ->
+                MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_DISPENSE_TYPE) { bytes ->
                     val rows = importer.import(
                         bytes,
                         MpdDispenseTypeColumn.entries.map { it.toSpec() },
