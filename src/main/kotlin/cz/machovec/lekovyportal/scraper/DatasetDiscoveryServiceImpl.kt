@@ -1,10 +1,11 @@
 package cz.machovec.lekovyportal.scraper
 
-import cz.machovec.lekovyportal.MpdDatasetValidityResolver
+import cz.machovec.lekovyportal.MpdValidityReader
 import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
+import cz.machovec.lekovyportal.utils.ZipFileUtils
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import java.net.URI
@@ -16,7 +17,7 @@ class DatasetDiscoveryServiceImpl(
     private val htmlScraper: HtmlScraper,
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val datasetSources: MutableList<DatasetSource>,
-    private val datasetValidityResolver: MpdDatasetValidityResolver,
+    private val datasetValidityReader: MpdValidityReader,
 ) : DatasetDiscoveryService {
 
     private val logger = KotlinLogging.logger {}
@@ -84,12 +85,20 @@ class DatasetDiscoveryServiceImpl(
         // Case 1 – Monthly dataset: the date in the filename represents the publishing date,
         // so we need to determine the actual validity date from the zip content
         if (monthFromFileName != null) {
-            val datasetValidity = runCatching {
-                datasetValidityResolver.resolveFromZip(fileUrl.readBytes())
-            }.getOrNull()
+            val zipBytes = runCatching { fileUrl.readBytes() }.getOrElse {
+                logger.warn { "Failed to download ZIP content from $fileUrl" }
+                return null
+            }
 
+            val validityCsv = ZipFileUtils.extractFileFromZip(zipBytes, "dlp_platnost.csv")
+            if (validityCsv == null) {
+                logger.warn { "Missing 'dlp_platnost.csv' in ZIP archive for $fileName – skipping dataset." }
+                return null
+            }
+
+            val datasetValidity = datasetValidityReader.getValidityFromCsv(validityCsv)
             if (datasetValidity == null) {
-                logger.warn { "Unable to determine dataset validity from $fileName – file dlp_platnost.csv is missing or malformed." }
+                logger.warn { "Failed to parse validity from 'dlp_platnost.csv' for $fileName – skipping dataset." }
                 return null
             }
 
