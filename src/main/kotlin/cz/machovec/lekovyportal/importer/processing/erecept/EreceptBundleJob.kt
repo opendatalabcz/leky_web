@@ -47,10 +47,7 @@ class EreceptBundleJob(
 
         // Step 2 – Download the ZIP file from the remote source
         val zipBytes = downloader.downloadFile(URI(msg.fileUrl))
-        if (zipBytes == null) {
-            logger.info { "Failed to download ZIP for ${msg.fileUrl}" }
-            return
-        }
+            ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
         // Step 3 – Extract CSV file (1 file contains all data even for yearly dataset)
         val csvFile = extractor.extractSingleCsvFile(zipBytes)

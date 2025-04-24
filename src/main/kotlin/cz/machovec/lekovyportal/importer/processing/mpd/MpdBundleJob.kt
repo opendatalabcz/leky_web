@@ -38,7 +38,7 @@ class MpdBundleJob(
     private val organisationRepository: MpdOrganisationRepository,
     private val csvExtractor: MpdCsvExtractor,
     private val importer: CsvImporter,
-    private val remoteFileDownloader: RemoteFileDownloader,
+    private val downloader: RemoteFileDownloader,
     private val validityReader: MpdValidityReader,
     private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetProcessor {
@@ -60,11 +60,8 @@ class MpdBundleJob(
         }
 
         // Step 2 – Download the ZIP file from the remote source
-        val zipBytes = remoteFileDownloader.downloadFile(URI(msg.fileUrl))
-        if (zipBytes == null) {
-            logger.info { "Failed to download ZIP for ${msg.fileUrl}" }
-            return
-        }
+        val zipBytes = downloader.downloadFile(URI(msg.fileUrl))
+            ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
         // Step 3 – Extract and group CSV files by month (handles both annual and monthly ZIPs)
         val csvFilesByMonth = csvExtractor.extractMonthlyCsvFilesFromZip(zipBytes, msg)
