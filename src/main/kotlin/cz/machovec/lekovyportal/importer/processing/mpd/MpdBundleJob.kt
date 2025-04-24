@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.importer.mpd
+package cz.machovec.lekovyportal.importer.processing.mpd
 
 import cz.machovec.lekovyportal.MpdValidityReader
 import cz.machovec.lekovyportal.domain.entity.DatasetType
