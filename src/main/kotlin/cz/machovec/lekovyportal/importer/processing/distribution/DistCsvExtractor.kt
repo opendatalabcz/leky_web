@@ -1,52 +1,68 @@
 package cz.machovec.lekovyportal.importer.processing.distribution
 
-import cz.machovec.lekovyportal.domain.entity.FileType
+import cz.machovec.lekovyportal.domain.entity.DatasetType
+import cz.machovec.lekovyportal.domain.entity. FileType
 import cz.machovec.lekovyportal.utils.ZipFileUtils
 import org.springframework.stereotype.Component
 
 @Component
 class DistCsvExtractor {
+
+    companion object {
+        private val PHARMACY_CSV_FILENAME_MONTH_REGEX = Regex("""LEK13_\d{4}(\d{2})v\d+\.csv""")
+        private val ZIP_SUPPORTED_DATASETS = listOf(DatasetType.DISTRIBUTIONS_FROM_PHARMACIES)
+    }
+
+    /**
+     * Extracts distribution CSV files grouped by month, based on the given [fileType].
+     *
+     * - For [FileType.CSV], the method expects a single CSV representing one [month].
+     * - For [FileType.ZIP], the method expects multiple monthly CSVs bundled (supported only for selected datasets).
+     *
+     * Throws if inputs don't match expectations.
+     */
     fun extractCsvFilesByMonth(
-        fileType: FileType,
+        fileBytes: ByteArray,
         month: Int?,
-        fileBytes: ByteArray
+        fileType: FileType,
+        datasetType: DatasetType
     ): Map<Int, ByteArray> {
-        return if (month != null) {
-            val csvBytes = if (fileType == FileType.ZIP) {
-                extractSingleCsvFile(fileBytes)
-            } else {
-                fileBytes
+        return when (fileType) {
+            FileType.CSV -> {
+                requireNotNull(month) {
+                    "DatasetType $datasetType expects a monthly CSV file, but no month was provided."
+                }
+                mapOf(month to fileBytes)
             }
-            mapOf(month to csvBytes)
-        } else {
-            extractCsvFiles(fileBytes) // Map<String, ByteArray>
-                .mapNotNull { (fileName, csvBytes) ->
-                    val month = extractMonthFromCsv(fileName)
-                    if (month != null) month to csvBytes else null
-                }.toMap()
+
+            FileType.ZIP -> {
+                require(month == null) {
+                    "DatasetType $datasetType expects a yearly ZIP file, but a month ($month) was provided."
+                }
+
+                require(datasetType in ZIP_SUPPORTED_DATASETS) {
+                    "DatasetType $datasetType does not support yearly ZIP processing."
+                }
+
+                extractMonthlyCsvsFromZip(fileBytes) { fileName ->
+                    PHARMACY_CSV_FILENAME_MONTH_REGEX.matchEntire(fileName)
+                        ?.groups?.get(1)?.value?.toIntOrNull()
+                }
+            }
         }
     }
 
-    private fun extractCsvFiles(zip: ByteArray): Map<String, ByteArray> =
-        ZipFileUtils.extractCsvFiles(zip)
-
-    private fun extractSingleCsvFile(zipBytes: ByteArray): ByteArray {
-        val files = ZipFileUtils.extractCsvFiles(zipBytes)
-
-        if (files.isEmpty()) {
-            throw IllegalStateException("ZIP file does not contain any CSV file.")
-        }
-
-        if (files.size > 1) {
-            throw IllegalStateException("ZIP file contains multiple CSV files. Only one expected.")
-        }
-
-        return files.values.first()
-    }
-
-    private fun extractMonthFromCsv(fileName: String): Int? {
-        val regex = Regex("""LEK13_\d{4}(\d{2})v\d+\.csv""")
-        val match = regex.matchEntire(fileName)
-        return match?.groups?.get(1)?.value?.toIntOrNull()
-    }
+    /**
+     * Extracts CSV files from a ZIP archive and groups them by month using [monthExtractor].
+     */
+    private fun extractMonthlyCsvsFromZip(
+        fileBytes: ByteArray,
+        monthExtractor: (String) -> Int?
+    ): Map<Int, ByteArray> =
+        ZipFileUtils.extractFilesByType(fileBytes, FileType.CSV)
+            .mapNotNull { (fileName, csvBytes) ->
+                val month = monthExtractor(fileName)
+                if (month != null) month to csvBytes else null
+            }
+            .toMap()
 }

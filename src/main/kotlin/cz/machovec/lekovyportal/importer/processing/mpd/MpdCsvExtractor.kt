@@ -1,60 +1,80 @@
 package cz.machovec.lekovyportal.importer.processing.mpd
 
+import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.utils.ZipFileUtils
-import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
 @Component
 class MpdCsvExtractor {
 
-    // TODO: review
+    companion object {
+        private val NESTED_ZIP_MONTH_REGEX = Regex(""".*(\d{4})(\d{2})\.zip""", RegexOption.IGNORE_CASE)
+
+        /**
+         * Extracts month (MM) from nested ZIP file name in format like `MPD_202304.zip`.
+         */
+        fun extractMonthFromZipName(name: String): Int? =
+            NESTED_ZIP_MONTH_REGEX.matchEntire(name)?.groupValues?.get(2)?.toIntOrNull()
+    }
+
     private val log = KotlinLogging.logger {}
 
+    /**
+     * Extracts MPD CSV files grouped by month from a ZIP archive.
+     *
+     * If [month] is provided, the ZIP is treated as a single-month ZIP and all CSVs are parsed from it.
+     * If [month] is null, the ZIP is assumed to contain nested ZIPs (one per month),
+     * and each nested ZIP must follow a strict `*.yyyyMM.zip` naming format.
+     *
+     * Throws an exception if a nested ZIP cannot be assigned to a month or if duplicates are found.
+     */
     fun extractMonthlyCsvFilesFromZip(
         zipBytes: ByteArray,
-        msg: DatasetToProcessMessage
+        month: Int?
     ): Map<Int, Map<MpdDatasetType, ByteArray>> {
-        return if (msg.month == null) {
+        return if (month == null) {
             extractMonthlyZipsFromAnnualZip(zipBytes)
         } else {
-            mapOf(msg.month to extractCsvFilesFromMonthlyZip(zipBytes))
+            mapOf(month to extractMpdCsvFiles(zipBytes))
         }
     }
 
+    /**
+     * Extracts all nested monthly ZIP files from an annual ZIP archive,
+     * maps them by month, and parses their contents into [MpdDatasetType]-keyed maps.
+     *
+     * Fails if any ZIP name does not match the expected format or if duplicate months are found.
+     */
     private fun extractMonthlyZipsFromAnnualZip(annualZip: ByteArray): Map<Int, Map<MpdDatasetType, ByteArray>> {
-        val result = mutableMapOf<Int, Map<MpdDatasetType, ByteArray>>()
+        val grouped = mutableMapOf<Int, Map<MpdDatasetType, ByteArray>>()
 
-        ZipFileUtils.extractNestedZips(annualZip).forEach { (zipName, zipBytes) ->
-            val month = parseMonthFromNestedZipFilename(zipName)
-            if (month != null) {
-                result[month] = extractCsvFilesFromMonthlyZip(zipBytes)
-            } else {
-                log.warn { "Cannot determine month from nested ZIP name: $zipName" }
+        ZipFileUtils.extractFilesByType(annualZip, FileType.ZIP).forEach { (zipName, zipBytes) ->
+            val month = extractMonthFromZipName(zipName)
+                ?: error("Cannot determine month from nested ZIP name: $zipName")
+
+            if (grouped.putIfAbsent(month, extractMpdCsvFiles(zipBytes)) != null) {
+                error("Duplicate nested ZIP for month=$month in $zipName")
             }
         }
 
-        return result.toSortedMap()
+        return grouped.toSortedMap()
     }
 
-    private fun extractCsvFilesFromMonthlyZip(zipBytes: ByteArray): Map<MpdDatasetType, ByteArray> {
-        val extractedCsvs = ZipFileUtils.extractCsvFiles(zipBytes)
-
-        return extractedCsvs.mapNotNull { (fileName, content) ->
-            val key = MpdDatasetType.fromFileName(fileName)
-            if (key == null) {
-                log.debug { "Unknown CSV file: $fileName" }
-                null
-            } else {
-                key to content
-            }
-        }.toMap()
-    }
-
-
-    private fun parseMonthFromNestedZipFilename(name: String): Int? {
-        val regex = Regex(".*(\\d{4})(\\d{2})\\.zip", RegexOption.IGNORE_CASE)
-        return regex.matchEntire(name)?.groupValues?.get(2)?.toIntOrNull()
+    /**
+     * Extracts CSV files from a ZIP archive and maps them by [MpdDatasetType].
+     *
+     * Ignores files that do not match any known dataset type.
+     */
+    private fun extractMpdCsvFiles(zipBytes: ByteArray): Map<MpdDatasetType, ByteArray> {
+        return ZipFileUtils.extractFilesByType(zipBytes, FileType.CSV)
+            .mapNotNull { (fileName, content) ->
+                MpdDatasetType.fromFileName(fileName)?.let { it to content }
+                    ?: run {
+                        log.debug { "Unknown CSV file: $fileName" }
+                        null
+                    }
+            }.toMap()
     }
 }

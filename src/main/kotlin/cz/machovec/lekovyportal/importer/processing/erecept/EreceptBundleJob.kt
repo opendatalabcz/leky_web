@@ -16,8 +16,10 @@ import cz.machovec.lekovyportal.importer.mapper.erecept.toPrescriptionEntity
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.utils.ZipFileUtils
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 import java.time.LocalDate
 import java.time.YearMonth
@@ -27,7 +29,6 @@ class EreceptBundleJob(
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val dispenseRepository: EreceptDispenseRepository,
     private val prescriptionRepository: EreceptPrescriptionRepository,
-    private val extractor: EreceptCsvExtractor,
     private val downloader: RemoteFileDownloader,
     private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetProcessor {
@@ -38,6 +39,7 @@ class EreceptBundleJob(
         private val FIRST_MPD_PERIOD: YearMonth = YearMonth.of(2021, 1)
     }
 
+    @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
         // Step 1 – Validate that the file type is ZIP before proceeding
         if (msg.fileType != FileType.ZIP) {
@@ -50,7 +52,7 @@ class EreceptBundleJob(
             ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
         // Step 3 – Extract CSV file (1 file contains all data even for yearly dataset)
-        val csvFile = extractor.extractSingleCsvFile(zipBytes)
+        val csvFile = ZipFileUtils.extractSingleFileByType(zipBytes, FileType.CSV)
 
         // Step 4 - Process csv file
         if (msg.month != null) {

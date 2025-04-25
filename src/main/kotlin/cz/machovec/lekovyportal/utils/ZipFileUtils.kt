@@ -1,54 +1,59 @@
 package cz.machovec.lekovyportal.utils
 
+import cz.machovec.lekovyportal.domain.entity.FileType
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 object ZipFileUtils {
 
     /**
-     * Filters and returns a map of file names to contents for all CSV files in the zip.
+     * Extracts all files from the ZIP that satisfy all given [filters].
+     * Each file is returned as a pair (fileName -> fileContent).
+     * File names are stripped to just the name (without inner folder path).
      */
-    fun extractCsvFiles(zipBytes: ByteArray): Map<String, ByteArray> {
+    private fun extractFilesMatchingAll(
+        zipBytes: ByteArray,
+        filters: List<(ZipEntry) -> Boolean>
+    ): Map<String, ByteArray> {
         val result = mutableMapOf<String, ByteArray>()
         iterateFiles(ZipInputStream(zipBytes.inputStream())) { entry, content ->
-            if (entry.name.endsWith(".csv", ignoreCase = true)) {
-                val fileName = entry.name.substringAfterLast('/')
-                result[fileName] = content
+            val matchesAll = filters.all { it(entry) }
+            if (matchesAll) {
+                result[entry.name.substringAfterLast('/')] = content
             }
         }
         return result
     }
 
     /**
-     * Extracts nested ZIP files from a top-level ZIP archive.
-     * Each returned entry is (nested zip name) -> (content of nested zip as ByteArray).
+     * Filters and returns a map of file names to contents for all files in the zip matching the given [fileType].
      */
-    fun extractNestedZips(zipBytes: ByteArray): Map<String, ByteArray> {
-        val result = mutableMapOf<String, ByteArray>()
-        iterateFiles(ZipInputStream(zipBytes.inputStream())) { entry, content ->
-            if (entry.name.endsWith(".zip", ignoreCase = true)) {
-                result[entry.name] = content
-            }
-        }
-        return result
-    }
+    fun extractFilesByType(zipBytes: ByteArray, fileType: FileType): Map<String, ByteArray> =
+        extractFilesMatchingAll(zipBytes, listOf(
+            { it.name.endsWith(fileType.extension, ignoreCase = true) }
+        ))
 
     /**
-     * Extracts a specific file from a ZIP archive by exact file name match.
-     * Returns the file content as a ByteArray, or null if the file is not found.
+     * Returns the only file from the ZIP archive matching the given [fileType].
+     * Throws IllegalStateException if there are none or more than one.
      */
-    fun extractFileFromZip(zipBytes: ByteArray, fileName: String): ByteArray? {
-        ZipInputStream(zipBytes.inputStream()).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (!entry.isDirectory && entry.name == fileName) {
-                    return zis.readBytes()
-                }
-                entry = zis.nextEntry
+    fun extractSingleFileByType(zipBytes: ByteArray, fileType: FileType): ByteArray =
+        extractFilesByType(zipBytes, fileType).let { files ->
+            when {
+                files.isEmpty() -> throw IllegalStateException("ZIP does not contain any ${fileType.extension} files.")
+                files.size > 1  -> throw IllegalStateException("ZIP contains multiple ${fileType.extension} files – expected exactly one.")
+                else            -> files.values.first()
             }
         }
-        return null
-    }
+
+    /**
+     * Returns the content of a file with exact [fileName] inside the ZIP archive.
+     * Returns null if the file is not found.
+     */
+    fun extractFileByName(zipBytes: ByteArray, fileName: String): ByteArray? =
+        extractFilesMatchingAll(zipBytes, listOf(
+            { it.name == fileName }
+        )).values.firstOrNull()
 
     /**
      * Iterates over all files in the given [ZipInputStream], invoking [onFile] for each regular file.

@@ -64,7 +64,7 @@ class MpdBundleJob(
             ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
         // Step 3 – Extract and group CSV files by month (handles both annual and monthly ZIPs)
-        val csvFilesByMonth = csvExtractor.extractMonthlyCsvFilesFromZip(zipBytes, msg)
+        val csvFilesByMonth = csvExtractor.extractMonthlyCsvFilesFromZip(zipBytes, msg.month)
 
         // Step 4 - Process each csv file
         for ((month, csvMap) in csvFilesByMonth) {

@@ -90,7 +90,7 @@ class DatasetDiscoveryServiceImpl(
                 return null
             }
 
-            val validityCsv = ZipFileUtils.extractFileFromZip(zipBytes, "dlp_platnost.csv")
+            val validityCsv = ZipFileUtils.extractFileByName(zipBytes, "dlp_platnost.csv")
             if (validityCsv == null) {
                 logger.warn { "Missing 'dlp_platnost.csv' in ZIP archive for $fileName – skipping dataset." }
                 return null

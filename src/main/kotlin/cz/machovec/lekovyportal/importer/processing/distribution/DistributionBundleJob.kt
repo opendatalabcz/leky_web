@@ -32,7 +32,7 @@ class DistributionBundleJob(
     private val exportRepo: DistExportFromDistributorsRepository,
     private val pharmacyRepo: DistFromPharmaciesRepository,
     private val processedRepo: ProcessedDatasetRepository,
-    private val extractor: DistCsvExtractor,
+    private val distCsvExtractor: DistCsvExtractor,
     private val downloader: RemoteFileDownloader,
     private val refData: MpdReferenceDataProvider
 ) : DatasetProcessor {
@@ -46,11 +46,7 @@ class DistributionBundleJob(
             ?: return logger.error { "Download failed: ${msg.fileUrl}" }
 
         // Step 2 – Extract CSV files (per month)
-        val csvByMonth = extractor.extractCsvFilesByMonth(msg.fileType, msg.month, fileBytes)
-        if (csvByMonth.isEmpty()) {
-            logger.warn { "No CSV content for ${msg.datasetType}" }
-            return
-        }
+        val csvByMonth = distCsvExtractor.extractCsvFilesByMonth(fileBytes, msg.month, msg.fileType, msg.datasetType)
 
         // Step 3 – Parse & persist per month
         for ((month, csv) in csvByMonth) {
