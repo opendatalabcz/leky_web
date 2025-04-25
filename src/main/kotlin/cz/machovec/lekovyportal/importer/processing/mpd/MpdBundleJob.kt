@@ -21,6 +21,7 @@ import cz.machovec.lekovyportal.importer.columns.mpd.MpdDispenseTypeColumn
 import cz.machovec.lekovyportal.importer.columns.mpd.MpdOrganisationColumn
 import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdOrganisationRowMapper
+import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
@@ -40,14 +41,14 @@ class MpdBundleJob(
     private val importer: CsvImporter,
     private val downloader: RemoteFileDownloader,
     private val validityReader: MpdValidityReader,
-    private val referenceDataProvider: MpdReferenceDataProvider
+    private val referenceDataProvider: MpdReferenceDataProvider,
+    private val datasetProcessingEvaluator: DatasetProcessingEvaluator
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
 
     companion object {
         private val DATASET_TYPE = DatasetType.MEDICINAL_PRODUCT_DATABASE
-        private val FIRST_AVAILABLE_PERIOD = YearMonth.of(2021, 1)
         private val VALIDITY_REQUIRED_SINCE = YearMonth.of(2023, 4)
     }
 
@@ -68,8 +69,8 @@ class MpdBundleJob(
 
         // Step 4 - Process each csv file
         for ((month, csvMap) in csvFilesByMonth) {
-            val period = YearMonth.of(msg.year, month)
-            if (canProcessMonth(period)) {
+            if (datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) {
+                val period = YearMonth.of(msg.year, month)
                 processMonth(period, csvMap)
             }
         }
@@ -124,22 +125,6 @@ class MpdBundleJob(
                 year = monthToProcess.year,
                 month = monthToProcess.monthValue
             )
-        )
-    }
-
-    private fun canProcessMonth(monthToProcess: YearMonth): Boolean {
-        // Case 1 – Already processed? Skip
-        if (processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-                DATASET_TYPE, monthToProcess.year, monthToProcess.monthValue)
-        ) return false
-
-        // Case 2 – First historical dataset – always process
-        if (monthToProcess == FIRST_AVAILABLE_PERIOD) return true
-
-        // Case 3 – Only process if the previous month is already in the database
-        val previousMonth = monthToProcess.minusMonths(1)
-        return processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-            DATASET_TYPE, previousMonth.year, previousMonth.monthValue
         )
     }
 }

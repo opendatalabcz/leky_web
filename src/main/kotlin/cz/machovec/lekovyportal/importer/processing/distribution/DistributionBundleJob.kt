@@ -17,6 +17,7 @@ import cz.machovec.lekovyportal.importer.mapper.distribution.DistExportFromDistr
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromDistributorsRowMapper
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromMahsRowMapper
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromPharmaciesRowMapper
+import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
@@ -34,14 +35,15 @@ class DistributionBundleJob(
     private val processedRepo: ProcessedDatasetRepository,
     private val distCsvExtractor: DistCsvExtractor,
     private val downloader: RemoteFileDownloader,
-    private val refData: MpdReferenceDataProvider
+    private val refData: MpdReferenceDataProvider,
+    private val datasetProcessingEvaluator: DatasetProcessingEvaluator
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
 
     @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
-        // Step 1 – Download file
+        // Step 1 – Download file from the remote source
         val fileBytes = downloader.downloadFile(URI(msg.fileUrl))
             ?: return logger.error { "Download failed: ${msg.fileUrl}" }
 
@@ -50,10 +52,7 @@ class DistributionBundleJob(
 
         // Step 3 – Parse & persist per month
         for ((month, csv) in csvByMonth) {
-            if (processedRepo.existsByDatasetTypeAndYearAndMonth(msg.datasetType, msg.year, month)) {
-                logger.info { "Skipping already processed dataset ${msg.datasetType} for ${msg.year}-$month" }
-                continue
-            }
+            if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) continue
 
             when (msg.datasetType) {
                 DatasetType.DISTRIBUTIONS_FROM_MAHS -> {

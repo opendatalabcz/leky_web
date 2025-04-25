@@ -13,6 +13,7 @@ import cz.machovec.lekovyportal.importer.mapper.erecept.EreceptRawData
 import cz.machovec.lekovyportal.importer.mapper.erecept.EreceptRawDataRowMapper
 import cz.machovec.lekovyportal.importer.mapper.erecept.toDispenseEntity
 import cz.machovec.lekovyportal.importer.mapper.erecept.toPrescriptionEntity
+import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
@@ -21,8 +22,6 @@ import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.LocalDate
-import java.time.YearMonth
 
 @Service
 class EreceptBundleJob(
@@ -30,14 +29,11 @@ class EreceptBundleJob(
     private val dispenseRepository: EreceptDispenseRepository,
     private val prescriptionRepository: EreceptPrescriptionRepository,
     private val downloader: RemoteFileDownloader,
-    private val referenceDataProvider: MpdReferenceDataProvider
+    private val referenceDataProvider: MpdReferenceDataProvider,
+    private val datasetProcessingEvaluator: DatasetProcessingEvaluator
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
-
-    companion object {
-        private val FIRST_MPD_PERIOD: YearMonth = YearMonth.of(2021, 1)
-    }
 
     @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
@@ -56,54 +52,12 @@ class EreceptBundleJob(
 
         // Step 4 - Process csv file
         if (msg.month != null) {
-            if (canProcessMonth(YearMonth.of(msg.year, msg.month), msg.datasetType)) {
-                processMonth(msg.datasetType, msg.year, msg.month, csvFile)
-            }
+            if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, msg.month)) return
+            processMonth(msg.datasetType, msg.year, msg.month, csvFile)
         } else {
-            if (canProcessYear(msg.year, msg.datasetType)) {
-                processYear(msg.datasetType, msg.year, csvFile)
-            }
+            if (!datasetProcessingEvaluator.canProcessYear(msg.datasetType, msg.year)) return
+            processYear(msg.datasetType, msg.year, csvFile)
         }
-    }
-
-    private fun canProcessMonth(monthToProcess: YearMonth, datasetType: DatasetType): Boolean {
-        // Check 1 – Already processed? Skip
-        if (processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-                datasetType, monthToProcess.year, monthToProcess.monthValue)
-        ) return false
-
-        // Check 2 - Only process if mpd data for this month are already processed
-        return processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-                DatasetType.MEDICINAL_PRODUCT_DATABASE, monthToProcess.year, monthToProcess.monthValue)
-    }
-
-    private fun canProcessYear(year: Int, datasetType: DatasetType): Boolean {
-        val now = LocalDate.now()
-
-        // Check 1 – If any month in this year is already processed -> skip the whole year
-        val anyProcessed = processedDatasetRepository
-            .findAllByDatasetTypeAndYear(datasetType, year)
-            .isNotEmpty()
-        if (anyProcessed) return false
-
-        // Check 2 – If dataset year is before the first mpd dataset was published -> process it
-        if (year < FIRST_MPD_PERIOD.year) return true
-
-        // Check 3 – If future year -> skip
-        if (year > now.year) return false
-
-        // Check 4 – Require that all MPD datasets for expected months exist
-        val expectedMonthsToProcess = when {
-            year == now.year -> (1 .. now.monthValue)
-            else -> 1..12
-        }
-
-        val mpdProcessedMonths = processedDatasetRepository
-            .findAllByDatasetTypeAndYear(DatasetType.MEDICINAL_PRODUCT_DATABASE, year)
-            .map { it.month }
-            .toSet()
-
-        return expectedMonthsToProcess.all { it in mpdProcessedMonths }
     }
 
     private fun processMonth(

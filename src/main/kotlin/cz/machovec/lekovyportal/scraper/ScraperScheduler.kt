@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class ScraperScheduler(
-    private val datasetDiscoveryService: DatasetDiscoveryServiceImpl,
+    private val datasetDiscoveryService: DatasetDiscoveryService,
     private val messagePublisher: MessagePublisher
 ) {
     @Scheduled(cron = "0 0 0 * * ?")
