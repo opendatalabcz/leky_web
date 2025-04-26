@@ -4,15 +4,12 @@ import cz.machovec.lekovyportal.MpdValidityReader
 import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
-import cz.machovec.lekovyportal.domain.entity.mpd.MpdCountry
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
-import cz.machovec.lekovyportal.domain.entity.mpd.MpdDispenseType
-import cz.machovec.lekovyportal.domain.entity.mpd.MpdOrganisation
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDispenseTypeRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
-import cz.machovec.lekovyportal.importer.SoftDeleteWithHistory
+import cz.machovec.lekovyportal.importer.MpdEntitySynchronizer
 import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCountryColumn
@@ -43,7 +40,8 @@ class MpdBundleJob(
     private val downloader: RemoteFileDownloader,
     private val validityReader: MpdValidityReader,
     private val referenceDataProvider: MpdReferenceDataProvider,
-    private val datasetProcessingEvaluator: DatasetProcessingEvaluator
+    private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
+    private val synchronizer: MpdEntitySynchronizer
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -68,12 +66,12 @@ class MpdBundleJob(
         // Step 3 – Extract and group CSV files by month (handles both annual and monthly ZIPs)
         val csvFilesByMonth = csvExtractor.extractMonthlyCsvFilesFromZip(zipBytes, msg.month)
 
-        // Step 4 - Process each csv file
+        // Step 4 - Process each CSV file
         for ((month, csvMap) in csvFilesByMonth) {
-            if (datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) {
-                val period = YearMonth.of(msg.year, month)
-                processMonth(period, csvMap)
-            }
+            if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) continue
+
+            val period = YearMonth.of(msg.year, month)
+            processMonth(period, csvMap)
         }
     }
 
@@ -99,7 +97,12 @@ class MpdBundleJob(
                         MpdCountryColumn.entries.map { it.toSpec() },
                         MpdCountryRowMapper(validFrom)
                     )
-                    SoftDeleteWithHistory<MpdCountry>().apply(rows, countryRepo)
+                    synchronizer.sync(
+                        validFrom = validFrom,
+                        dataset   = MpdDatasetType.MPD_COUNTRY,
+                        records   = rows,
+                        repo      = countryRepo
+                    )
                 },
                 MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_DISPENSE_TYPE) { bytes ->
                     val rows = importer.import(
@@ -107,7 +110,12 @@ class MpdBundleJob(
                         MpdDispenseTypeColumn.entries.map { it.toSpec() },
                         MpdDispenseTypeRowMapper(validFrom)
                     )
-                    SoftDeleteWithHistory<MpdDispenseType>().apply(rows, dispenseTypeRepo)
+                    synchronizer.sync(
+                        validFrom = validFrom,
+                        dataset   = MpdDatasetType.MPD_DISPENSE_TYPE,
+                        records   = rows,
+                        repo      = dispenseTypeRepo
+                    )
                 },
                 MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_ORGANISATION) { bytes ->
                     val rows = importer.import(
@@ -115,7 +123,12 @@ class MpdBundleJob(
                         MpdOrganisationColumn.entries.map { it.toSpec() },
                         MpdOrganisationRowMapper(validFrom, referenceDataProvider)
                     )
-                    SoftDeleteWithHistory<MpdOrganisation>().apply(rows, organisationRepository)
+                    synchronizer.sync(
+                        validFrom = validFrom,
+                        dataset   = MpdDatasetType.MPD_ORGANISATION,
+                        records   = rows,
+                        repo      = organisationRepository
+                    )
                 }
             )
         )
