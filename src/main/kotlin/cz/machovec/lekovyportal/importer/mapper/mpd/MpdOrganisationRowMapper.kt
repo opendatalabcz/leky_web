@@ -1,47 +1,48 @@
 package cz.machovec.lekovyportal.importer.mapper.mpd
 
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdOrganisation
-import cz.machovec.lekovyportal.importer.columns.mpd.MpdOrganisationColumn
+import cz.machovec.lekovyportal.importer.mapper.BaseRefRowMapper
+import cz.machovec.lekovyportal.importer.mapper.ColumnAlias
 import cz.machovec.lekovyportal.importer.mapper.CsvRow
-import cz.machovec.lekovyportal.importer.mapper.RowMapper
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
-import mu.KotlinLogging
 import java.time.LocalDate
+
+enum class MpdOrganisationColumn(
+    override val aliases: List<String>,
+    override val required: Boolean = true
+) : ColumnAlias {
+    CODE(listOf("ZKR_ORG")),
+    COUNTRY(listOf("ZEM")),
+    NAME(listOf("NAZEV"), required = false),
+    IS_MANUFACTURER(listOf("VYROBCE"), required = false),
+    IS_MARKETING_AUTH_HOLDER(listOf("DRZITEL"), required = false);
+}
 
 class MpdOrganisationRowMapper(
     private val validFrom: LocalDate,
-    private val referenceDataProvider: MpdReferenceDataProvider
-) : RowMapper<MpdOrganisationColumn, MpdOrganisation> {
-
-    private val logger = KotlinLogging.logger {}
+    refProvider: MpdReferenceDataProvider
+) : BaseRefRowMapper<MpdOrganisationColumn, MpdOrganisation>(refProvider) {
 
     override fun map(row: CsvRow<MpdOrganisationColumn>): MpdOrganisation? {
-        val code = row[MpdOrganisationColumn.CODE]?.trim().takeIf { !it.isNullOrBlank() } ?: return null
+        val code = row[MpdOrganisationColumn.CODE].safeTrim() ?: return null
 
-        val countryCode = row[MpdOrganisationColumn.COUNTRY]?.trim()
-        val country = countryCode?.let { referenceDataProvider.getCountries()[it] }
-        if (country == null) {
-            logger.warn { "Unknown country code '$countryCode' – skipping row." }
-            return null
-        }
-
-        val name = row[MpdOrganisationColumn.NAME]?.trim()
-        val isManufacturer = row[MpdOrganisationColumn.IS_MANUFACTURER]
-            ?.trim()
-            ?.equals("V", ignoreCase = true)
-
-        val isMarketingAuthHolder = row[MpdOrganisationColumn.IS_MARKETING_AUTH_HOLDER]
-            ?.trim()
-            ?.equals("D", ignoreCase = true)
+        val country = row[MpdOrganisationColumn.COUNTRY]
+            .safeTrim()
+            ?.let { ref.getCountries()[it] }
+            ?: return null
 
         return MpdOrganisation(
-            firstSeen = validFrom,
+            firstSeen    = validFrom,
             missingSince = null,
-            code = code,
-            country = country,
-            name = name,
-            isManufacturer = isManufacturer,
-            isMarketingAuthorizationHolder = isMarketingAuthHolder
+            code         = code,
+            country      = country,
+            name         = row[MpdOrganisationColumn.NAME].safeTrim(),
+            isManufacturer               = row[MpdOrganisationColumn.IS_MANUFACTURER]
+                .safeTrim()
+                ?.equals("V", true),
+            isMarketingAuthorizationHolder = row[MpdOrganisationColumn.IS_MARKETING_AUTH_HOLDER]
+                .safeTrim()
+                ?.equals("D", true)
         )
     }
 }
