@@ -2,7 +2,7 @@ package cz.machovec.lekovyportal.importer.common
 
 import com.opencsv.CSVParserBuilder
 import com.opencsv.CSVReaderBuilder
-import cz.machovec.lekovyportal.importer.columns.ColumnSpec
+import cz.machovec.lekovyportal.importer.mapper.ColumnSpec
 import cz.machovec.lekovyportal.importer.mapper.CsvRow
 import cz.machovec.lekovyportal.importer.mapper.DataImportResult
 import cz.machovec.lekovyportal.importer.mapper.RowFailure

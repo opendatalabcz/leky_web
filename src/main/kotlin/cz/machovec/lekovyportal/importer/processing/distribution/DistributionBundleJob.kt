@@ -7,17 +7,18 @@ import cz.machovec.lekovyportal.domain.repository.dist.DistExportFromDistributor
 import cz.machovec.lekovyportal.domain.repository.dist.DistFromDistributorsRepository
 import cz.machovec.lekovyportal.domain.repository.dist.DistFromMahsRepository
 import cz.machovec.lekovyportal.domain.repository.dist.DistFromPharmaciesRepository
-import cz.machovec.lekovyportal.importer.columns.distribution.DistDistributorCsvColumn
-import cz.machovec.lekovyportal.importer.columns.distribution.DistDistributorExportCsvColumn
-import cz.machovec.lekovyportal.importer.columns.distribution.DistMahCsvColumn
-import cz.machovec.lekovyportal.importer.columns.distribution.DistPharmacyCsvColumn
 import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
 import cz.machovec.lekovyportal.importer.mapper.DataImportResult
+import cz.machovec.lekovyportal.importer.mapper.distribution.DistDistributorCsvColumn
+import cz.machovec.lekovyportal.importer.mapper.distribution.DistDistributorExportCsvColumn
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistExportFromDistributorsRowMapper
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromDistributorsRowMapper
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromMahsRowMapper
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromPharmaciesRowMapper
+import cz.machovec.lekovyportal.importer.mapper.distribution.DistMahCsvColumn
+import cz.machovec.lekovyportal.importer.mapper.distribution.DistPharmacyCsvColumn
+import cz.machovec.lekovyportal.importer.mapper.toSpec
 import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
@@ -65,9 +66,7 @@ class DistributionBundleJob(
                     )
                     logImportSummary(msg.datasetType, importResult, msg.year, month)
 
-                    if (importResult.successes.isEmpty()) {
-                        continue
-                    }
+                    if (importResult.successes.isEmpty()) continue
                     mahRepo.saveAll(importResult.successes)
                 }
 
@@ -79,9 +78,7 @@ class DistributionBundleJob(
                     )
                     logImportSummary(msg.datasetType, importResult, msg.year, month)
 
-                    if (importResult.successes.isEmpty()) {
-                        continue
-                    }
+                    if (importResult.successes.isEmpty()) continue
                     distRepo.saveAll(importResult.successes)
                 }
 
@@ -93,9 +90,7 @@ class DistributionBundleJob(
                     )
                     logImportSummary(msg.datasetType, importResult, msg.year, month)
 
-                    if (importResult.successes.isEmpty()) {
-                        continue
-                    }
+                    if (importResult.successes.isEmpty()) continue
                     exportRepo.saveAll(importResult.successes)
                 }
 
@@ -107,9 +102,7 @@ class DistributionBundleJob(
                     )
                     logImportSummary(msg.datasetType, importResult, msg.year, month)
 
-                    if (importResult.successes.isEmpty()) {
-                        continue
-                    }
+                    if (importResult.successes.isEmpty()) continue
                     pharmacyRepo.saveAll(importResult.successes)
                 }
 

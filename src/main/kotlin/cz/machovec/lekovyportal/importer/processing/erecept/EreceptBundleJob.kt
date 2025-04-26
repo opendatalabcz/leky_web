@@ -6,14 +6,15 @@ import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.EreceptDispenseRepository
 import cz.machovec.lekovyportal.domain.repository.EreceptPrescriptionRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.importer.columns.erecept.EreceptCsvColumn
 import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
 import cz.machovec.lekovyportal.importer.mapper.DataImportResult
+import cz.machovec.lekovyportal.importer.mapper.erecept.EreceptCsvColumn
 import cz.machovec.lekovyportal.importer.mapper.erecept.EreceptRawData
 import cz.machovec.lekovyportal.importer.mapper.erecept.EreceptRawDataRowMapper
 import cz.machovec.lekovyportal.importer.mapper.erecept.toDispenseEntity
 import cz.machovec.lekovyportal.importer.mapper.erecept.toPrescriptionEntity
+import cz.machovec.lekovyportal.importer.mapper.toSpec
 import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor

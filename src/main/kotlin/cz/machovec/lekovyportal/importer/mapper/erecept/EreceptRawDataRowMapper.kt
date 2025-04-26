@@ -1,11 +1,22 @@
 package cz.machovec.lekovyportal.importer.mapper.erecept
 
-import cz.machovec.lekovyportal.importer.columns.erecept.EreceptCsvColumn
 import cz.machovec.lekovyportal.importer.mapper.BaseSimpleRowMapper
+import cz.machovec.lekovyportal.importer.mapper.ColumnAlias
 import cz.machovec.lekovyportal.importer.mapper.CsvRow
 import cz.machovec.lekovyportal.importer.mapper.FailureReason
 import cz.machovec.lekovyportal.importer.mapper.RowFailure
 import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
+
+enum class EreceptCsvColumn(
+    override val aliases: List<String>,
+    override val required: Boolean = true
+) : ColumnAlias {
+    DISTRICT_CODE(listOf("OKRES_KOD")),
+    YEAR         (listOf("ROK")),
+    MONTH        (listOf("MESIC")),
+    SUKL_CODE    (listOf("KOD_SUKL")),
+    QUANTITY     (listOf("MNOZSTVI"));
+}
 
 class EreceptRawDataRowMapper : BaseSimpleRowMapper<EreceptCsvColumn, EreceptRawData>() {
 

@@ -13,10 +13,10 @@ enum class MpdCountryColumn(
     override val aliases: List<String>,
     override val required: Boolean = true
 ) : ColumnAlias {
-    CODE(listOf("ZEM")),
-    NAME(listOf("NAZEV"), required = false),
-    NAME_EN(listOf("NAZEV_EN"), required = false),
-    EDQM_CODE(listOf("KOD_EDQM"), required = false);
+    CODE        (listOf("ZEM")),
+    NAME        (listOf("NAZEV"), required = false),
+    NAME_EN     (listOf("NAZEV_EN"), required = false),
+    EDQM_CODE   (listOf("KOD_EDQM"), required = false);
 }
 
 class MpdCountryRowMapper(

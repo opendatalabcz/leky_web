@@ -1,7 +1,5 @@
 package cz.machovec.lekovyportal.importer.mapper
 
-import cz.machovec.lekovyportal.importer.columns.ColumnSpec
-
 /**
  * Every CSV-column enum implements this interface so that the generic
  * extension [toSpec] can build a [ColumnSpec] without boilerplate.

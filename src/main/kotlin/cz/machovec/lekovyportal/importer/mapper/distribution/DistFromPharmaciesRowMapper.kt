@@ -2,13 +2,23 @@ package cz.machovec.lekovyportal.importer.mapper.distribution
 
 import cz.machovec.lekovyportal.domain.entity.distribution.DistFromPharmacies
 import cz.machovec.lekovyportal.domain.entity.distribution.PharmacyDispenseType
-import cz.machovec.lekovyportal.importer.columns.distribution.DistPharmacyCsvColumn
 import cz.machovec.lekovyportal.importer.mapper.BaseRefRowMapper
+import cz.machovec.lekovyportal.importer.mapper.ColumnAlias
 import cz.machovec.lekovyportal.importer.mapper.CsvRow
 import cz.machovec.lekovyportal.importer.mapper.FailureReason
 import cz.machovec.lekovyportal.importer.mapper.RowFailure
 import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+
+enum class DistPharmacyCsvColumn(
+    override val aliases: List<String>,
+    override val required: Boolean = true
+) : ColumnAlias {
+    PERIOD        (listOf("Období")),
+    DISPENSE_TYPE (listOf("Typ hlášení")),
+    SUKL_CODE     (listOf("Kód SÚKL")),
+    PACKAGE_COUNT (listOf("Počet balení"));
+}
 
 class DistFromPharmaciesRowMapper(
     ref: MpdReferenceDataProvider

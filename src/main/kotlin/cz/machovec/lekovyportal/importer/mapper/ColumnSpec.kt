@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.importer.columns
+package cz.machovec.lekovyportal.importer.mapper
 
 /**
  * One logical column in CSV.
