@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.importer.mapper.mpd
 
-import cz.machovec.lekovyportal.domain.entity.mpd.MpdCountry
+import cz.machovec.lekovyportal.domain.entity.mpd.MpdCompositionFlag
 import cz.machovec.lekovyportal.importer.mapper.BaseSimpleRowMapper
 import cz.machovec.lekovyportal.importer.mapper.ColumnAlias
 import cz.machovec.lekovyportal.importer.mapper.CsvRow
@@ -9,41 +9,35 @@ import cz.machovec.lekovyportal.importer.mapper.RowFailure
 import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
 import java.time.LocalDate
 
-enum class MpdCountryColumn(
+enum class MpdCompositionFlagColumn(
     override val aliases: List<String>,
     override val required: Boolean = true
 ) : ColumnAlias {
-    CODE(listOf("ZEM")),
-    NAME(listOf("NAZEV"), required = false),
-    NAME_EN(listOf("NAZEV_EN"), required = false),
-    EDQM_CODE(listOf("KOD_EDQM"), required = false);
+    CODE(listOf("S")),
+    MEANING(listOf("VYZNAM"), required = false);
 }
 
-class MpdCountryRowMapper(
+class MpdCompositionFlagRowMapper(
     private val validFrom: LocalDate
-) : BaseSimpleRowMapper<MpdCountryColumn, MpdCountry>() {
+) : BaseSimpleRowMapper<MpdCompositionFlagColumn, MpdCompositionFlag>() {
 
-    override fun map(row: CsvRow<MpdCountryColumn>, rawLine: String): RowMappingResult<MpdCountry> {
+    override fun map(row: CsvRow<MpdCompositionFlagColumn>, rawLine: String): RowMappingResult<MpdCompositionFlag> {
 
         /* ---------- mandatory attributes ---------- */
-        val code = row[MpdCountryColumn.CODE].safeTrim()
+        val code = row[MpdCompositionFlagColumn.CODE].safeTrim()
             ?: return RowMappingResult.Failure(
-                RowFailure(FailureReason.MISSING_ATTRIBUTE, MpdCountryColumn.CODE.name, rawLine)
+                RowFailure(FailureReason.MISSING_ATTRIBUTE, MpdCompositionFlagColumn.CODE.name, rawLine)
             )
 
         /* ---------- optional attributes ---------- */
-        val name = row[MpdCountryColumn.NAME].safeTrim()
-        val nameEn = row[MpdCountryColumn.NAME_EN].safeTrim()
-        val edqmCode = row[MpdCountryColumn.EDQM_CODE].safeTrim()
+        val meaning = row[MpdCompositionFlagColumn.MEANING].safeTrim()
 
         /* ---------- entity construction ---------- */
-        val entity = MpdCountry(
+        val entity = MpdCompositionFlag(
             firstSeen = validFrom,
             missingSince = null,
             code = code,
-            name = name,
-            nameEn = nameEn,
-            edqmCode = edqmCode
+            meaning = meaning
         )
 
         return RowMappingResult.Success(entity)
