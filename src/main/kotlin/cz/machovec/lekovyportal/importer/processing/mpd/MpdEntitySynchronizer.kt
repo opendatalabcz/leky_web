@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.importer
+package cz.machovec.lekovyportal.importer.processing.mpd
 
 import cz.machovec.lekovyportal.domain.entity.mpd.BaseMpdEntity
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAttributeChange

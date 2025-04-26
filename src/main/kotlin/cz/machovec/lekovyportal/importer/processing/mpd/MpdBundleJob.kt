@@ -6,43 +6,25 @@ import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdDispenseTypeRepository
-import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
-import cz.machovec.lekovyportal.importer.MpdEntitySynchronizer
-import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
-import cz.machovec.lekovyportal.importer.mapper.DataImportResult
-import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCountryColumn
-import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCountryRowMapper
-import cz.machovec.lekovyportal.importer.mapper.mpd.MpdDispenseTypeColumn
-import cz.machovec.lekovyportal.importer.mapper.mpd.MpdDispenseTypeRowMapper
-import cz.machovec.lekovyportal.importer.mapper.mpd.MpdOrganisationColumn
-import cz.machovec.lekovyportal.importer.mapper.mpd.MpdOrganisationRowMapper
-import cz.machovec.lekovyportal.importer.mapper.toSpec
 import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.time.LocalDate
 import java.time.YearMonth
 
 @Service
 class MpdBundleJob(
     private val processedDatasetRepository: ProcessedDatasetRepository,
-    private val countryRepo: MpdCountryRepository,
-    private val dispenseTypeRepo: MpdDispenseTypeRepository,
-    private val organisationRepository: MpdOrganisationRepository,
+    private val tablesProcessor: MpdTablesProcessor,
     private val csvExtractor: MpdCsvExtractor,
-    private val importer: CsvImporter,
     private val downloader: RemoteFileDownloader,
     private val validityReader: MpdValidityReader,
-    private val referenceDataProvider: MpdReferenceDataProvider,
     private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
-    private val synchronizer: MpdEntitySynchronizer
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -77,67 +59,11 @@ class MpdBundleJob(
     }
 
     private fun processMonth(monthToProcess: YearMonth, csvMap: Map<MpdDatasetType, ByteArray>) {
-        val validFrom = if (monthToProcess < VALIDITY_REQUIRED_SINCE) {
-            monthToProcess.atDay(1)
-        } else {
-            val validityCsv = csvMap[MpdDatasetType.MPD_VALIDITY]
-            if (validityCsv == null) {
-                logger.warn { "Validity CSV file (dlp_platnost.csv) is missing for $monthToProcess – skipping processing." }
-                return
-            }
+        val validFrom = getValidFrom(monthToProcess, csvMap)
 
-            val validity = validityReader.getValidityFromCsv(validityCsv) ?: return
-            validity.validFrom
-        }
-
-        MpdCsvTableRunner(csvMap).run(
-            listOf(
-                MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_COUNTRY) { bytes ->
-                    val importResult = importer.import(
-                        bytes,
-                        MpdCountryColumn.entries.map { it.toSpec() },
-                        MpdCountryRowMapper(validFrom)
-                    )
-                    logImportSummary(MpdDatasetType.MPD_COUNTRY, importResult)
-
-                    synchronizer.sync(
-                        validFrom = validFrom,
-                        dataset   = MpdDatasetType.MPD_COUNTRY,
-                        records   = importResult.successes,
-                        repo      = countryRepo
-                    )
-                },
-                MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_DISPENSE_TYPE) { bytes ->
-                    val importResult = importer.import(
-                        bytes,
-                        MpdDispenseTypeColumn.entries.map { it.toSpec() },
-                        MpdDispenseTypeRowMapper(validFrom)
-                    )
-                    logImportSummary(MpdDatasetType.MPD_DISPENSE_TYPE, importResult)
-
-                    synchronizer.sync(
-                        validFrom = validFrom,
-                        dataset   = MpdDatasetType.MPD_DISPENSE_TYPE,
-                        records   = importResult.successes,
-                        repo      = dispenseTypeRepo
-                    )
-                },
-                MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_ORGANISATION) { bytes ->
-                    val importResult = importer.import(
-                        bytes,
-                        MpdOrganisationColumn.entries.map { it.toSpec() },
-                        MpdOrganisationRowMapper(validFrom, referenceDataProvider)
-                    )
-                    logImportSummary(MpdDatasetType.MPD_ORGANISATION, importResult)
-
-                    synchronizer.sync(
-                        validFrom = validFrom,
-                        dataset   = MpdDatasetType.MPD_ORGANISATION,
-                        records   = importResult.successes,
-                        repo      = organisationRepository
-                    )
-                }
-            )
+        tablesProcessor.processTables(
+            csvMap = csvMap,
+            validFrom = validFrom,
         )
 
         processedDatasetRepository.save(
@@ -149,31 +75,17 @@ class MpdBundleJob(
         )
     }
 
-    private fun <T> logImportSummary(datasetType: MpdDatasetType, result: DataImportResult<T>) {
-        if (result.failures.isEmpty()) {
-            logger.info { "Import of $datasetType completed successfully (${result.successes.size}/${result.totalRows} rows)." }
-            return
-        }
+    private fun getValidFrom(monthToProcess: YearMonth, csvMap: Map<MpdDatasetType, ByteArray>): LocalDate {
+        return if (monthToProcess < VALIDITY_REQUIRED_SINCE) {
+            monthToProcess.atDay(1)
+        } else {
+            val validityCsv = csvMap[MpdDatasetType.MPD_VALIDITY]
+                ?: throw IllegalStateException("Validity CSV (dlp_platnost.csv) is missing for $monthToProcess")
 
-        logger.warn {
-            val reasonSummary = result.failuresByReason()
-                .entries
-                .joinToString { "${it.key}: ${it.value}" }
+            val validity = validityReader.getValidityFromCsv(validityCsv)
+                ?: throw IllegalStateException("Unable to parse validFrom from dlp_platnost.csv for $monthToProcess")
 
-            val detailedSummary = result.failuresByReasonAndColumn()
-                .entries
-                .joinToString { (reasonAndColumn, count) ->
-                    val (reason, column) = reasonAndColumn
-                    "$reason in column '$column': $count"
-                }
-
-            """
-        Import of $datasetType completed with errors:
-          - Success: ${result.successes.size}/${result.totalRows}
-          - Failures by reason: $reasonSummary
-          - Failures by reason and column:
-            $detailedSummary
-        """.trimIndent()
+            validity.validFrom
         }
     }
 }
