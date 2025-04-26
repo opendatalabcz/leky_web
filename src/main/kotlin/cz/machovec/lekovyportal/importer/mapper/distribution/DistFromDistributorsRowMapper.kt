@@ -4,45 +4,61 @@ import cz.machovec.lekovyportal.domain.entity.distribution.DistFromDistributors
 import cz.machovec.lekovyportal.domain.entity.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.domain.entity.distribution.MovementType
 import cz.machovec.lekovyportal.importer.columns.distribution.DistDistributorCsvColumn
+import cz.machovec.lekovyportal.importer.mapper.BaseRefRowMapper
 import cz.machovec.lekovyportal.importer.mapper.CsvRow
-import cz.machovec.lekovyportal.importer.mapper.RowMapper
+import cz.machovec.lekovyportal.importer.mapper.FailureReason
+import cz.machovec.lekovyportal.importer.mapper.RowFailure
+import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
 import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 
+
 class DistFromDistributorsRowMapper(
-    private val referenceDataProvider: MpdReferenceDataProvider
-) : RowMapper<DistDistributorCsvColumn, DistFromDistributors> {
+    ref: MpdReferenceDataProvider
+) : BaseRefRowMapper<DistDistributorCsvColumn, DistFromDistributors>(ref) {
 
-    override fun map(row: CsvRow<DistDistributorCsvColumn>): DistFromDistributors? {
-        try {
-            val period = row[DistDistributorCsvColumn.PERIOD] ?: return null
-            val year = period.substringBefore('.').toIntOrNull() ?: return null
-            val month = period.substringAfter('.').toIntOrNull() ?: return null
+    override fun map(row: CsvRow<DistDistributorCsvColumn>, rawLine: String): RowMappingResult<DistFromDistributors> {
 
-            val purchaserType = DistributorPurchaserType.fromInput(row[DistDistributorCsvColumn.PURCHASER_TYPE] ?: return null)
-                ?: return null
+        /* ---------- mandatory attributes ---------- */
+        val period = row[DistDistributorCsvColumn.PERIOD]
+            ?.takeIf { it.isNotBlank() }
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.MISSING_ATTRIBUTE, DistDistributorCsvColumn.PERIOD.name, rawLine))
 
-            val suklCode = row[DistDistributorCsvColumn.SUKL_CODE]?.padStart(7, '0') ?: return null
-            val medicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
-                ?: return null
+        val year = period.substringBefore('.').toIntOrNull()
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.PARSE_ERROR, DistDistributorCsvColumn.PERIOD.name, rawLine))
 
-            val movementType = MovementType.fromInput(row[DistDistributorCsvColumn.MOVEMENT_TYPE] ?: return null)
-                ?: return null
+        val month = period.substringAfter('.').toIntOrNull()
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.PARSE_ERROR, DistDistributorCsvColumn.PERIOD.name, rawLine))
 
-            val packageCount = row[DistDistributorCsvColumn.PACKAGE_COUNT]
-                ?.replace(",", ".")
-                ?.toDoubleOrNull()
-                ?.toInt() ?: return null
+        val purchaserType = row[DistDistributorCsvColumn.PURCHASER_TYPE]
+            ?.let { DistributorPurchaserType.fromInput(it) }
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.UNKNOWN_REFERENCE, DistDistributorCsvColumn.PURCHASER_TYPE.name, rawLine))
 
-            return DistFromDistributors(
-                year = year,
-                month = month,
-                purchaserType = purchaserType,
-                medicinalProduct = medicinalProduct,
-                movementType = movementType,
-                packageCount = packageCount
-            )
-        } catch (e: Exception) {
-            return null
-        }
+        val suklCode = row[DistDistributorCsvColumn.SUKL_CODE]
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.MISSING_ATTRIBUTE, DistDistributorCsvColumn.SUKL_CODE.name, rawLine))
+
+        val medicinalProduct = product(suklCode)
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.UNKNOWN_REFERENCE, DistDistributorCsvColumn.SUKL_CODE.name, rawLine))
+
+        val movementType = row[DistDistributorCsvColumn.MOVEMENT_TYPE]
+            ?.let { MovementType.fromInput(it) }
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.UNKNOWN_REFERENCE, DistDistributorCsvColumn.MOVEMENT_TYPE.name, rawLine))
+
+        val packageCount = row[DistDistributorCsvColumn.PACKAGE_COUNT]
+            ?.replace(",", ".")
+            ?.toDoubleOrNull()
+            ?.toInt()
+            ?: return RowMappingResult.Failure(RowFailure(FailureReason.PARSE_ERROR, DistDistributorCsvColumn.PACKAGE_COUNT.name, rawLine))
+
+        /* ---------- entity construction ---------- */
+        val entity = DistFromDistributors(
+            year = year,
+            month = month,
+            purchaserType = purchaserType,
+            medicinalProduct = medicinalProduct,
+            movementType = movementType,
+            packageCount = packageCount
+        )
+
+        return RowMappingResult.Success(entity)
     }
 }

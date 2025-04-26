@@ -4,6 +4,9 @@ import cz.machovec.lekovyportal.domain.entity.mpd.MpdCountry
 import cz.machovec.lekovyportal.importer.mapper.BaseSimpleRowMapper
 import cz.machovec.lekovyportal.importer.mapper.ColumnAlias
 import cz.machovec.lekovyportal.importer.mapper.CsvRow
+import cz.machovec.lekovyportal.importer.mapper.FailureReason
+import cz.machovec.lekovyportal.importer.mapper.RowFailure
+import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
 import java.time.LocalDate
 
 enum class MpdCountryColumn(
@@ -20,24 +23,29 @@ class MpdCountryRowMapper(
     private val validFrom: LocalDate
 ) : BaseSimpleRowMapper<MpdCountryColumn, MpdCountry>() {
 
-    override fun map(row: CsvRow<MpdCountryColumn>): MpdCountry? {
+    override fun map(row: CsvRow<MpdCountryColumn>, rawLine: String): RowMappingResult<MpdCountry> {
 
         /* ---------- mandatory attributes ---------- */
-        val code = row[MpdCountryColumn.CODE].safeTrim() ?: return null
+        val code = row[MpdCountryColumn.CODE].safeTrim()
+            ?: return RowMappingResult.Failure(
+                RowFailure(FailureReason.MISSING_ATTRIBUTE, MpdCountryColumn.CODE.name, rawLine)
+            )
 
         /* ---------- optional attributes ---------- */
-        val name    = row[MpdCountryColumn.NAME].safeTrim()
-        val nameEn  = row[MpdCountryColumn.NAME_EN].safeTrim()
+        val name = row[MpdCountryColumn.NAME].safeTrim()
+        val nameEn = row[MpdCountryColumn.NAME_EN].safeTrim()
         val edqmCode = row[MpdCountryColumn.EDQM_CODE].safeTrim()
 
         /* ---------- entity construction ---------- */
-        return MpdCountry(
-            firstSeen    = validFrom,
+        val entity = MpdCountry(
+            firstSeen = validFrom,
             missingSince = null,
-            code         = code,
-            name         = name,
-            nameEn       = nameEn,
-            edqmCode     = edqmCode
+            code = code,
+            name = name,
+            nameEn = nameEn,
+            edqmCode = edqmCode
         )
+
+        return RowMappingResult.Success(entity)
     }
 }

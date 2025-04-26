@@ -9,6 +9,7 @@ import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.importer.columns.erecept.EreceptCsvColumn
 import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
+import cz.machovec.lekovyportal.importer.mapper.DataImportResult
 import cz.machovec.lekovyportal.importer.mapper.erecept.EreceptRawData
 import cz.machovec.lekovyportal.importer.mapper.erecept.EreceptRawDataRowMapper
 import cz.machovec.lekovyportal.importer.mapper.erecept.toDispenseEntity
@@ -30,7 +31,8 @@ class EreceptBundleJob(
     private val prescriptionRepository: EreceptPrescriptionRepository,
     private val downloader: RemoteFileDownloader,
     private val referenceDataProvider: MpdReferenceDataProvider,
-    private val datasetProcessingEvaluator: DatasetProcessingEvaluator
+    private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
+    private val importer: CsvImporter
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -48,100 +50,46 @@ class EreceptBundleJob(
             ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
         // Step 3 – Extract CSV file (1 file contains all data even for yearly dataset)
-        val csvFile = ZipFileUtils.extractSingleFileByType(zipBytes, FileType.CSV)
+        val csvBytes = ZipFileUtils.extractSingleFileByType(zipBytes, FileType.CSV)
 
         // Step 4 - Process csv file
         if (msg.month != null) {
             if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, msg.month)) return
-            processMonth(msg.datasetType, msg.year, msg.month, csvFile)
+            processMonth(msg.datasetType, msg.year, msg.month, csvBytes)
         } else {
             if (!datasetProcessingEvaluator.canProcessYear(msg.datasetType, msg.year)) return
-            processYear(msg.datasetType, msg.year, csvFile)
+            processYear(msg.datasetType, msg.year, csvBytes)
         }
     }
 
-    private fun processMonth(
-        datasetType: DatasetType,
-        year: Int,
-        month: Int,
-        csvBytes: ByteArray
-    ) {
-        // Step 1 - Map csv rows to data rows
-        val rawDataRows = CsvImporter().import(
+    private fun processMonth(datasetType: DatasetType, year: Int, month: Int, csvBytes: ByteArray) {
+        val importResult = importer.import(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
             EreceptRawDataRowMapper()
         )
+        logImportSummary(datasetType, importResult)
 
-        // Step 2 - Aggregate multiple Prague data rows
-        val finalDataRows = aggregatePrague(rawDataRows, ::aggregationKey)
+        val finalDataRows = aggregatePrague(importResult.successes, ::aggregationKey)
 
-        // Step 3 - Map data rows to entities and persist them
-        when (datasetType) {
-            DatasetType.ERECEPT_DISPENSES -> {
-                val entities = finalDataRows.mapNotNull { it.toDispenseEntity(referenceDataProvider) }
-                persist(entities, datasetType, year, month) {
-                    dispenseRepository.batchInsert(entities)
-                }
-            }
-
-            DatasetType.ERECEPT_PRESCRIPTIONS -> {
-                val entities = finalDataRows.mapNotNull { it.toPrescriptionEntity(referenceDataProvider) }
-                persist(entities, datasetType, year, month) {
-                    prescriptionRepository.batchInsert(entities)
-                }
-            }
-
-            else -> logger.warn { "Unsupported datasetType: ${datasetType}" }
-        }
-
-        processedDatasetRepository.save(
-            ProcessedDataset(
-                datasetType = datasetType,
-                year = year,
-                month = month
-            )
-        )
+        persist(finalDataRows, datasetType, year, month)
     }
 
-    private fun processYear(
-        datasetType: DatasetType,
-        year: Int,
-        csvBytes: ByteArray
-    ) {
-        // Step 1 - Map csv rows to data rows
-        val rawDataRows = CsvImporter().import(
+    private fun processYear(datasetType: DatasetType, year: Int, csvBytes: ByteArray) {
+        val importResult = importer.import(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
             EreceptRawDataRowMapper()
         )
+        logImportSummary(datasetType, importResult)
 
-        // Step 2 - Group data rows by months
-        val groupedByMonth = rawDataRows.groupBy { it.month }
+        val groupedByMonth = importResult.successes.groupBy { it.month }
 
         for ((month, rowsForMonth) in groupedByMonth) {
-            val aggregated = aggregatePrague(rowsForMonth, ::aggregationKey)
-
-            when (datasetType) {
-                DatasetType.ERECEPT_DISPENSES -> {
-                    val entities = aggregated.mapNotNull { it.toDispenseEntity(referenceDataProvider) }
-                    persist(entities, datasetType, year, month) {
-                        dispenseRepository.batchInsert(it)
-                    }
-                }
-
-                DatasetType.ERECEPT_PRESCRIPTIONS -> {
-                    val entities = aggregated.mapNotNull { it.toPrescriptionEntity(referenceDataProvider) }
-                    persist(entities, datasetType, year, month) {
-                        prescriptionRepository.batchInsert(it)
-                    }
-                }
-
-                else -> logger.warn { "Unsupported datasetType: $datasetType" }
-            }
+            val finalDataRows = aggregatePrague(rowsForMonth, ::aggregationKey)
+            persist(finalDataRows, datasetType, year, month)
         }
     }
-
 
     private fun aggregatePrague(
         rows: List<EreceptRawData>,
@@ -164,24 +112,26 @@ class EreceptBundleJob(
                 others += row
             }
         }
-
         return others + pragueMap.values
     }
 
-    private fun <T> persist(
-        records: List<T>,
-        datasetType: DatasetType,
-        year: Int,
-        month: Int,
-        batchInsert: (List<T>) -> Unit
-    ) {
+    private fun persist(records: List<EreceptRawData>, datasetType: DatasetType, year: Int, month: Int) {
         if (records.isEmpty()) {
-            logger.info { "No records to save for $datasetType in $year-$month" }
+            logger.info { "No records to persist for $datasetType in $year-$month" }
             return
         }
 
-        logger.info { "Saving ${records.size} records for $datasetType in $year-$month" }
-        batchInsert(records)
+        when (datasetType) {
+            DatasetType.ERECEPT_DISPENSES -> {
+                val entities = records.mapNotNull { it.toDispenseEntity(referenceDataProvider) }
+                dispenseRepository.batchInsert(entities)
+            }
+            DatasetType.ERECEPT_PRESCRIPTIONS -> {
+                val entities = records.mapNotNull { it.toPrescriptionEntity(referenceDataProvider) }
+                prescriptionRepository.batchInsert(entities)
+            }
+            else -> logger.warn { "Unsupported datasetType: $datasetType" }
+        }
 
         processedDatasetRepository.save(
             ProcessedDataset(
@@ -194,4 +144,32 @@ class EreceptBundleJob(
 
     private fun aggregationKey(row: EreceptRawData): String =
         "${row.districtCode}-${row.year}-${row.month}-${row.suklCode}"
+
+    private fun <T> logImportSummary(datasetType: DatasetType, result: DataImportResult<T>) {
+        if (result.failures.isEmpty()) {
+            logger.info { "Import of $datasetType completed successfully (${result.successes.size}/${result.totalRows} rows)." }
+            return
+        }
+
+        logger.warn {
+            val reasonSummary = result.failuresByReason()
+                .entries
+                .joinToString { "${it.key}: ${it.value}" }
+
+            val detailedSummary = result.failuresByReasonAndColumn()
+                .entries
+                .joinToString { (reasonAndColumn, count) ->
+                    val (reason, column) = reasonAndColumn
+                    "$reason in column '$column': $count"
+                }
+
+            """
+        Import of $datasetType completed with errors:
+          - Success: ${result.successes.size}/${result.totalRows}
+          - Failures by reason: $reasonSummary
+          - Failures by reason and column:
+            $detailedSummary
+        """.trimIndent()
+        }
+    }
 }

@@ -3,77 +3,111 @@ package cz.machovec.lekovyportal.importer.common
 import com.opencsv.CSVParserBuilder
 import com.opencsv.CSVReaderBuilder
 import cz.machovec.lekovyportal.importer.columns.ColumnSpec
+import cz.machovec.lekovyportal.importer.mapper.CsvRow
+import cz.machovec.lekovyportal.importer.mapper.DataImportResult
+import cz.machovec.lekovyportal.importer.mapper.RowFailure
 import cz.machovec.lekovyportal.importer.mapper.RowMapper
+import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import java.nio.charset.Charset
 
-class MissingColumnException(msg: String) : RuntimeException(msg)
-
-/**
- * Generic CSV → entity importer.
- *
- *  • Supports arbitrary column order via {@link ColumnSpec} aliases.
- *  • Performs one-time header indexing; data rows are accessed in O(1).
- *  • Delegates business-level validation/mapping to a supplied {@link RowMapper}.
- *
- * @param charset   character set used by SUKL (default Windows-1250)
- * @param separator column delimiter (default ‘;’)
- */
 @Component
 class CsvImporter(
     private val charset: Charset = Charset.forName("Windows-1250"),
     private val separator: Char = ';'
 ) {
 
+    private val log = KotlinLogging.logger {}
+
     /**
-     * Parses [csvBytes] and maps each data row to an entity of type [T].
+     * Imports a CSV file and maps each data row to a domain entity.
      *
-     * @param specs      list of column definitions (aliases + required flag)
-     * @param rowMapper  converts a logical CsvRow -> domain object
+     * @param csvBytes raw CSV bytes
+     * @param specs column specifications (aliases + required flag)
+     * @param mapper row mapper that converts a CsvRow into a domain object
      *
-     * @return list of successfully mapped entities; invalid / skipped rows are omitted
-     * @throws MissingColumnException if any required column is not present in the header
+     * @return [DataImportResult] containing successes and failures
      */
     fun <E, T> import(
         csvBytes: ByteArray,
         specs: List<ColumnSpec<E>>,
-        rowMapper: RowMapper<E, T>
-    ): List<T> where E : Enum<E> {
+        mapper: RowMapper<E, T>
+    ): DataImportResult<T> where E : Enum<E> {
 
-        /* ---------- 1. parse entire CSV into memory ---------- */
-        val reader = CSVReaderBuilder(csvBytes.inputStream().reader(charset))
-            .withCSVParser(CSVParserBuilder().withSeparator(separator).build())
-            .build()
-        val allLines = reader.readAll()
-        if (allLines.isEmpty()) return emptyList()
+        val (lines, idxMap) = parseCsv(csvBytes, specs)
 
-        /* ---------- 2. build header map: COLUMN_NAME → index ---------- */
-        val header = allLines.first()
-            .mapIndexed { i, h -> h.trim().uppercase() to i }
-            .toMap()
+        val successes = mutableListOf<T>()
+        val failures = mutableListOf<RowFailure>()
 
-        /* ---------- 3. verify presence of required columns ---------- */
-        specs.filter { it.required }.forEach { spec ->
-            if (spec.aliases.none { it.uppercase() in header }) {
-                throw MissingColumnException("Missing required column ${spec.key}")
+        lines.forEach { lineArr ->
+            val rawLine = lineArr.joinToString(separator.toString())
+
+            val logicalRow: CsvRow<E> = idxMap.mapValues { (_, idx) ->
+                lineArr.getOrNull(idx)?.trim()
+            }
+
+            when (val result = mapper.map(logicalRow, rawLine)) {
+                is RowMappingResult.Success -> successes += result.entity
+                is RowMappingResult.Failure -> failures += result.failure
             }
         }
 
-        /* ---------- 4. pre-compute index map for fast access ---------- */
-        val idxMap = specs.associate { spec ->
-            val idx = spec.aliases.firstNotNullOfOrNull { header[it.uppercase()] }
-            spec.key to idx          // idx can be null for optional columns
+        if (failures.isNotEmpty()) {
+            log.info { "CSV import completed – skipped ${failures.size}/${lines.size} rows due to errors." }
         }
 
-        /* ---------- 5. iterate data rows ---------- */
-        val result = mutableListOf<T>()
-        allLines.drop(1).forEach { cols ->
-            // Build logical row: enumKey → trimmed cell value (or null)
-            val row = idxMap.mapValues { (_, idx) -> idx?.let { cols.getOrNull(it)?.trim() } }
-            // Delegate business mapping; only add non-null results
-            rowMapper.map(row)?.let(result::add)
+        return DataImportResult(
+            successes = successes,
+            failures = failures,
+            totalRows = lines.size
+        )
+    }
+
+    /**
+     * Parses the CSV header and builds a column index map.
+     *
+     * @return (list of data lines, index map from enum key to column index)
+     */
+    private fun <E> parseCsv(
+        csvBytes: ByteArray,
+        specs: List<ColumnSpec<E>>
+    ): Pair<List<Array<String>>, Map<E, Int>> where E : Enum<E> {
+
+        val reader = CSVReaderBuilder(csvBytes.inputStream().reader(charset))
+            .withCSVParser(CSVParserBuilder().withSeparator(separator).build())
+            .build()
+
+        val allLines = reader.readAll()
+        if (allLines.isEmpty()) {
+            return Pair(emptyList(), emptyMap())
         }
 
-        return result
+        val header = allLines.first().map { it.trim() }
+        val lines = allLines.drop(1)
+
+        // Validate presence of required columns
+        specs.filter { it.required }.forEach { spec ->
+            val found = spec.aliases.any { alias ->
+                header.any { it.equals(alias, ignoreCase = true) }
+            }
+            if (!found) {
+                throw MissingColumnException("Missing required column: ${spec.key}")
+            }
+        }
+
+        // Build index map for available columns
+        val idxMap = specs.mapNotNull { spec ->
+            val idx = spec.aliases
+                .firstNotNullOfOrNull { alias ->
+                    header.indexOfFirst { it.equals(alias, ignoreCase = true) }
+                        .takeIf { it >= 0 }
+                }
+            idx?.let { spec.key to it }
+        }.toMap()
+
+        return Pair(lines, idxMap)
     }
 }
+
+class MissingColumnException(msg: String) : RuntimeException(msg)

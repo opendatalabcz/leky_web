@@ -13,6 +13,7 @@ import cz.machovec.lekovyportal.importer.columns.distribution.DistMahCsvColumn
 import cz.machovec.lekovyportal.importer.columns.distribution.DistPharmacyCsvColumn
 import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
+import cz.machovec.lekovyportal.importer.mapper.DataImportResult
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistExportFromDistributorsRowMapper
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromDistributorsRowMapper
 import cz.machovec.lekovyportal.importer.mapper.distribution.DistFromMahsRowMapper
@@ -36,7 +37,8 @@ class DistributionBundleJob(
     private val distCsvExtractor: DistCsvExtractor,
     private val downloader: RemoteFileDownloader,
     private val refData: MpdReferenceDataProvider,
-    private val datasetProcessingEvaluator: DatasetProcessingEvaluator
+    private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
+    private val importer: CsvImporter
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -56,47 +58,59 @@ class DistributionBundleJob(
 
             when (msg.datasetType) {
                 DatasetType.DISTRIBUTIONS_FROM_MAHS -> {
-                    val specs = DistMahCsvColumn.entries.map { it.toSpec() }
-                    val mapper = DistFromMahsRowMapper(refData)
-                    val records = CsvImporter().import(csv, specs, mapper)
-                    if (records.isEmpty()) {
-                        logger.info { "No valid records for ${msg.datasetType} in ${msg.year}-$month" }
+                    val importResult = importer.import(
+                        csv,
+                        DistMahCsvColumn.entries.map { it.toSpec() },
+                        DistFromMahsRowMapper(refData)
+                    )
+                    logImportSummary(msg.datasetType, importResult, msg.year, month)
+
+                    if (importResult.successes.isEmpty()) {
                         continue
                     }
-                    mahRepo.saveAll(records)
+                    mahRepo.saveAll(importResult.successes)
                 }
 
                 DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS -> {
-                    val specs = DistDistributorCsvColumn.entries.map { it.toSpec() }
-                    val mapper = DistFromDistributorsRowMapper(refData)
-                    val records = CsvImporter().import(csv, specs, mapper)
-                    if (records.isEmpty()) {
-                        logger.info { "No valid records for ${msg.datasetType} in ${msg.year}-$month" }
+                    val importResult = importer.import(
+                        csv,
+                        DistDistributorCsvColumn.entries.map { it.toSpec() },
+                        DistFromDistributorsRowMapper(refData)
+                    )
+                    logImportSummary(msg.datasetType, importResult, msg.year, month)
+
+                    if (importResult.successes.isEmpty()) {
                         continue
                     }
-                    distRepo.saveAll(records)
+                    distRepo.saveAll(importResult.successes)
                 }
 
                 DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS -> {
-                    val specs = DistDistributorExportCsvColumn.entries.map { it.toSpec() }
-                    val mapper = DistExportFromDistributorsRowMapper(refData)
-                    val records = CsvImporter().import(csv, specs, mapper)
-                    if (records.isEmpty()) {
-                        logger.info { "No valid records for ${msg.datasetType} in ${msg.year}-$month" }
+                    val importResult = importer.import(
+                        csv,
+                        DistDistributorExportCsvColumn.entries.map { it.toSpec() },
+                        DistExportFromDistributorsRowMapper(refData)
+                    )
+                    logImportSummary(msg.datasetType, importResult, msg.year, month)
+
+                    if (importResult.successes.isEmpty()) {
                         continue
                     }
-                    exportRepo.saveAll(records)
+                    exportRepo.saveAll(importResult.successes)
                 }
 
                 DatasetType.DISTRIBUTIONS_FROM_PHARMACIES -> {
-                    val specs = DistPharmacyCsvColumn.entries.map { it.toSpec() }
-                    val mapper = DistFromPharmaciesRowMapper(refData)
-                    val records = CsvImporter().import(csv, specs, mapper)
-                    if (records.isEmpty()) {
-                        logger.info { "No valid records for ${msg.datasetType} in ${msg.year}-$month" }
+                    val importResult = importer.import(
+                        csv,
+                        DistPharmacyCsvColumn.entries.map { it.toSpec() },
+                        DistFromPharmaciesRowMapper(refData)
+                    )
+                    logImportSummary(msg.datasetType, importResult, msg.year, month)
+
+                    if (importResult.successes.isEmpty()) {
                         continue
                     }
-                    pharmacyRepo.saveAll(records)
+                    pharmacyRepo.saveAll(importResult.successes)
                 }
 
                 else -> {
@@ -114,6 +128,34 @@ class DistributionBundleJob(
             )
 
             logger.info { "Dataset ${msg.datasetType} for ${msg.year}-$month marked as processed." }
+        }
+    }
+
+    private fun <T> logImportSummary(datasetType: DatasetType, result: DataImportResult<T>, year: Int, month: Int) {
+        if (result.failures.isEmpty()) {
+            logger.info { "Import of $datasetType completed successfully for $year-$month (${result.successes.size}/${result.totalRows} rows)." }
+            return
+        }
+
+        logger.warn {
+            val reasonSummary = result.failuresByReason()
+                .entries
+                .joinToString { "${it.key}: ${it.value}" }
+
+            val detailedSummary = result.failuresByReasonAndColumn()
+                .entries
+                .joinToString { (reasonAndColumn, count) ->
+                    val (reason, column) = reasonAndColumn
+                    "$reason in column '$column': $count"
+                }
+
+            """
+        Import of $datasetType for $year-$month completed with errors:
+          - Success: ${result.successes.size}/${result.totalRows}
+          - Failures by reason: $reasonSummary
+          - Failures by reason and column:
+            $detailedSummary
+        """.trimIndent()
         }
     }
 }

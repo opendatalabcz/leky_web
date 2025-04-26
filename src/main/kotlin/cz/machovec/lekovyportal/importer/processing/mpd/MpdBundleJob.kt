@@ -12,6 +12,7 @@ import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
 import cz.machovec.lekovyportal.importer.MpdEntitySynchronizer
 import cz.machovec.lekovyportal.importer.common.CsvImporter
 import cz.machovec.lekovyportal.importer.common.RemoteFileDownloader
+import cz.machovec.lekovyportal.importer.mapper.DataImportResult
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCountryColumn
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCountryRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdDispenseTypeColumn
@@ -92,41 +93,47 @@ class MpdBundleJob(
         MpdCsvTableRunner(csvMap).run(
             listOf(
                 MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_COUNTRY) { bytes ->
-                    val rows = importer.import(
+                    val importResult = importer.import(
                         bytes,
                         MpdCountryColumn.entries.map { it.toSpec() },
                         MpdCountryRowMapper(validFrom)
                     )
+                    logImportSummary(MpdDatasetType.MPD_COUNTRY, importResult)
+
                     synchronizer.sync(
                         validFrom = validFrom,
                         dataset   = MpdDatasetType.MPD_COUNTRY,
-                        records   = rows,
+                        records   = importResult.successes,
                         repo      = countryRepo
                     )
                 },
                 MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_DISPENSE_TYPE) { bytes ->
-                    val rows = importer.import(
+                    val importResult = importer.import(
                         bytes,
                         MpdDispenseTypeColumn.entries.map { it.toSpec() },
                         MpdDispenseTypeRowMapper(validFrom)
                     )
+                    logImportSummary(MpdDatasetType.MPD_DISPENSE_TYPE, importResult)
+
                     synchronizer.sync(
                         validFrom = validFrom,
                         dataset   = MpdDatasetType.MPD_DISPENSE_TYPE,
-                        records   = rows,
+                        records   = importResult.successes,
                         repo      = dispenseTypeRepo
                     )
                 },
                 MpdCsvTableRunner.TableStep(MpdDatasetType.MPD_ORGANISATION) { bytes ->
-                    val rows = importer.import(
+                    val importResult = importer.import(
                         bytes,
                         MpdOrganisationColumn.entries.map { it.toSpec() },
                         MpdOrganisationRowMapper(validFrom, referenceDataProvider)
                     )
+                    logImportSummary(MpdDatasetType.MPD_ORGANISATION, importResult)
+
                     synchronizer.sync(
                         validFrom = validFrom,
                         dataset   = MpdDatasetType.MPD_ORGANISATION,
-                        records   = rows,
+                        records   = importResult.successes,
                         repo      = organisationRepository
                     )
                 }
@@ -140,5 +147,33 @@ class MpdBundleJob(
                 month = monthToProcess.monthValue
             )
         )
+    }
+
+    private fun <T> logImportSummary(datasetType: MpdDatasetType, result: DataImportResult<T>) {
+        if (result.failures.isEmpty()) {
+            logger.info { "Import of $datasetType completed successfully (${result.successes.size}/${result.totalRows} rows)." }
+            return
+        }
+
+        logger.warn {
+            val reasonSummary = result.failuresByReason()
+                .entries
+                .joinToString { "${it.key}: ${it.value}" }
+
+            val detailedSummary = result.failuresByReasonAndColumn()
+                .entries
+                .joinToString { (reasonAndColumn, count) ->
+                    val (reason, column) = reasonAndColumn
+                    "$reason in column '$column': $count"
+                }
+
+            """
+        Import of $datasetType completed with errors:
+          - Success: ${result.successes.size}/${result.totalRows}
+          - Failures by reason: $reasonSummary
+          - Failures by reason and column:
+            $detailedSummary
+        """.trimIndent()
+        }
     }
 }
