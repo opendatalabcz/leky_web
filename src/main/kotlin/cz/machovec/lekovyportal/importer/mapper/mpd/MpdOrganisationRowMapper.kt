@@ -24,6 +24,8 @@ class MpdOrganisationRowMapper(
 ) : BaseRefRowMapper<MpdOrganisationColumn, MpdOrganisation>(refProvider) {
 
     override fun map(row: CsvRow<MpdOrganisationColumn>): MpdOrganisation? {
+
+        /* ---------- mandatory attributes ---------- */
         val code = row[MpdOrganisationColumn.CODE].safeTrim() ?: return null
 
         val country = row[MpdOrganisationColumn.COUNTRY]
@@ -31,18 +33,24 @@ class MpdOrganisationRowMapper(
             ?.let { ref.getCountries()[it] }
             ?: return null
 
+        /* ---------- optional attributes ---------- */
+        val name            = row[MpdOrganisationColumn.NAME].safeTrim()
+        val isManufacturer  = row[MpdOrganisationColumn.IS_MANUFACTURER]
+            .safeTrim()
+            ?.equals("V", true)
+        val isMAHolder      = row[MpdOrganisationColumn.IS_MARKETING_AUTH_HOLDER]
+            .safeTrim()
+            ?.equals("D", true)
+
+        /* ---------- entity construction ---------- */
         return MpdOrganisation(
-            firstSeen    = validFrom,
-            missingSince = null,
-            code         = code,
-            country      = country,
-            name         = row[MpdOrganisationColumn.NAME].safeTrim(),
-            isManufacturer               = row[MpdOrganisationColumn.IS_MANUFACTURER]
-                .safeTrim()
-                ?.equals("V", true),
-            isMarketingAuthorizationHolder = row[MpdOrganisationColumn.IS_MARKETING_AUTH_HOLDER]
-                .safeTrim()
-                ?.equals("D", true)
+            firstSeen                      = validFrom,
+            missingSince                   = null,
+            code                           = code,
+            country                        = country,
+            name                           = name,
+            isManufacturer                 = isManufacturer,
+            isMarketingAuthorizationHolder = isMAHolder
         )
     }
 }

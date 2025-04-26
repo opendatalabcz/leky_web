@@ -19,12 +19,19 @@ class MpdDispenseTypeRowMapper(
 ) : BaseSimpleRowMapper<MpdDispenseTypeColumn, MpdDispenseType>() {
 
     override fun map(row: CsvRow<MpdDispenseTypeColumn>): MpdDispenseType? {
+
+        /* ---------- mandatory attributes ---------- */
         val code = row[MpdDispenseTypeColumn.CODE].safeTrim() ?: return null
+
+        /* ---------- optional attributes ---------- */
+        val name = row[MpdDispenseTypeColumn.NAME].safeTrim()
+
+        /* ---------- entity construction ---------- */
         return MpdDispenseType(
             firstSeen    = validFrom,
             missingSince = null,
             code         = code,
-            name         = row[MpdDispenseTypeColumn.NAME].safeTrim()
+            name         = name
         )
     }
 }

@@ -21,15 +21,23 @@ class MpdCountryRowMapper(
 ) : BaseSimpleRowMapper<MpdCountryColumn, MpdCountry>() {
 
     override fun map(row: CsvRow<MpdCountryColumn>): MpdCountry? {
+
+        /* ---------- mandatory attributes ---------- */
         val code = row[MpdCountryColumn.CODE].safeTrim() ?: return null
 
+        /* ---------- optional attributes ---------- */
+        val name    = row[MpdCountryColumn.NAME].safeTrim()
+        val nameEn  = row[MpdCountryColumn.NAME_EN].safeTrim()
+        val edqmCode = row[MpdCountryColumn.EDQM_CODE].safeTrim()
+
+        /* ---------- entity construction ---------- */
         return MpdCountry(
             firstSeen    = validFrom,
             missingSince = null,
             code         = code,
-            name         = row[MpdCountryColumn.NAME].safeTrim(),
-            nameEn       = row[MpdCountryColumn.NAME_EN].safeTrim(),
-            edqmCode     = row[MpdCountryColumn.EDQM_CODE].safeTrim()
+            name         = name,
+            nameEn       = nameEn,
+            edqmCode     = edqmCode
         )
     }
 }
