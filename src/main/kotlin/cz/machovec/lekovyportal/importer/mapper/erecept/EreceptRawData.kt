@@ -1,9 +1,9 @@
 package cz.machovec.lekovyportal.importer.mapper.erecept
 
+import cz.machovec.lekovyportal.domain.entity.District
 import cz.machovec.lekovyportal.domain.entity.EreceptDispense
 import cz.machovec.lekovyportal.domain.entity.EreceptPrescription
-import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProduct
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 
 data class EreceptRawData(
     val districtCode: String,
@@ -14,13 +14,14 @@ data class EreceptRawData(
 )
 
 fun EreceptRawData.toDispenseEntity(
-    referenceDataProvider: MpdReferenceDataProvider
+    mpdReferenceDataProvider: MpdReferenceDataProvider,
+    districtMap: Map<String, District>
 ): EreceptDispense? {
-    val medicinalProduct: MpdMedicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
-        ?: return null
+    val medicinalProduct = mpdReferenceDataProvider.getMedicinalProducts()[suklCode] ?: return null
+    val district = districtMap[districtCode] ?: return null
 
     return EreceptDispense(
-        districtCode = districtCode,
+        district = district,
         year = year,
         month = month,
         medicinalProduct = medicinalProduct,
@@ -29,13 +30,14 @@ fun EreceptRawData.toDispenseEntity(
 }
 
 fun EreceptRawData.toPrescriptionEntity(
-    referenceDataProvider: MpdReferenceDataProvider
+    mpdReferenceDataProvider: MpdReferenceDataProvider,
+    districtMap: Map<String, District>
 ): EreceptPrescription? {
-    val medicinalProduct: MpdMedicinalProduct = referenceDataProvider.getMedicinalProducts()[suklCode]
-        ?: return null
+    val medicinalProduct = mpdReferenceDataProvider.getMedicinalProducts()[suklCode] ?: return null
+    val district = districtMap[districtCode] ?: return null
 
     return EreceptPrescription(
-        districtCode = districtCode,
+        district = district,
         year = year,
         month = month,
         medicinalProduct = medicinalProduct,

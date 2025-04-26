@@ -1,7 +1,7 @@
 package cz.machovec.lekovyportal.importer.mapper
 
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdMedicinalProduct
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 
 /**
  * Extends [BaseSimpleRowMapper] with helpers that need

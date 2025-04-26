@@ -9,7 +9,7 @@ import cz.machovec.lekovyportal.importer.mapper.CsvRow
 import cz.machovec.lekovyportal.importer.mapper.FailureReason
 import cz.machovec.lekovyportal.importer.mapper.RowFailure
 import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 
 enum class DistMahCsvColumn(
     override val aliases: List<String>,

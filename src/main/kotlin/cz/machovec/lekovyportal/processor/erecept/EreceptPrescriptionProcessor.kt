@@ -4,7 +4,7 @@ import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.EreceptPrescription
 import cz.machovec.lekovyportal.domain.repository.EreceptPrescriptionRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 import org.springframework.stereotype.Service
 
 @Service

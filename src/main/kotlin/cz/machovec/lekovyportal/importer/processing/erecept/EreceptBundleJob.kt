@@ -1,6 +1,7 @@
 package cz.machovec.lekovyportal.importer.processing.erecept
 
 import cz.machovec.lekovyportal.domain.entity.DatasetType
+import cz.machovec.lekovyportal.domain.entity.District
 import cz.machovec.lekovyportal.domain.entity.FileType
 import cz.machovec.lekovyportal.domain.entity.ProcessedDataset
 import cz.machovec.lekovyportal.domain.repository.EreceptDispenseRepository
@@ -16,9 +17,10 @@ import cz.machovec.lekovyportal.importer.mapper.erecept.toDispenseEntity
 import cz.machovec.lekovyportal.importer.mapper.erecept.toPrescriptionEntity
 import cz.machovec.lekovyportal.importer.mapper.toSpec
 import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
+import cz.machovec.lekovyportal.importer.processing.distribution.DistrictReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
 import cz.machovec.lekovyportal.utils.ZipFileUtils
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
@@ -31,7 +33,8 @@ class EreceptBundleJob(
     private val dispenseRepository: EreceptDispenseRepository,
     private val prescriptionRepository: EreceptPrescriptionRepository,
     private val downloader: RemoteFileDownloader,
-    private val referenceDataProvider: MpdReferenceDataProvider,
+    private val mpdReferenceDataProvider: MpdReferenceDataProvider,
+    private val districtReferenceDataProvider: DistrictReferenceDataProvider,
     private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
     private val importer: CsvImporter
 ) : DatasetProcessor {
@@ -40,7 +43,6 @@ class EreceptBundleJob(
 
     @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
-        // Step 1 – Validate that the file type is ZIP before proceeding
         if (msg.fileType != FileType.ZIP) {
             logger.warn { "Skipping non-ZIP file type: ${msg.fileType} for dataset ${msg.datasetType}" }
             return
@@ -53,17 +55,19 @@ class EreceptBundleJob(
         // Step 3 – Extract CSV file (1 file contains all data even for yearly dataset)
         val csvBytes = ZipFileUtils.extractSingleFileByType(zipBytes, FileType.CSV)
 
+        val districtMap = districtReferenceDataProvider.getDistrictMap()
+
         // Step 4 - Process csv file
         if (msg.month != null) {
             if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, msg.month)) return
-            processMonth(msg.datasetType, msg.year, msg.month, csvBytes)
+            processMonth(msg.datasetType, msg.year, msg.month, csvBytes, districtMap)
         } else {
             if (!datasetProcessingEvaluator.canProcessYear(msg.datasetType, msg.year)) return
-            processYear(msg.datasetType, msg.year, csvBytes)
+            processYear(msg.datasetType, msg.year, csvBytes, districtMap)
         }
     }
 
-    private fun processMonth(datasetType: DatasetType, year: Int, month: Int, csvBytes: ByteArray) {
+    private fun processMonth(datasetType: DatasetType, year: Int, month: Int, csvBytes: ByteArray, districtMap: Map<String, District>) {
         val importResult = importer.import(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
@@ -73,10 +77,10 @@ class EreceptBundleJob(
 
         val finalDataRows = aggregatePrague(importResult.successes, ::aggregationKey)
 
-        persist(finalDataRows, datasetType, year, month)
+        persist(finalDataRows, datasetType, year, month, districtMap)
     }
 
-    private fun processYear(datasetType: DatasetType, year: Int, csvBytes: ByteArray) {
+    private fun processYear(datasetType: DatasetType, year: Int, csvBytes: ByteArray, districtMap: Map<String, District>) {
         val importResult = importer.import(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
@@ -88,14 +92,11 @@ class EreceptBundleJob(
 
         for ((month, rowsForMonth) in groupedByMonth) {
             val finalDataRows = aggregatePrague(rowsForMonth, ::aggregationKey)
-            persist(finalDataRows, datasetType, year, month)
+            persist(finalDataRows, datasetType, year, month, districtMap)
         }
     }
 
-    private fun aggregatePrague(
-        rows: List<EreceptRawData>,
-        keyExtractor: (EreceptRawData) -> String
-    ): List<EreceptRawData> {
+    private fun aggregatePrague(rows: List<EreceptRawData>, keyExtractor: (EreceptRawData) -> String): List<EreceptRawData> {
         val PRAGUE_CODE = "3100"
         val pragueMap = mutableMapOf<String, EreceptRawData>()
         val others = mutableListOf<EreceptRawData>()
@@ -116,7 +117,7 @@ class EreceptBundleJob(
         return others + pragueMap.values
     }
 
-    private fun persist(records: List<EreceptRawData>, datasetType: DatasetType, year: Int, month: Int) {
+    private fun persist(records: List<EreceptRawData>, datasetType: DatasetType, year: Int, month: Int, districtMap: Map<String, District>) {
         if (records.isEmpty()) {
             logger.info { "No records to persist for $datasetType in $year-$month" }
             return
@@ -124,11 +125,11 @@ class EreceptBundleJob(
 
         when (datasetType) {
             DatasetType.ERECEPT_DISPENSES -> {
-                val entities = records.mapNotNull { it.toDispenseEntity(referenceDataProvider) }
+                val entities = records.mapNotNull { it.toDispenseEntity(mpdReferenceDataProvider, districtMap) }
                 dispenseRepository.batchInsert(entities)
             }
             DatasetType.ERECEPT_PRESCRIPTIONS -> {
-                val entities = records.mapNotNull { it.toPrescriptionEntity(referenceDataProvider) }
+                val entities = records.mapNotNull { it.toPrescriptionEntity(mpdReferenceDataProvider, districtMap) }
                 prescriptionRepository.batchInsert(entities)
             }
             else -> logger.warn { "Unsupported datasetType: $datasetType" }

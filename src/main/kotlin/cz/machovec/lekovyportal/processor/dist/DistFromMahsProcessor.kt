@@ -8,7 +8,7 @@ import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.domain.repository.dist.DistFromMahsRepository
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

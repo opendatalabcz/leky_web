@@ -22,7 +22,7 @@ import cz.machovec.lekovyportal.importer.mapper.toSpec
 import cz.machovec.lekovyportal.importer.processing.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.DatasetToProcessMessage
 import cz.machovec.lekovyportal.processor.DatasetProcessor
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

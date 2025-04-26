@@ -25,6 +25,7 @@ class MpdBundleJob(
     private val downloader: RemoteFileDownloader,
     private val validityReader: MpdValidityReader,
     private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
+    private val referenceDataProvider: MpdReferenceDataProvider
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
@@ -73,6 +74,8 @@ class MpdBundleJob(
                 month = monthToProcess.monthValue
             )
         )
+
+        referenceDataProvider.clearCache()
     }
 
     private fun getValidFrom(monthToProcess: YearMonth, csvMap: Map<MpdDatasetType, ByteArray>): LocalDate {
