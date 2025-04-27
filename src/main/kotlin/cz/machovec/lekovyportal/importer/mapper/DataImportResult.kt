@@ -36,5 +36,6 @@ enum class FailureReason {
     MISSING_ATTRIBUTE,
     UNKNOWN_REFERENCE,
     DUPLICATE_KEY,
-    PARSE_ERROR
+    PARSE_ERROR,
+    INVALID_FORMAT
 }

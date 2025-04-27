@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.importer.mapper.CsvRow
 import cz.machovec.lekovyportal.importer.mapper.FailureReason
 import cz.machovec.lekovyportal.importer.mapper.RowFailure
 import cz.machovec.lekovyportal.importer.mapper.RowMappingResult
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -30,43 +31,85 @@ enum class MpdCancelledRegistrationColumn(
 }
 
 class MpdCancelledRegistrationRowMapper(
-    private val validFrom: LocalDate
+    private val validFrom: LocalDate,
+    private val refProvider: MpdReferenceDataProvider
 ) : BaseSimpleRowMapper<MpdCancelledRegistrationColumn, MpdCancelledRegistration>() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
     override fun map(row: CsvRow<MpdCancelledRegistrationColumn>, rawLine: String): RowMappingResult<MpdCancelledRegistration> {
 
+        /* ---------- mandatory attributes ---------- */
         val registrationNumber = row[MpdCancelledRegistrationColumn.REGISTRATION_NUMBER].safeTrim()
             ?: return RowMappingResult.Failure(
                 RowFailure(FailureReason.MISSING_ATTRIBUTE, MpdCancelledRegistrationColumn.REGISTRATION_NUMBER.name, rawLine)
             )
 
+        /* ---------- optional attributes ---------- */
+        val name = row[MpdCancelledRegistrationColumn.NAME].safeTrim()
+
+        val administrationRoute = row[MpdCancelledRegistrationColumn.ADMINISTRATION_ROUTE]
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { refProvider.getAdministrationRoutes()[it] }
+
+        val dosageForm = row[MpdCancelledRegistrationColumn.DOSAGE_FORM]
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { refProvider.getDosageForms()[it] }
+
+        val strength = row[MpdCancelledRegistrationColumn.STRENGTH].safeTrim()
+
+        val parallelImportId = row[MpdCancelledRegistrationColumn.PARALLEL_IMPORT_ID].safeTrim()
+        val mrpNumber = row[MpdCancelledRegistrationColumn.MRP_NUMBER].safeTrim()
+
+        val registrationProcess = row[MpdCancelledRegistrationColumn.REGISTRATION_PROCESS]
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { refProvider.getRegistrationProcesses()[it] }
+
+        val registrationLegalBasis = row[MpdCancelledRegistrationColumn.REGISTRATION_LEGAL_BASIS].safeTrim()
+
+        val mahCode = row[MpdCancelledRegistrationColumn.MAH_CODE].safeTrim()
+        val mahCountryCode = row[MpdCancelledRegistrationColumn.MAH_COUNTRY_CODE].safeTrim()
+        val marketingAuthorizationHolder = if (!mahCode.isNullOrBlank() && !mahCountryCode.isNullOrBlank()) {
+            refProvider.getOrganisations()[mahCode to mahCountryCode]
+        } else null
+
+        val registrationEndDate = row[MpdCancelledRegistrationColumn.REGISTRATION_END_DATE]
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { parseDate(it) }
+
+        val registrationStatus = row[MpdCancelledRegistrationColumn.REGISTRATION_STATUS]
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { refProvider.getRegistrationStatuses()[it] }
+
+        /* ---------- entity construction ---------- */
         val entity = MpdCancelledRegistration(
             firstSeen = validFrom,
             missingSince = null,
             registrationNumber = registrationNumber,
-            name = row[MpdCancelledRegistrationColumn.NAME].safeTrim(),
-            administrationRouteCode = row[MpdCancelledRegistrationColumn.ADMINISTRATION_ROUTE].safeTrim(),
-            dosageFormCode = row[MpdCancelledRegistrationColumn.DOSAGE_FORM].safeTrim(),
-            strength = row[MpdCancelledRegistrationColumn.STRENGTH].safeTrim(),
-            parallelImportId = row[MpdCancelledRegistrationColumn.PARALLEL_IMPORT_ID].safeTrim(),
-            mrpNumber = row[MpdCancelledRegistrationColumn.MRP_NUMBER].safeTrim(),
-            registrationProcessCode = row[MpdCancelledRegistrationColumn.REGISTRATION_PROCESS].safeTrim(),
-            registrationLegalBasis = row[MpdCancelledRegistrationColumn.REGISTRATION_LEGAL_BASIS].safeTrim(),
-            mahCode = row[MpdCancelledRegistrationColumn.MAH_CODE].safeTrim(),
-            mahCountryCode = row[MpdCancelledRegistrationColumn.MAH_COUNTRY_CODE].safeTrim(),
-            registrationEndDate = parseDate(row[MpdCancelledRegistrationColumn.REGISTRATION_END_DATE]),
-            registrationStatusCode = row[MpdCancelledRegistrationColumn.REGISTRATION_STATUS].safeTrim()
+            name = name,
+            administrationRoute = administrationRoute,
+            dosageForm = dosageForm,
+            strength = strength,
+            parallelImportId = parallelImportId,
+            mrpNumber = mrpNumber,
+            registrationProcess = registrationProcess,
+            registrationLegalBasis = registrationLegalBasis,
+            marketingAuthorizationHolder = marketingAuthorizationHolder,
+            registrationEndDate = registrationEndDate,
+            registrationStatus = registrationStatus
         )
 
         return RowMappingResult.Success(entity)
     }
 
-    private fun parseDate(raw: String?): LocalDate? {
-        if (raw.isNullOrBlank()) return null
+    private fun parseDate(value: String): LocalDate? {
         return try {
-            LocalDate.parse(raw, dateFormatter)
+            LocalDate.parse(value, dateFormatter)
         } catch (e: Exception) {
             null
         }

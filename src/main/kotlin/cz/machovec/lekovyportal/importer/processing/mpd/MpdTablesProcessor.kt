@@ -1,11 +1,13 @@
 package cz.machovec.lekovyportal.importer.processing.mpd
 
+import MpdRegistrationExceptionRowMapper
 import cz.machovec.lekovyportal.domain.entity.mpd.BaseMpdEntity
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdActiveSubstanceRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAddictionCategoryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAdministrationRouteRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAtcGroupRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdCancelledRegistrationRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCompositionFlagRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdCountryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdDispenseTypeRepository
@@ -14,8 +16,11 @@ import cz.machovec.lekovyportal.domain.repository.mpd.MpdDosageFormRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdGovernmentRegulationCategoryRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdIndicationGroupRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdMeasurementUnitRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdMedicinalProductRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdMedicinalProductSubstanceRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdOrganisationRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdPackageTypeRepository
+import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationExceptionRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationProcessRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdRegistrationStatusRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdSourceRepository
@@ -31,6 +36,8 @@ import cz.machovec.lekovyportal.importer.mapper.mpd.MpdAdministrationRouteColumn
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdAdministrationRouteRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdAtcGroupColumn
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdAtcGroupRowMapper
+import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCancelledRegistrationColumn
+import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCancelledRegistrationRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCompositionFlagColumn
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCompositionFlagRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdCountryColumn
@@ -47,6 +54,10 @@ import cz.machovec.lekovyportal.importer.mapper.mpd.MpdIndicationGroupColumn
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdIndicationGroupRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdMeasurementUnitColumn
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdMeasurementUnitRowMapper
+import cz.machovec.lekovyportal.importer.mapper.mpd.MpdMedicinalProductColumn
+import cz.machovec.lekovyportal.importer.mapper.mpd.MpdMedicinalProductRowMapper
+import cz.machovec.lekovyportal.importer.mapper.mpd.MpdMedicinalProductSubstanceColumn
+import cz.machovec.lekovyportal.importer.mapper.mpd.MpdMedicinalProductSubstanceRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdOrganisationColumn
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdOrganisationRowMapper
 import cz.machovec.lekovyportal.importer.mapper.mpd.MpdPackageTypeColumn
@@ -89,6 +100,10 @@ class MpdTablesProcessor(
     private val activeSubstanceRepo: MpdActiveSubstanceRepository,
     private val substanceRepo: MpdSubstanceRepository,
     private val substanceSynonymRepo: MpdSubstanceSynonymRepository,
+    private val medicinalProductRepo: MpdMedicinalProductRepository,
+    private val registrationExceptionRepo: MpdRegistrationExceptionRepository,
+    private val cancelledRegistrationRepo: MpdCancelledRegistrationRepository,
+    private val medicinalProductSubstanceRepo: MpdMedicinalProductSubstanceRepository,
     private val refProvider: MpdReferenceDataProvider
 ) {
 
@@ -367,6 +382,63 @@ class MpdTablesProcessor(
             val records = deduplicateByUniqueKey(synonymResult.successes, MpdDatasetType.MPD_SUBSTANCE_SYNONYM.name)
             synchronizer.sync(validFrom, MpdDatasetType.MPD_SUBSTANCE_SYNONYM, records, substanceSynonymRepo)
         }
+
+        /* ------------ MPD_MEDICINAL_PRODUCT ------------ */
+        val medicinalProductCsv = csvMap[MpdDatasetType.MPD_MEDICINAL_PRODUCT]
+            ?: throw MissingCsvFileException(MpdDatasetType.MPD_MEDICINAL_PRODUCT)
+        val medicinalProductResult = importer.import(
+            medicinalProductCsv,
+            MpdMedicinalProductColumn.entries.map { it.toSpec() },
+            MpdMedicinalProductRowMapper(validFrom, refProvider)
+        )
+        logImportSummary(MpdDatasetType.MPD_MEDICINAL_PRODUCT, medicinalProductResult)
+        if (medicinalProductResult.successes.isNotEmpty()) {
+            val records = deduplicateByUniqueKey(medicinalProductResult.successes, MpdDatasetType.MPD_MEDICINAL_PRODUCT.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_MEDICINAL_PRODUCT, records, medicinalProductRepo)
+        }
+
+        /* ------------ MPD_REGISTRATION_EXCEPTION ------------ */
+        val registrationExceptionCsv = csvMap[MpdDatasetType.MPD_REGISTRATION_EXCEPTION]
+            ?: throw MissingCsvFileException(MpdDatasetType.MPD_REGISTRATION_EXCEPTION)
+        val registrationExceptionResult = importer.import(
+            registrationExceptionCsv,
+            MpdRegistrationExceptionColumn.entries.map { it.toSpec() },
+            MpdRegistrationExceptionRowMapper(validFrom, refProvider)
+        )
+        logImportSummary(MpdDatasetType.MPD_REGISTRATION_EXCEPTION, registrationExceptionResult)
+        if (registrationExceptionResult.successes.isNotEmpty()) {
+            val records = deduplicateByUniqueKey(registrationExceptionResult.successes, MpdDatasetType.MPD_REGISTRATION_EXCEPTION.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_REGISTRATION_EXCEPTION, records, registrationExceptionRepo)
+        }
+
+        /* ------------ MPD_CANCELLED_REGISTRATION ------------ */
+        val cancelledRegistrationCsv = csvMap[MpdDatasetType.MPD_CANCELLED_REGISTRATION]
+            ?: throw MissingCsvFileException(MpdDatasetType.MPD_CANCELLED_REGISTRATION)
+        val cancelledRegistrationResult = importer.import(
+            cancelledRegistrationCsv,
+            MpdCancelledRegistrationColumn.entries.map { it.toSpec() },
+            MpdCancelledRegistrationRowMapper(validFrom, refProvider)
+        )
+        logImportSummary(MpdDatasetType.MPD_CANCELLED_REGISTRATION, cancelledRegistrationResult)
+        if (cancelledRegistrationResult.successes.isNotEmpty()) {
+            val records = deduplicateByUniqueKey(cancelledRegistrationResult.successes, MpdDatasetType.MPD_CANCELLED_REGISTRATION.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_CANCELLED_REGISTRATION, records, cancelledRegistrationRepo)
+        }
+
+        /* ------------ MPD_MEDICINAL_PRODUCT_SUBSTANCE ------------ */
+        val medicinalProductSubstanceCsv = csvMap[MpdDatasetType.MPD_MEDICINAL_PRODUCT_SUBSTANCE]
+            ?: throw MissingCsvFileException(MpdDatasetType.MPD_MEDICINAL_PRODUCT_SUBSTANCE)
+        val medicinalProductSubstanceResult = importer.import(
+            medicinalProductSubstanceCsv,
+            MpdMedicinalProductSubstanceColumn.entries.map { it.toSpec() },
+            MpdMedicinalProductSubstanceRowMapper(validFrom, refProvider)
+        )
+        logImportSummary(MpdDatasetType.MPD_MEDICINAL_PRODUCT_SUBSTANCE, medicinalProductSubstanceResult)
+        if (medicinalProductSubstanceResult.successes.isNotEmpty()) {
+            val records = deduplicateByUniqueKey(medicinalProductSubstanceResult.successes, MpdDatasetType.MPD_MEDICINAL_PRODUCT_SUBSTANCE.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_MEDICINAL_PRODUCT_SUBSTANCE, records, medicinalProductSubstanceRepo)
+        }
+
     }
 
     private fun <T> logImportSummary(datasetType: MpdDatasetType, result: DataImportResult<T>) {
