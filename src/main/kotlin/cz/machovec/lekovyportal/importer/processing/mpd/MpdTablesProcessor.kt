@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.importer.processing.mpd
 
+import cz.machovec.lekovyportal.domain.entity.mpd.BaseMpdEntity
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdDatasetType
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdActiveSubstanceRepository
 import cz.machovec.lekovyportal.domain.repository.mpd.MpdAddictionCategoryRepository
@@ -111,7 +112,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_COUNTRY, countryResult)
         if (countryResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_COUNTRY, countryResult.successes, countryRepo)
+            val records = deduplicateByUniqueKey(countryResult.successes, MpdDatasetType.MPD_COUNTRY.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_COUNTRY, records, countryRepo)
         }
 
         /* ------------ MPD_ADDICTION_CATEGORY ------------ */
@@ -124,7 +126,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_ADDICTION_CATEGORY, addictionResult)
         if (addictionResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_ADDICTION_CATEGORY, addictionResult.successes, addictionCategoryRepo)
+            val records = deduplicateByUniqueKey(addictionResult.successes, MpdDatasetType.MPD_ADDICTION_CATEGORY.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_ADDICTION_CATEGORY, records, addictionCategoryRepo)
         }
 
         /* ------------ MPD_DOPING_CATEGORY ------------ */
@@ -137,7 +140,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_DOPING_CATEGORY, dopingResult)
         if (dopingResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_DOPING_CATEGORY, dopingResult.successes, dopingCategoryRepo)
+            val records = deduplicateByUniqueKey(dopingResult.successes, MpdDatasetType.MPD_DOPING_CATEGORY.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_DOPING_CATEGORY, records, dopingCategoryRepo)
         }
 
         /* ------------ MPD_GOVERNMENT_REGULATION_CATEGORY ------------ */
@@ -150,7 +154,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_GOVERNMENT_REGULATION_CATEGORY, govRegResult)
         if (govRegResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_GOVERNMENT_REGULATION_CATEGORY, govRegResult.successes, governmentRegulationCategoryRepo)
+            val records = deduplicateByUniqueKey(govRegResult.successes, MpdDatasetType.MPD_GOVERNMENT_REGULATION_CATEGORY.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_GOVERNMENT_REGULATION_CATEGORY, records, governmentRegulationCategoryRepo)
         }
 
         /* ------------ MPD_SOURCE ------------ */
@@ -163,7 +168,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_SOURCE, sourceResult)
         if (sourceResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_SOURCE, sourceResult.successes, sourceRepo)
+            val records = deduplicateByUniqueKey(sourceResult.successes, MpdDatasetType.MPD_SOURCE.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_SOURCE, records, sourceRepo)
         }
 
         /* ------------ MPD_COMPOSITION_FLAG ------------ */
@@ -176,7 +182,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_COMPOSITION_FLAG, compositionFlagResult)
         if (compositionFlagResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_COMPOSITION_FLAG, compositionFlagResult.successes, compositionFlagRepo)
+            val records = deduplicateByUniqueKey(compositionFlagResult.successes, MpdDatasetType.MPD_COMPOSITION_FLAG.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_COMPOSITION_FLAG, records, compositionFlagRepo)
         }
 
         /* ------------ MPD_DISPENSE_TYPE ------------ */
@@ -189,7 +196,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_DISPENSE_TYPE, dispenseResult)
         if (dispenseResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_DISPENSE_TYPE, dispenseResult.successes, dispenseRepo)
+            val records = deduplicateByUniqueKey(dispenseResult.successes, MpdDatasetType.MPD_DISPENSE_TYPE.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_DISPENSE_TYPE, records, dispenseRepo)
         }
 
         /* ------------ MPD_MEASUREMENT_UNIT ------------ */
@@ -202,7 +210,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_MEASUREMENT_UNIT, measurementUnitResult)
         if (measurementUnitResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_MEASUREMENT_UNIT, measurementUnitResult.successes, measurementUnitRepo)
+            val records = deduplicateByUniqueKey(measurementUnitResult.successes, MpdDatasetType.MPD_MEASUREMENT_UNIT.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_MEASUREMENT_UNIT, records, measurementUnitRepo)
         }
 
         /* ------------ MPD_REGISTRATION_PROCESS ------------ */
@@ -215,7 +224,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_REGISTRATION_PROCESS, registrationProcessResult)
         if (registrationProcessResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_REGISTRATION_PROCESS, registrationProcessResult.successes, registrationProcessRepo)
+            val records = deduplicateByUniqueKey(registrationProcessResult.successes, MpdDatasetType.MPD_REGISTRATION_PROCESS.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_REGISTRATION_PROCESS, records, registrationProcessRepo)
         }
 
         /* ------------ MPD_REGISTRATION_STATUS ------------ */
@@ -228,7 +238,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_REGISTRATION_STATUS, registrationStatusResult)
         if (registrationStatusResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_REGISTRATION_STATUS, registrationStatusResult.successes, registrationStatusRepo)
+            val records = deduplicateByUniqueKey(registrationStatusResult.successes, MpdDatasetType.MPD_REGISTRATION_STATUS.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_REGISTRATION_STATUS, records, registrationStatusRepo)
         }
 
         /* ------------ MPD_INDICATION_GROUP ------------ */
@@ -241,7 +252,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_INDICATION_GROUP, indicationGroupResult)
         if (indicationGroupResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_INDICATION_GROUP, indicationGroupResult.successes, indicationGroupRepo)
+            val records = deduplicateByUniqueKey(indicationGroupResult.successes, MpdDatasetType.MPD_INDICATION_GROUP.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_INDICATION_GROUP, records, indicationGroupRepo)
         }
 
         /* ------------ MPD_ATC_GROUP ------------ */
@@ -254,7 +266,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_ATC_GROUP, atcGroupResult)
         if (atcGroupResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_ATC_GROUP, atcGroupResult.successes, atcGroupRepo)
+            val records = deduplicateByUniqueKey(atcGroupResult.successes, MpdDatasetType.MPD_ATC_GROUP.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_ATC_GROUP, records, atcGroupRepo)
         }
 
         /* ------------ MPD_PACKAGE_TYPE ------------ */
@@ -267,7 +280,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_PACKAGE_TYPE, packageTypeResult)
         if (packageTypeResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_PACKAGE_TYPE, packageTypeResult.successes, packageTypeRepo)
+            val records = deduplicateByUniqueKey(packageTypeResult.successes, MpdDatasetType.MPD_PACKAGE_TYPE.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_PACKAGE_TYPE, records, packageTypeRepo)
         }
 
         /* ------------ MPD_ADMINISTRATION_ROUTE ------------ */
@@ -280,7 +294,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_ADMINISTRATION_ROUTE, adminRouteResult)
         if (adminRouteResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_ADMINISTRATION_ROUTE, adminRouteResult.successes, administrationRouteRepo)
+            val records = deduplicateByUniqueKey(adminRouteResult.successes, MpdDatasetType.MPD_ADMINISTRATION_ROUTE.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_ADMINISTRATION_ROUTE, records, administrationRouteRepo)
         }
 
         /* ------------ MPD_DOSAGE_FORM ------------ */
@@ -293,7 +308,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_DOSAGE_FORM, dosageFormResult)
         if (dosageFormResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_DOSAGE_FORM, dosageFormResult.successes, dosageFormRepo)
+            val records = deduplicateByUniqueKey(dosageFormResult.successes, MpdDatasetType.MPD_DOSAGE_FORM.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_DOSAGE_FORM, records, dosageFormRepo)
         }
 
         /* ------------ MPD_ORGANISATION ------------ */
@@ -306,7 +322,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_ORGANISATION, organisationResult)
         if (organisationResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_ORGANISATION, organisationResult.successes, organisationRepo)
+            val records = deduplicateByUniqueKey(organisationResult.successes, MpdDatasetType.MPD_ORGANISATION.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_ORGANISATION, records, organisationRepo)
         }
 
         /* ------------ MPD_ACTIVE_SUBSTANCE ------------ */
@@ -319,7 +336,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_ACTIVE_SUBSTANCE, activeSubstanceResult)
         if (activeSubstanceResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_ACTIVE_SUBSTANCE, activeSubstanceResult.successes, activeSubstanceRepo)
+            val records = deduplicateByUniqueKey(activeSubstanceResult.successes, MpdDatasetType.MPD_ACTIVE_SUBSTANCE.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_ACTIVE_SUBSTANCE, records, activeSubstanceRepo)
         }
 
         /* ------------ MPD_SUBSTANCE ------------ */
@@ -332,7 +350,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_SUBSTANCE, substanceResult)
         if (substanceResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_SUBSTANCE, substanceResult.successes, substanceRepo)
+            val records = deduplicateByUniqueKey(substanceResult.successes, MpdDatasetType.MPD_SUBSTANCE.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_SUBSTANCE, records, substanceRepo)
         }
 
         /* ------------ MPD_SUBSTANCE_SYNONYM ------------ */
@@ -345,7 +364,8 @@ class MpdTablesProcessor(
         )
         logImportSummary(MpdDatasetType.MPD_SUBSTANCE_SYNONYM, synonymResult)
         if (synonymResult.successes.isNotEmpty()) {
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_SUBSTANCE_SYNONYM, synonymResult.successes, substanceSynonymRepo)
+            val records = deduplicateByUniqueKey(synonymResult.successes, MpdDatasetType.MPD_SUBSTANCE_SYNONYM.name)
+            synchronizer.sync(validFrom, MpdDatasetType.MPD_SUBSTANCE_SYNONYM, records, substanceSynonymRepo)
         }
     }
 
@@ -375,6 +395,22 @@ class MpdTablesProcessor(
             $detailedSummary
         """.trimIndent()
         }
+    }
+
+    private fun <T : BaseMpdEntity<T>> deduplicateByUniqueKey(
+        records: List<T>,
+        datasetTypeName: String
+    ): List<T> {
+        return records
+            .groupBy { it.getUniqueKey() }
+            .mapValues { (_, duplicates) ->
+                if (duplicates.size > 1) {
+                    logger.warn { "$datasetTypeName - Duplicate unique key '${duplicates.first().getUniqueKey()}' found ${duplicates.size}x. Keeping the first, ignoring others." }
+                }
+                duplicates.first()
+            }
+            .values
+            .toList()
     }
 }
 

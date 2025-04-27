@@ -41,6 +41,10 @@ class EreceptBundleJob(
 
     private val logger = KotlinLogging.logger {}
 
+    companion object {
+        private const val ERECEPT_CSV_DATA_SEPARATOR: Char = ';'
+    }
+
     @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
         if (msg.fileType != FileType.ZIP) {
@@ -71,7 +75,8 @@ class EreceptBundleJob(
         val importResult = importer.import(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
-            EreceptRawDataRowMapper()
+            EreceptRawDataRowMapper(),
+            ERECEPT_CSV_DATA_SEPARATOR
         )
         logImportSummary(datasetType, importResult)
 
@@ -84,7 +89,8 @@ class EreceptBundleJob(
         val importResult = importer.import(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
-            EreceptRawDataRowMapper()
+            EreceptRawDataRowMapper(),
+            ERECEPT_CSV_DATA_SEPARATOR
         )
         logImportSummary(datasetType, importResult)
 

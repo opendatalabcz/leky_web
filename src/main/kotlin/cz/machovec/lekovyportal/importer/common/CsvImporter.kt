@@ -15,10 +15,13 @@ import java.nio.charset.Charset
 @Component
 class CsvImporter(
     private val charset: Charset = Charset.forName("Windows-1250"),
-    private val separator: Char = ';'
 ) {
 
     private val log = KotlinLogging.logger {}
+
+    companion object {
+        private const val DEFAULT_SEPARATOR: Char = ';'
+    }
 
     /**
      * Imports a CSV file and maps each data row to a domain entity.
@@ -26,16 +29,18 @@ class CsvImporter(
      * @param csvBytes raw CSV bytes
      * @param specs column specifications (aliases + required flag)
      * @param mapper row mapper that converts a CsvRow into a domain object
+     * @param separator optional separator character (default is ';')
      *
      * @return [DataImportResult] containing successes and failures
      */
     fun <E, T> import(
         csvBytes: ByteArray,
         specs: List<ColumnSpec<E>>,
-        mapper: RowMapper<E, T>
+        mapper: RowMapper<E, T>,
+        separator: Char = DEFAULT_SEPARATOR
     ): DataImportResult<T> where E : Enum<E> {
 
-        val (lines, idxMap) = parseCsv(csvBytes, specs)
+        val (lines, idxMap) = parseCsv(csvBytes, specs, separator)
 
         val successes = mutableListOf<T>()
         val failures = mutableListOf<RowFailure>()
@@ -71,7 +76,8 @@ class CsvImporter(
      */
     private fun <E> parseCsv(
         csvBytes: ByteArray,
-        specs: List<ColumnSpec<E>>
+        specs: List<ColumnSpec<E>>,
+        separator: Char
     ): Pair<List<Array<String>>, Map<E, Int>> where E : Enum<E> {
 
         val reader = CSVReaderBuilder(csvBytes.inputStream().reader(charset))
