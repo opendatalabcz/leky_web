@@ -19,7 +19,7 @@ class EreceptDispenseRepositoryImpl(
         """.trimIndent()
 
         jdbcTemplate.batchUpdate(sql, records, batchSize) { ps, record ->
-            ps.setString(1, record.districtCode)
+            ps.setString(1, record.district.code)
             ps.setInt(2, record.year)
             ps.setInt(3, record.month)
             ps.setLong(4, record.medicinalProduct.id!!)

@@ -9,10 +9,10 @@ class DistrictReferenceDataProvider(
     private val districtRepository: DistrictRepository
 ) {
 
-    private val districtMap: Map<String, District> by lazy {
+    private val districts: Map<String, District> by lazy {
         districtRepository.findAll()
             .associateBy { it.code }
     }
 
-    fun getDistrictMap(): Map<String, District> = districtMap
+    fun getDistrictMap(): Map<String, District> = districts
 }

@@ -16,10 +16,10 @@ class EReceptService(
         val prescribedData = ereceptPrescriptionRepository.findByMedicinalProductIdAndYearAndMonth(medicinalProductId, year, month)
         val dispensedData = ereceptDispenseRepository.findByMedicinalProductIdAndYearAndMonth(medicinalProductId, year, month)
 
-        val prescribedMap = prescribedData.groupBy { it.districtCode }
+        val prescribedMap = prescribedData.groupBy { it.district.code }
             .mapValues { entry -> entry.value.sumOf { it.quantity } }
 
-        val dispensedMap = dispensedData.groupBy { it.districtCode }
+        val dispensedMap = dispensedData.groupBy { it.district.code }
             .mapValues { entry -> entry.value.sumOf { it.quantity } }
 
         val allDistrictCodes = prescribedMap.keys + dispensedMap.keys
