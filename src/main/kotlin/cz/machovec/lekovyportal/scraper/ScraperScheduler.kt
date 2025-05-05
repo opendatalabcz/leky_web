@@ -6,10 +6,10 @@ import org.springframework.stereotype.Service
 
 @Service
 class ScraperScheduler(
-    private val datasetDiscoveryService: DatasetDiscoveryServiceImpl,
+    private val datasetDiscoveryService: DatasetDiscoveryService,
     private val messagePublisher: MessagePublisher
 ) {
-    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 15 17 * * ?")
     fun doScraping() {
         datasetDiscoveryService.discoverDatasetsToProcess().forEach(messagePublisher::publish)
     }

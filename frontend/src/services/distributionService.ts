@@ -55,3 +55,58 @@ export async function fetchDistributionFromDistributorsSankey(
 
     return res.json()
 }
+
+export async function fetchCombinedDistributionSankey(
+    req: DistributionSankeyRequest
+): Promise<DistributionSankeyResponse> {
+    const res = await fetch("/api/distribution/graph/combined", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req)
+    })
+
+    if (!res.ok) {
+        throw new Error("Nepodařilo se načíst kombinovaný distribuční tok")
+    }
+
+    return res.json()
+}
+
+// types
+export type DistributionTimeSeriesRequest = {
+    medicinalProductIds: number[]
+    dateFrom: string // "yyyy-MM"
+    dateTo: string // "yyyy-MM"
+    granularity: "MONTH" | "YEAR"
+}
+
+export type DistributionTimeSeriesEntry = {
+    period: string
+    mahToDistributor: number
+    distributorToPharmacy: number
+    pharmacyToPatient: number
+}
+
+export type DistributionTimeSeriesResponse = {
+    granularity: "MONTH" | "YEAR"
+    series: DistributionTimeSeriesEntry[]
+    includedMedicineProducts: { id: number; suklCode: string }[]
+    ignoredMedicineProducts: { id: number; suklCode: string }[]
+}
+
+// API volání
+export async function fetchDistributionTimeSeries(
+    req: DistributionTimeSeriesRequest
+): Promise<DistributionTimeSeriesResponse> {
+    const res = await fetch("/api/distribution/time-series", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req)
+    })
+
+    if (!res.ok) {
+        throw new Error("Nepodařilo se načíst časovou řadu distribuce")
+    }
+
+    return res.json()
+}

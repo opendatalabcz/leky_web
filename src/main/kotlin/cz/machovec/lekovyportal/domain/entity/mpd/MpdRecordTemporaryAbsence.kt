@@ -12,7 +12,7 @@ data class MpdRecordTemporaryAbsence(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "dataset_type", nullable = false)
-    val datasetType: MpdDatasetType,
+    val datasetType: MpdDatasetType, // TODO rename to mpdDatasetType
 
     @Column(name = "record_id", nullable = false)
     val recordId: Long,

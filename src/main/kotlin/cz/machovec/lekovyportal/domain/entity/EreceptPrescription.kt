@@ -22,8 +22,9 @@ data class EreceptPrescription(
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 
-    @Column(name = "district_code", nullable = false)
-    override val districtCode: String,
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "district_code", nullable = false)
+    val district: District,
 
     @Column(name = "year", nullable = false)
     val year: Int,
@@ -37,4 +38,4 @@ data class EreceptPrescription(
 
     @Column(name = "quantity", nullable = false)
     val quantity: Int
-) : HasDistrictCode
+)

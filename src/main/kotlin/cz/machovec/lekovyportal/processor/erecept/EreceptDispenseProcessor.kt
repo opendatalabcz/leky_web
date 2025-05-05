@@ -4,9 +4,10 @@ import cz.machovec.lekovyportal.domain.entity.DatasetType
 import cz.machovec.lekovyportal.domain.entity.EreceptDispense
 import cz.machovec.lekovyportal.domain.repository.EreceptDispenseRepository
 import cz.machovec.lekovyportal.domain.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.processor.mdp.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.importer.processing.mpd.MpdReferenceDataProvider
 import org.springframework.stereotype.Service
 
+/*
 @Service
 class EreceptDispenseProcessor(
     private val repository: EreceptDispenseRepository,
@@ -39,3 +40,5 @@ class EreceptDispenseProcessor(
     mergeByQuantity = { a, b -> a.copy(quantity = a.quantity + b.quantity) },
     extractAggregationKey = { "${it.districtCode}-${it.year}-${it.month}-${it.medicinalProduct.suklCode}" }
 )
+
+ */

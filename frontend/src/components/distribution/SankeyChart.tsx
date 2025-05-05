@@ -23,7 +23,7 @@ type TooltipData = {
 export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                             nodes,
                                                             links,
-                                                            height = 500
+                                                            height = 350
                                                         }) => {
     const color = scaleOrdinal<string, string>()
         .domain(nodes.map(n => n.label))
@@ -38,7 +38,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
             {({ width }) => {
                 if (!width) return null;
 
-                const margin = { top: 16, right: 16, bottom: 16, left: 16 };
+                const margin = { top: 32, right: 48, bottom: 16, left: 32 };
                 const innerW = width - margin.left - margin.right;
                 const innerH = height - margin.top - margin.bottom;
 
@@ -49,7 +49,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                             size={[innerW, innerH]}
                             nodeAlign={sankeyCenter}
                             nodeWidth={20}
-                            nodePadding={16}
+                            nodePadding={64}
                             nodeId={(d) => d.id}
                         >
                             {({ graph, createPath }) => (
@@ -68,17 +68,55 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                         const pathD = createPath(link);
                                         if (!pathD) return null;
 
+                                        const sourceNode = link.source as SankeyNode<NodeDatum, LinkDatum>;
+                                        const targetNode = link.target as SankeyNode<NodeDatum, LinkDatum>;
+
+
+
+                                        const linkWidth = link.width ?? 1;
+                                        const textOffset = linkWidth < 20 ? 14 : 0; // Pokud je link moc úzký, posunout text nahoru
+
+                                        const sourceX = (link.source as SankeyNode<NodeDatum, LinkDatum>).x1 ?? 0;
+                                        const sourceY = (link.y0 ?? 0) + ((link.y1 ?? 0) - (link.y0 ?? 0)) / 2;
+                                        const targetX = (link.target as SankeyNode<NodeDatum, LinkDatum>).x0 ?? 0;
+                                        const targetY = (link.y0 ?? 0) + ((link.y1 ?? 0) - (link.y0 ?? 0)) / 2;
+
+                                        const midX = (sourceX + targetX) / 2;
+                                        const midY = (sourceY + targetY) / 2;
+
+                                        // Vypočítat úhel
+                                        const deltaX = targetX - sourceX;
+                                        const deltaY = targetY - sourceY;
+                                        const angleInRadians = Math.atan2(deltaY, deltaX);
+                                        const angleInDegrees = angleInRadians * (180 / Math.PI);
+
                                         return (
-                                            <path
-                                                key={`link-${i}`}
-                                                d={pathD}
-                                                fill="none"
-                                                stroke={color(targetLabel)}
-                                                strokeWidth={Math.max(1, link.width ?? 1)}
-                                                strokeOpacity={0.35}
-                                            >
-                                                <title>{`${sourceLabel} → ${targetLabel}: ${link.value} balení`}</title>
-                                            </path>
+                                            <g key={`link-${i}`}>
+                                                <path
+                                                    d={pathD}
+                                                    fill="none"
+                                                    stroke={color(targetLabel)}
+                                                    strokeWidth={Math.max(1, linkWidth)}
+                                                    strokeOpacity={0.35}
+                                                >
+                                                    <title>{`${sourceLabel} → ${targetLabel}: ${link.value} balení`}</title>
+                                                </path>
+
+                                                {link.width && link.width > 64 && (
+                                                    <text
+                                                        x={midX}
+                                                        y={midY}
+                                                        dy="0.35em"
+                                                        fontSize={10}
+                                                        textAnchor="middle"
+                                                        fill="#555"
+                                                        pointerEvents="none"
+                                                    >
+                                                        {`${sourceLabel} → ${targetLabel}: ${link.value} balení`}
+                                                    </text>
+                                                )}
+
+                                            </g>
                                         );
                                     })}
 
@@ -100,10 +138,9 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                     rx={4}
                                                 />
                                                 <text
-                                                    x={x0 < innerW / 2 ? x1 + 6 : x0 - 6}
-                                                    y={y0 + (y1 - y0) / 2}
-                                                    dy="0.35em"
-                                                    textAnchor={x0 < innerW / 2 ? "start" : "end"}
+                                                    x={(x0 + x1) / 2}
+                                                    y={y0 - 8} // nad uzlem (trochu odsadíme nahoru)
+                                                    textAnchor="middle"
                                                     fontSize={12}
                                                     fill="#333"
                                                 >

@@ -13,5 +13,8 @@ data class District(
     val code: String,
 
     @Column(name = "name", nullable = false, length = 255)
-    val name: String
+    val name: String,
+
+    @Column(name = "population", nullable = false)
+    val population: Int
 )

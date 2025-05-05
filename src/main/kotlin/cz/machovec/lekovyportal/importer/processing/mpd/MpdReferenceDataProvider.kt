@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.processor.mdp
+package cz.machovec.lekovyportal.importer.processing.mpd
 
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAddictionCategory
 import cz.machovec.lekovyportal.domain.entity.mpd.MpdAdministrationRoute
@@ -63,6 +63,10 @@ class MpdReferenceDataProvider(
 ) {
 
     private val cache = ConcurrentHashMap<String, Any>()
+
+    fun clearCache() {
+        cache.clear()
+    }
 
     fun getDosageForms() = Loader.loadByCode(cache, MpdDosageForm::class, dosageFormRepository::findAll) { it.code }
     fun getAdministrationRoutes() = Loader.loadByCode(cache, MpdAdministrationRoute::class, administrationRouteRepository::findAll) { it.code }
