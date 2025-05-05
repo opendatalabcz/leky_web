@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 @Service
-class EreceptBundleJob(
+class EreceptProcessor(
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val dispenseRepository: EreceptDispenseRepository,
     private val prescriptionRepository: EreceptPrescriptionRepository,
