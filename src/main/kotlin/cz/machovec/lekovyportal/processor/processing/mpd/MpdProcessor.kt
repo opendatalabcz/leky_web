@@ -18,7 +18,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 @Service
-class MpdBundleJob(
+class MpdProcessor(
     private val processedDatasetRepository: ProcessedDatasetRepository,
     private val tablesProcessor: MpdTablesProcessor,
     private val csvExtractor: MpdCsvExtractor,

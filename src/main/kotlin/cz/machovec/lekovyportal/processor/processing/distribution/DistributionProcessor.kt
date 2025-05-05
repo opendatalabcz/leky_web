@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 @Service
-class DistributionBundleJob(
+class DistributionProcessor(
     private val mahRepo: DistFromMahsRepository,
     private val distRepo: DistFromDistributorsRepository,
     private val exportRepo: DistExportFromDistributorsRepository,
