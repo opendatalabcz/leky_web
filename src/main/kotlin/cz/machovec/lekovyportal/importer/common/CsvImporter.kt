@@ -14,7 +14,7 @@ import java.nio.charset.Charset
 
 @Component
 class CsvImporter(
-    private val charset: Charset = Charset.forName("Windows-1250"),
+    private val charset: Charset = Charset.forName("Windows-1250"), // TODO refactor
 ) {
 
     private val log = KotlinLogging.logger {}

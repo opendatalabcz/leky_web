@@ -413,16 +413,19 @@ class MpdTablesProcessor(
 
         /* ------------ MPD_CANCELLED_REGISTRATION ------------ */
         val cancelledRegistrationCsv = csvMap[MpdDatasetType.MPD_CANCELLED_REGISTRATION]
-            ?: throw MissingCsvFileException(MpdDatasetType.MPD_CANCELLED_REGISTRATION)
-        val cancelledRegistrationResult = importer.import(
-            cancelledRegistrationCsv,
-            MpdCancelledRegistrationColumn.entries.map { it.toSpec() },
-            MpdCancelledRegistrationRowMapper(validFrom, refProvider)
-        )
-        logImportSummary(MpdDatasetType.MPD_CANCELLED_REGISTRATION, cancelledRegistrationResult)
-        if (cancelledRegistrationResult.successes.isNotEmpty()) {
-            val records = deduplicateByUniqueKey(cancelledRegistrationResult.successes, MpdDatasetType.MPD_CANCELLED_REGISTRATION.name)
-            synchronizer.sync(validFrom, MpdDatasetType.MPD_CANCELLED_REGISTRATION, records, cancelledRegistrationRepo)
+        if (cancelledRegistrationCsv != null) {
+            val cancelledRegistrationResult = importer.import(
+                cancelledRegistrationCsv,
+                MpdCancelledRegistrationColumn.entries.map { it.toSpec() },
+                MpdCancelledRegistrationRowMapper(validFrom, refProvider)
+            )
+            logImportSummary(MpdDatasetType.MPD_CANCELLED_REGISTRATION, cancelledRegistrationResult)
+            if (cancelledRegistrationResult.successes.isNotEmpty()) {
+                val records = deduplicateByUniqueKey(cancelledRegistrationResult.successes, MpdDatasetType.MPD_CANCELLED_REGISTRATION.name)
+                synchronizer.sync(validFrom, MpdDatasetType.MPD_CANCELLED_REGISTRATION, records, cancelledRegistrationRepo)
+            }
+        } else {
+            logger.info { "Optional dataset ${MpdDatasetType.MPD_CANCELLED_REGISTRATION} not found. Skipping import." }
         }
 
         /* ------------ MPD_MEDICINAL_PRODUCT_SUBSTANCE ------------ */

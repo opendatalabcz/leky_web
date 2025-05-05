@@ -16,6 +16,8 @@ class DatasetToProcessConsumer(
     @RabbitListener(queues = [RabbitConfig.QUEUE_NAME])
     fun handleNewDatasetToProcess(msg: DatasetToProcessMessage) {
         try {
+            logger.info { "Starting to process datasetType=${msg.datasetType}, year=${msg.year}, month=${msg.month}" }
+
             val processor = resolver.resolve(msg.datasetType)
             if (processor == null) {
                 logger.error { "No processor found for datasetType=${msg.datasetType}" }

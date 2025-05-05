@@ -91,6 +91,7 @@ class DatasetProcessingEvaluator(
 
         // 2 – Year before first MPD period -> always process
         if (year < FIRST_MPD_PERIOD.year) {
+            // TODO check, that atleast one MPD dataset was imported
             logger.debug { "Year $year before first MPD period – processing allowed." }
             return true
         }

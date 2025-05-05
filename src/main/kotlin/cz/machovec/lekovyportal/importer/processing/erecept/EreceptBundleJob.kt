@@ -42,7 +42,7 @@ class EreceptBundleJob(
     private val logger = KotlinLogging.logger {}
 
     companion object {
-        private const val ERECEPT_CSV_DATA_SEPARATOR: Char = ';'
+        private const val ERECEPT_CSV_DATA_SEPARATOR: Char = ','
     }
 
     @Transactional
@@ -57,7 +57,8 @@ class EreceptBundleJob(
             ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
         // Step 3 – Extract CSV file (1 file contains all data even for yearly dataset)
-        val csvBytes = ZipFileUtils.extractSingleFileByType(zipBytes, FileType.CSV)
+        val rawCsvBytes = ZipFileUtils.extractSingleFileByType(zipBytes, FileType.CSV)
+        val csvBytes = rawCsvBytes?.let { removeBomIfPresent(it) } ?: return
 
         val districtMap = districtReferenceDataProvider.getDistrictMap()
 
@@ -179,5 +180,15 @@ class EreceptBundleJob(
             $detailedSummary
         """.trimIndent()
         }
+    }
+
+    private fun removeBomIfPresent(bytes: ByteArray): ByteArray {
+        if (bytes.size >= 3 &&
+            bytes[0] == 0xEF.toByte() &&
+            bytes[1] == 0xBB.toByte() &&
+            bytes[2] == 0xBF.toByte()) {
+            return bytes.drop(3).toByteArray() // remove BOM
+        }
+        return bytes
     }
 }
