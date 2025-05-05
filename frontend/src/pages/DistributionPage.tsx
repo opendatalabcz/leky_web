@@ -12,9 +12,10 @@ import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinal
 import { DataStatusFooter } from "../components/DataStatusFooter"
 import { SankeyChart } from "../components/distribution/SankeyChart"
 import { useUnifiedCart } from "../components/UnifiedCartContext"
-import { useDistributionSankey } from "../hooks/useDistributionSankey"
-import {format} from "date-fns";
-import {useDistributionFromDistributorsSankey} from "../hooks/useDistributionFromDistributorsSankey";
+import { format } from "date-fns"
+import { useCombinedDistributionSankey } from "../hooks/useCombinedDistributionSankey"
+import { useDistributionTimeSeries } from "../hooks/useDistributionTimeSeries"
+import { DistributionTimeSeriesChart } from "../components/DistributionTimeSeriesChart"
 
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
@@ -22,7 +23,7 @@ export function DistributionPage() {
     const { drugs } = useUnifiedCart()
 
     const hasDrugs = drugs.length > 0
-    const sankeyQuery = useDistributionSankey(
+    const sankeyQuery = useCombinedDistributionSankey(
         hasDrugs && common.dateFrom && common.dateTo
             ? {
                 dateFrom: format(common.dateFrom, "yyyy-MM"),
@@ -32,12 +33,13 @@ export function DistributionPage() {
             : undefined
     )
 
-    const sankeyyQuery = useDistributionFromDistributorsSankey(
+    const timeSeriesQuery = useDistributionTimeSeries(
         hasDrugs && common.dateFrom && common.dateTo
             ? {
                 dateFrom: format(common.dateFrom, "yyyy-MM"),
                 dateTo: format(common.dateTo, "yyyy-MM"),
-                medicinalProductIds: drugs.map(d => Number(d.id))
+                medicinalProductIds: drugs.map(d => Number(d.id)),
+                granularity: "MONTH" // defaultně měsíc
             }
             : undefined
     )
@@ -46,6 +48,10 @@ export function DistributionPage() {
         <Box>
             <Typography variant="h5" gutterBottom>
                 Distribuční tok léčiv
+            </Typography>
+            <Typography variant="body1" color="text.secondary" mb={3}>
+                Sledujte distribuční tok léčiv od držitelů registrace přes distributory až k pacientům.
+                Vyberte si konkrétní léčiva, nastavte časové období a vizualizujte cestu léčiv napříč jednotlivými články distribučního řetězce.
             </Typography>
 
             <Box display="flex" gap={4} alignItems="flex-start">
@@ -84,42 +90,38 @@ export function DistributionPage() {
                         }
                     />
 
-                    <Box mt={3}>
-                        {
-                            sankeyQuery.isLoading ? (
-                                <Typography>Načítám data...</Typography>
-                            ) : sankeyQuery.data ? (
-                                <SankeyChart
-                                    nodes={sankeyQuery.data.nodes}
-                                    links={sankeyQuery.data.links}
-                                    height={500}
-                                />
-                            ) : (
-                                <Typography color="text.secondary">
-                                    Vyberte léčiva a časové období.
-                                </Typography>
-                            )
-                        }
-                    </Box>
                     <Box mt={6}>
-                        <Typography variant="h6" gutterBottom>
-                            Distribuční tok od distributorů
-                        </Typography>
-                        {
-                            sankeyyQuery.isLoading ? (
-                                <Typography>Načítám data...</Typography>
-                            ) : sankeyyQuery.data ? (
-                                <SankeyChart
-                                    nodes={sankeyyQuery.data.nodes}
-                                    links={sankeyyQuery.data.links}
-                                    height={500}
-                                />
-                            ) : (
-                                <Typography color="text.secondary">
-                                    Vyberte léčiva a časové období.
-                                </Typography>
-                            )
-                        }
+                        {sankeyQuery.isLoading ? (
+                            <Typography>Načítám data...</Typography>
+                        ) : sankeyQuery.data ? (
+                            <>
+                                <Paper variant="outlined" sx={{ p: 2, mb: 4 }}>
+                                    <Box display="flex" justifyContent="space-between" alignItems="baseline" flexWrap="wrap" gap={1}>
+                                        <Typography variant="h6" fontWeight={600}>
+                                            Distribuční tok vybraných léčiv mezi aktéry ({format(common.dateFrom!, "yyyy-MM")} až {format(common.dateTo!, "yyyy-MM")})
+                                        </Typography>
+                                    </Box>
+
+                                    <SankeyChart
+                                        nodes={sankeyQuery.data.nodes}
+                                        links={sankeyQuery.data.links}
+                                        height={500}
+                                    />
+                                </Paper>
+
+                                <Paper variant="outlined" sx={{ p: 2 }}>
+                                    <Typography variant="h6" fontWeight={600} mb={2}>
+                                        Časový vývoj distribučních pohybů
+                                    </Typography>
+
+                                    <DistributionTimeSeriesChart data={timeSeriesQuery.data} />
+                                </Paper>
+                            </>
+                        ) : (
+                            <Typography color="text.secondary">
+                                Vyberte léčiva a časové období.
+                            </Typography>
+                        )}
                     </Box>
 
                 </Box>

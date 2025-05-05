@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.domain.repository.dist
 
+import cz.machovec.lekovyportal.domain.dto.MonthlyMovementAggregate
 import cz.machovec.lekovyportal.domain.entity.distribution.DistFromMahs
 import cz.machovec.lekovyportal.domain.entity.distribution.MahPurchaserType
 import cz.machovec.lekovyportal.domain.entity.distribution.MovementType
@@ -30,6 +31,16 @@ interface DistFromMahsRepository : JpaRepository<DistFromMahs, Long> {
         @Param("toYear") toYear: Int,
         @Param("toMonth") toMonth: Int
     ): List<MahPurchaserAggregation>
+
+    @Query("""
+        SELECT new cz.machovec.lekovyportal.domain.dto.MonthlyMovementAggregate(
+            d.year, d.month, d.purchaserType, d.movementType, SUM(d.packageCount)
+        )
+        FROM DistFromMahs d
+        WHERE d.medicinalProduct.id IN :productIds
+        GROUP BY d.year, d.month, d.purchaserType, d.movementType
+    """)
+    fun findMonthlyAggregates(@Param("productIds") productIds: List<Long>): List<MonthlyMovementAggregate>
 }
 
 interface MahPurchaserAggregation {

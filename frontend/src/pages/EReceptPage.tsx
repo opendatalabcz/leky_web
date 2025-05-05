@@ -219,33 +219,56 @@ export function EReceptPage() {
                         </Box>
                     )}
 
-                    <Box mt={2} display="flex" gap={2}>
-                        <Box flex={1} height={500}>
-                            {geojsonData && (
-                                <DistrictMap
-                                    geojsonData={geojsonData}
-                                    districtData={districtValues}
-                                    filter={prescriptionDispense.aggregationType}
+                    <Box mt={2}>
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                            {/* Nadpis + období */}
+                            <Typography
+                                variant="h6"
+                                sx={{ color: "#1f2b3d", fontWeight: 600, mb: 3 }}
+                            >
+                                Preskripce a výdej vybraných léčiv ({sliderActive
+                                ? months[monthIndex]
+                                : `${format(common.dateFrom!, "yyyy-MM")} až ${format(common.dateTo!, "yyyy-MM")}`})
+                            </Typography>
+
+                            {/* Mapa a SummaryTiles */}
+                            <Box display="flex" gap={2}>
+                                <Box flex={1} height={500}>
+                                    {geojsonData && (
+                                        <DistrictMap
+                                            geojsonData={geojsonData}
+                                            districtData={districtValues}
+                                            filter={prescriptionDispense.aggregationType}
+                                        />
+                                    )}
+                                </Box>
+
+                                <SummaryTiles summary={summary} />
+                            </Box>
+                        </Paper>
+                    </Box>
+
+                    <Box mt={6}>
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="h6" fontWeight={600} mb={2}>
+                                Vývoj preskripce a výdeje v čase ({format(common.dateFrom!, "yyyy-MM")} až {format(common.dateTo!, "yyyy-MM")})
+                            </Typography>
+
+                            {fullTimeSeriesQuery.isLoading ? (
+                                <Typography>Načítám časovou řadu...</Typography>
+                            ) : (
+                                <PrescriptionDispenseChart
+                                    data={fullTimeSeriesQuery.data}
+                                    selectedDistrict={selectedDistrict}
+                                    onDistrictChange={setSelectedDistrict}
+                                    districtNameMap={districtNamesMap}
+                                    granularity={granularity}
+                                    onGranularityChange={setGranularity}
+                                    dateFrom={common.dateFrom}
+                                    dateTo={common.dateTo}
                                 />
                             )}
-                        </Box>
-                        <SummaryTiles summary={summary} />
-                    </Box>
-                    <Box mt={6}>
-                        {fullTimeSeriesQuery.isLoading ? (
-                            <Typography mt={4}>Načítám časovou řadu...</Typography>
-                        ) : (
-                            <PrescriptionDispenseChart
-                                data={fullTimeSeriesQuery.data}
-                                selectedDistrict={selectedDistrict}
-                                onDistrictChange={setSelectedDistrict}
-                                districtNameMap={districtNamesMap}
-                                granularity={granularity}
-                                onGranularityChange={setGranularity}
-                                dateFrom={common.dateFrom}
-                                dateTo={common.dateTo}
-                            />
-                        )}
+                        </Paper>
                     </Box>
                 </Box>
             </Box>
