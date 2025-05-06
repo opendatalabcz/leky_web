@@ -4,8 +4,9 @@ import cz.machovec.lekovyportal.api.model.enums.CalculationMode
 import cz.machovec.lekovyportal.api.model.enums.EReceptDataTypeAggregation
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
 
-data class DistrictDataRequest(
+data class PrescriptionDispenseByDistrictAggregateRequest(
     val medicinalProductIds: List<Long>,
+    val registrationNumbers: List<String> = emptyList(),
     val aggregationType: EReceptDataTypeAggregation,
     val dateFrom: String?,
     val dateTo: String?,

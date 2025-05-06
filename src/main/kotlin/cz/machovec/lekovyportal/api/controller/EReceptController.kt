@@ -1,7 +1,7 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.DistrictDataRequest
-import cz.machovec.lekovyportal.api.model.EReceptDistrictDataResponse
+import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateRequest
+import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateResponse
 import cz.machovec.lekovyportal.api.model.FullTimeSeriesRequest
 import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesRequest
@@ -23,10 +23,11 @@ class EReceptController(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/time-aggregate/by-district")
-    fun getDistrictAggregates(@RequestBody request: DistrictDataRequest): EReceptDistrictDataResponse {
+    fun getAggregatedPrescriptionDispenseByDistrict(@RequestBody request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
         logger.info(
             "District map aggregation — aggregationType=${request.aggregationType}, " +
                     "ids=${request.medicinalProductIds.joinToString(",")}, " +
+                    "regNumbers=${request.registrationNumbers.joinToString(",")}, " +
                     "dateFrom=${request.dateFrom}, dateTo=${request.dateTo}, " +
                     "calculationMode=${request.calculationMode}, " +
                     "normalisationMode=${request.normalisationMode}"

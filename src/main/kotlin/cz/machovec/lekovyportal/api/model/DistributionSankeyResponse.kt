@@ -14,6 +14,6 @@ data class SankeyLinkDto(
 data class DistributionSankeyResponse(
     val nodes: List<SankeyNodeDto>,
     val links: List<SankeyLinkDto>,
-    val includedMedicineProducts: List<MedicineProductInfo>,
-    val ignoredMedicineProducts: List<MedicineProductInfo>
+    val includedMedicineProducts: List<MedicinalProductIdentificators>,
+    val ignoredMedicineProducts: List<MedicinalProductIdentificators>
 )

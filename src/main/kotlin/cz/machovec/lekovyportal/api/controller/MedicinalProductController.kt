@@ -46,7 +46,6 @@ class MedicinalProductController(
     fun findByIds(
         @RequestParam ids: List<Long>
     ): List<MedicinalProductResponse> {
-        logger.info("CART - fetching medicinal products by IDs: ${ids.joinToString(", ")}")
         return medicinalProductService.findByIds(ids)
     }
 
@@ -54,7 +53,6 @@ class MedicinalProductController(
     fun findGroupedByRegNumbers(
         @RequestParam regNumbers: List<String>
     ): List<MedicinalProductGroupedByRegNumberResponse> {
-        logger.info("CART - fetching grouped medicinal products by regNumbers: ${regNumbers.joinToString()}")
         return medicinalProductService.findGroupedByRegNumbers(regNumbers)
     }
 }

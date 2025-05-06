@@ -13,7 +13,7 @@ import DistrictMap from "../components/DistrictMap"
 import { FeatureCollection } from "geojson"
 import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
 import { SummaryTiles } from "../components/SummaryTiles"
-import { useDistrictAggregate } from "../hooks/useDistrictAggregate"
+import { useAggregatedPrescriptionDispenseByDistrict } from "../hooks/useAggregatedPrescriptionDispenseByDistrict"
 import { useDistrictTimeSeries } from "../hooks/useDistrictTimeSeries"
 import { usePreparedDistrictData } from "../hooks/usePreparedDistrictData"
 import { PrescriptionDispenseChart } from "../components/PrescriptionDispenseChart"
@@ -34,7 +34,7 @@ type DistrictFeatureCollection = GeoJSON.FeatureCollection
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
-    const { drugs } = useDrugCart()
+    const { drugs, registrationNumbers } = useDrugCart()
 
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
     const [districtNamesMap, setDistrictNamesMap] = useState<Record<string, string>>({})
@@ -81,17 +81,18 @@ export function EReceptPage() {
         setMonthIndex(0)
     }, [common.dateFrom, common.dateTo])
 
-    const hasDrugs = drugs.length > 0
-    const params = hasDrugs ? {
+    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0;
+    const params = hasSelection ? {
         dateFrom: format(common.dateFrom!, "yyyy-MM"),
         dateTo: format(common.dateTo!, "yyyy-MM"),
         calculationMode: common.calculationMode,
         aggregationType: prescriptionDispense.aggregationType,
         normalisationMode: prescriptionDispense.normalisationMode,
-        medicinalProductIds: drugs.map(d => Number(d.id))
+        medicinalProductIds: drugs.map(d => Number(d.id)),
+        registrationNumbers: registrationNumbers
     } : undefined
 
-    const aggregateQuery = useDistrictAggregate(params)
+    const aggregateQuery = useAggregatedPrescriptionDispenseByDistrict(params)
     const seriesQuery = useDistrictTimeSeries(params, !!aggregateQuery.data)
 
     const {
@@ -109,7 +110,7 @@ export function EReceptPage() {
 
     // Full time series for chart
     const fullTimeSeriesQuery = useFullTimeSeries(
-        hasDrugs ? {
+        hasSelection ? {
             aggregationType: prescriptionDispense.aggregationType,
             calculationMode: common.calculationMode,
             normalisationMode: prescriptionDispense.normalisationMode,

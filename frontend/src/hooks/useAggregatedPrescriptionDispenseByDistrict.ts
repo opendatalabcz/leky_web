@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import {
     Params,
-    getEReceptDistrictData,
+    getAggregatedPrescriptionDispenseByDistrict,
     EReceptDistrictDataResponseWithSummary
 } from "../services/ereceptService"
 
-export function useDistrictAggregate(params?: Params) {
+export function useAggregatedPrescriptionDispenseByDistrict(params?: Params) {
     return useQuery<EReceptDistrictDataResponseWithSummary>({
         queryKey: params ? ["district-aggregate", params] : ["district-aggregate"],
         queryFn: () => {
@@ -27,7 +27,7 @@ export function useDistrictAggregate(params?: Params) {
                     }
                 })
             }
-            return getEReceptDistrictData(params)
+            return getAggregatedPrescriptionDispenseByDistrict(params)
         },
         enabled: !!params
     })

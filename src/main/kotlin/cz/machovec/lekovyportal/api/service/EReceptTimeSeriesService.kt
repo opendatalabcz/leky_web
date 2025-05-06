@@ -4,7 +4,7 @@ import cz.machovec.lekovyportal.api.model.FullTimeSeriesEntry
 import cz.machovec.lekovyportal.api.model.FullTimeSeriesRequest
 import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.Granularity
-import cz.machovec.lekovyportal.api.model.MedicineProductInfo
+import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.api.model.enums.CalculationMode
 import cz.machovec.lekovyportal.core.repository.erecept.EReceptRepository
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
@@ -54,8 +54,8 @@ class EReceptTimeSeriesService(
             granularity = request.granularity,
             district = request.district,
             series = series,
-            includedMedicineProducts = included.map { MedicineProductInfo(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) }
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
     }
 }

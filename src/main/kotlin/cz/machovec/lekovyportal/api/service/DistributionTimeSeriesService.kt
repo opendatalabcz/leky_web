@@ -4,7 +4,7 @@ import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesEntry
 import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesRequest
 import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.Granularity
-import cz.machovec.lekovyportal.api.model.MedicineProductInfo
+import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.core.domain.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.MahPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.MovementType
@@ -81,8 +81,8 @@ class DistributionTimeSeriesService(
         return DistributionTimeSeriesResponse(
             granularity = request.granularity,
             series = series,
-            includedMedicineProducts = included.map { MedicineProductInfo(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) }
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
     }
 }

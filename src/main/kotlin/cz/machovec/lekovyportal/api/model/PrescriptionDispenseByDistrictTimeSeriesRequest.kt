@@ -10,6 +10,7 @@ data class PrescriptionDispenseByDistrictTimeSeriesRequest(
     val calculationMode: CalculationMode,
     val aggregationType: EReceptDataTypeAggregation,
     val normalisationMode: NormalisationMode,
-    val medicinalProductIds: List<Long>
+    val medicinalProductIds: List<Long>,
+    val registrationNumbers: List<String>
 )
 

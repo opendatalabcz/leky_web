@@ -50,7 +50,7 @@ export type DistrictTimeSeriesResponseWithSummary = {
     ignoredMedicineProducts: MedicineProductInfo[]
 }
 
-export async function getEReceptDistrictData(params: Params): Promise<EReceptDistrictDataResponseWithSummary> {
+export async function getAggregatedPrescriptionDispenseByDistrict(params: Params): Promise<EReceptDistrictDataResponseWithSummary> {
     const res = await fetch("/api/erecept/prescription-dispense/time-aggregate/by-district", {
         method: "POST",
         headers: {

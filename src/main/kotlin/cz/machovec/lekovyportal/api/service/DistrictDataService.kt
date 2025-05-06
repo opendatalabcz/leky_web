@@ -1,8 +1,8 @@
 package cz.machovec.lekovyportal.api.service
 
-import cz.machovec.lekovyportal.api.model.DistrictDataRequest
-import cz.machovec.lekovyportal.api.model.EReceptDistrictDataResponse
-import cz.machovec.lekovyportal.api.model.MedicineProductInfo
+import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateRequest
+import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateResponse
+import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesRequest
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.SummaryValues
@@ -25,12 +25,21 @@ class DistrictDataService(
     private val ereceptRepository: EReceptRepository,
     private val medicinalProductRepository: MpdMedicinalProductRepository
 ) {
-    fun aggregateByDistrict(request: DistrictDataRequest): EReceptDistrictDataResponse {
+    fun aggregateByDistrict(request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM")
         val from: YearMonth? = request.dateFrom?.let { YearMonth.parse(it, formatter) }
         val to: YearMonth? = request.dateTo?.let { YearMonth.parse(it, formatter) }
 
-        val allProducts = medicinalProductRepository.findAllByIdIn(request.medicinalProductIds)
+        val productsById = if (request.medicinalProductIds.isNotEmpty()) {
+            medicinalProductRepository.findAllByIdIn(request.medicinalProductIds)
+        } else emptyList()
+
+        val productsByRegNumbers = if (request.registrationNumbers.isNotEmpty()) {
+            medicinalProductRepository.findAllByRegistrationNumberIn(request.registrationNumbers)
+        } else emptyList()
+
+        val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
+
         val (included, ignored) = allProducts.partition {
             request.calculationMode != CalculationMode.DAILY_DOSES ||
                     (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
@@ -55,15 +64,15 @@ class DistrictDataService(
 
         val summary = calculateSummaryFromRows(rows)
 
-        return EReceptDistrictDataResponse(
+        return PrescriptionDispenseByDistrictAggregateResponse(
             aggregationType = request.aggregationType,
             calculationMode = request.calculationMode,
             normalisationMode = request.normalisationMode,
             dateFrom = request.dateFrom,
             dateTo = request.dateTo,
             districtValues = districtValues,
-            includedMedicineProducts = included.map { MedicineProductInfo(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) },
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
             summary = summary
         )
     }
@@ -80,12 +89,12 @@ class DistrictDataService(
         }.plus(to).toList()
 
         val series = mutableListOf<TimeSeriesMonthDistrictValues>()
-        var includedProducts: List<MedicineProductInfo> = emptyList()
-        var ignoredProducts: List<MedicineProductInfo> = emptyList()
+        var includedProducts: List<MedicinalProductIdentificators> = emptyList()
+        var ignoredProducts: List<MedicinalProductIdentificators> = emptyList()
 
         for ((index, month) in months.withIndex()) {
             val snapshot = aggregateByDistrict(
-                DistrictDataRequest(
+                PrescriptionDispenseByDistrictAggregateRequest(
                     dateFrom = month.format(formatter),
                     dateTo = month.format(formatter),
                     calculationMode = request.calculationMode,

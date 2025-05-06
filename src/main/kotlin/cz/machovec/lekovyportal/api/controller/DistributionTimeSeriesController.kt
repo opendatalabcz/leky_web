@@ -1,7 +1,7 @@
 package cz.machovec.lekovyportal.api.controller
 
 import cz.machovec.lekovyportal.api.model.Granularity
-import cz.machovec.lekovyportal.api.model.MedicineProductInfo
+import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.api.service.DistributionTimeSeriesService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
@@ -47,8 +47,8 @@ data class DistributionTimeSeriesEntry(
 data class DistributionTimeSeriesResponse(
     val granularity: Granularity,
     val series: List<DistributionTimeSeriesEntry>,
-    val includedMedicineProducts: List<MedicineProductInfo>,
-    val ignoredMedicineProducts: List<MedicineProductInfo>
+    val includedMedicineProducts: List<MedicinalProductIdentificators>,
+    val ignoredMedicineProducts: List<MedicinalProductIdentificators>
 )
 
 

@@ -11,8 +11,8 @@ data class PrescriptionDispenseByDistrictTimeSeriesResponse(
     val dateFrom: String,
     val dateTo: String,
     val series: List<TimeSeriesMonthDistrictValues>,
-    val includedMedicineProducts: List<MedicineProductInfo>,
-    val ignoredMedicineProducts: List<MedicineProductInfo>
+    val includedMedicineProducts: List<MedicinalProductIdentificators>,
+    val ignoredMedicineProducts: List<MedicinalProductIdentificators>
 )
 
 data class TimeSeriesMonthDistrictValues(

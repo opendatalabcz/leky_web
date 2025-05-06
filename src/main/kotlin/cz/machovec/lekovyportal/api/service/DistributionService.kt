@@ -2,7 +2,7 @@ package cz.machovec.lekovyportal.api.service
 
 import cz.machovec.lekovyportal.api.model.DistributionSankeyRequest
 import cz.machovec.lekovyportal.api.model.DistributionSankeyResponse
-import cz.machovec.lekovyportal.api.model.MedicineProductInfo
+import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.api.model.SankeyLinkDto
 import cz.machovec.lekovyportal.api.model.SankeyNodeDto
 import cz.machovec.lekovyportal.core.domain.distribution.DistributorPurchaserType
@@ -134,8 +134,8 @@ class DistributionService(
         return DistributionSankeyResponse(
             nodes = nodes,
             links = links,
-            includedMedicineProducts = included.map { MedicineProductInfo(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) }
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
     }
 
@@ -200,8 +200,8 @@ class DistributionService(
         return DistributionSankeyResponse(
             nodes = nodes,
             links = links,
-            includedMedicineProducts = included.map { MedicineProductInfo(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) }
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
     }
 
@@ -327,8 +327,8 @@ class DistributionService(
         return DistributionSankeyResponse(
             nodes = nodes,
             links = links,
-            includedMedicineProducts = included.map { MedicineProductInfo(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicineProductInfo(it.id!!, it.suklCode) }
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
     }
 }

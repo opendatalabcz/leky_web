@@ -18,67 +18,63 @@ class EReceptRepositoryImpl : EReceptRepository {
     ): List<EReceptDistrictDataRow> {
         if (medicinalProductIds.isEmpty()) return emptyList()
 
-        val fromYear = dateFrom?.year
-        val fromMonth = dateFrom?.monthValue
-        val toYear = dateTo?.year
-        val toMonth = dateTo?.monthValue
+        val fromYearMonth = dateFrom?.let { it.year * 100 + it.monthValue }
+        val toYearMonth = dateTo?.let { it.year * 100 + it.monthValue }
 
         val sql = buildString {
             append("""
+            SELECT 
+                d.code AS district_code,
+                c.medicinal_product_id,
+                SUM(c.prescribed_quantity) AS prescribed,
+                SUM(c.dispensed_quantity) AS dispensed,
+                d.population
+            FROM (
                 SELECT 
-                    d.code AS district_code,
-                    c.medicinal_product_id,
-                    SUM(c.prescribed_quantity) AS prescribed,
-                    SUM(c.dispensed_quantity) AS dispensed,
-                    d.population
-                FROM (
-                    SELECT 
-                        district_code, 
-                        medicinal_product_id, 
-                        SUM(quantity) AS prescribed_quantity,
-                        0 AS dispensed_quantity
-                    FROM erecept_prescription
-                    WHERE medicinal_product_id IN (:medicinalProductIds)
-            """.trimIndent())
+                    district_code, 
+                    medicinal_product_id, 
+                    SUM(quantity) AS prescribed_quantity,
+                    0 AS dispensed_quantity
+                FROM erecept_prescription
+                WHERE medicinal_product_id IN (:medicinalProductIds)
+        """.trimIndent())
 
-            if (fromYear != null && fromMonth != null)
-                append(" AND (year > :fromYear OR (year = :fromYear AND month >= :fromMonth)) ")
-            if (toYear != null && toMonth != null)
-                append(" AND (year < :toYear OR (year = :toYear AND month <= :toMonth)) ")
+            if (fromYearMonth != null && toYearMonth != null) {
+                append(" AND (year * 100 + month) BETWEEN :fromYearMonth AND :toYearMonth ")
+            }
 
             append("""
-                    GROUP BY district_code, medicinal_product_id
+                GROUP BY district_code, medicinal_product_id
 
-                    UNION ALL
+                UNION ALL
 
-                    SELECT 
-                        district_code, 
-                        medicinal_product_id, 
-                        0 AS prescribed_quantity,
-                        SUM(quantity) AS dispensed_quantity
-                    FROM erecept_dispense
-                    WHERE medicinal_product_id IN (:medicinalProductIds)
-            """.trimIndent())
+                SELECT 
+                    district_code, 
+                    medicinal_product_id, 
+                    0 AS prescribed_quantity,
+                    SUM(quantity) AS dispensed_quantity
+                FROM erecept_dispense
+                WHERE medicinal_product_id IN (:medicinalProductIds)
+        """.trimIndent())
 
-            if (fromYear != null && fromMonth != null)
-                append(" AND (year > :fromYear OR (year = :fromYear AND month >= :fromMonth)) ")
-            if (toYear != null && toMonth != null)
-                append(" AND (year < :toYear OR (year = :toYear AND month <= :toMonth)) ")
+            if (fromYearMonth != null && toYearMonth != null) {
+                append(" AND (year * 100 + month) BETWEEN :fromYearMonth AND :toYearMonth ")
+            }
 
             append("""
-                    GROUP BY district_code, medicinal_product_id
-                ) AS c
-                JOIN district d ON d.code = c.district_code
-                GROUP BY d.code, c.medicinal_product_id, d.population
-            """.trimIndent())
+                GROUP BY district_code, medicinal_product_id
+            ) AS c
+            JOIN district d ON d.code = c.district_code
+            GROUP BY d.code, c.medicinal_product_id, d.population
+        """.trimIndent())
         }
 
         val query = em.createNativeQuery(sql)
         query.setParameter("medicinalProductIds", medicinalProductIds)
-        fromYear?.let { query.setParameter("fromYear", it) }
-        fromMonth?.let { query.setParameter("fromMonth", it) }
-        toYear?.let { query.setParameter("toYear", it) }
-        toMonth?.let { query.setParameter("toMonth", it) }
+        if (fromYearMonth != null && toYearMonth != null) {
+            query.setParameter("fromYearMonth", fromYearMonth)
+            query.setParameter("toYearMonth", toYearMonth)
+        }
 
         @Suppress("UNCHECKED_CAST")
         val results = query.resultList as List<Array<Any>>

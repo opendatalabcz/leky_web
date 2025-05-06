@@ -11,8 +11,8 @@ data class FullTimeSeriesResponse(
     val granularity: Granularity,
     val district: String?, // null = celá ČR
     val series: List<FullTimeSeriesEntry>,
-    val includedMedicineProducts: List<MedicineProductInfo>,
-    val ignoredMedicineProducts: List<MedicineProductInfo>
+    val includedMedicineProducts: List<MedicinalProductIdentificators>,
+    val ignoredMedicineProducts: List<MedicinalProductIdentificators>
 )
 
 data class FullTimeSeriesEntry(
