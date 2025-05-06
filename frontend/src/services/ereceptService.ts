@@ -51,7 +51,7 @@ export type DistrictTimeSeriesResponseWithSummary = {
 }
 
 export async function getEReceptDistrictData(params: Params): Promise<EReceptDistrictDataResponseWithSummary> {
-    const res = await fetch("/api/district-data", {
+    const res = await fetch("/api/erecept/prescription-dispense/time-aggregate/by-district", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -74,7 +74,7 @@ export interface MonthSeriesEntryWithSummary {
 
 export async function fetchDistrictTimeSeries(params: Params) {
     const res = await fetch(
-        "/api/erecept/prescription-dispense/by-district/time-series",
+        "/api/erecept/prescription-dispense/time-series/by-district",
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -114,7 +114,7 @@ export interface FullTimeSeriesResponse {
 }
 
 export async function fetchFullTimeSeries(params: FullTimeSeriesParams): Promise<FullTimeSeriesResponse> {
-    const res = await fetch("/api/erecept/prescription-dispense/time-series/full", {
+    const res = await fetch("/api/erecept/prescription-dispense/time-series", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(params)

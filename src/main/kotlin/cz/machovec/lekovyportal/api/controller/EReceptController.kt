@@ -1,8 +1,13 @@
 package cz.machovec.lekovyportal.api.controller
 
+import cz.machovec.lekovyportal.api.model.DistrictDataRequest
+import cz.machovec.lekovyportal.api.model.EReceptDistrictDataResponse
+import cz.machovec.lekovyportal.api.model.FullTimeSeriesRequest
+import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesRequest
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesResponse
 import cz.machovec.lekovyportal.api.service.DistrictDataService
+import cz.machovec.lekovyportal.api.service.EReceptTimeSeriesService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -10,13 +15,37 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/erecept/prescription-dispense/by-district")
+@RequestMapping("/api/erecept/prescription-dispense")
 class EReceptController(
-    private val districtDataService: DistrictDataService
+    private val districtDataService: DistrictDataService,
+    private val eReceptTimeSeriesService: EReceptTimeSeriesService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @PostMapping("/time-series")
+    @PostMapping("/time-aggregate/by-district")
+    fun getDistrictAggregates(@RequestBody request: DistrictDataRequest): EReceptDistrictDataResponse {
+        logger.info(
+            "District map aggregation — aggregationType=${request.aggregationType}, " +
+                    "ids=${request.medicinalProductIds.joinToString(",")}, " +
+                    "dateFrom=${request.dateFrom}, dateTo=${request.dateTo}, " +
+                    "calculationMode=${request.calculationMode}, " +
+                    "normalisationMode=${request.normalisationMode}"
+        )
+
+        val response = districtDataService.aggregateByDistrict(request)
+
+        logger.info("Returning district data: ${response.districtValues.entries.joinToString { "${it.key}=${it.value}" }}")
+        logger.info(
+            "Summary: prescribed=${response.summary.prescribed}, " +
+                    "dispensed=${response.summary.dispensed}, " +
+                    "difference=${response.summary.difference}, " +
+                    "percentage=${"%.1f".format(response.summary.percentageDifference)}%"
+        )
+
+        return response
+    }
+
+    @PostMapping("/time-series/by-district")
     fun getTimeSeries(
         @RequestBody request: PrescriptionDispenseByDistrictTimeSeriesRequest
     ): PrescriptionDispenseByDistrictTimeSeriesResponse {
@@ -30,6 +59,23 @@ class EReceptController(
         val response = districtDataService.aggregateSeriesByDistrict(request)
 
         logger.info("Returning district series for ${response.series.size} months")
+        return response
+    }
+
+    @PostMapping("/time-series")
+    fun getFullTimeSeries(
+        @RequestBody request: FullTimeSeriesRequest
+    ): FullTimeSeriesResponse {
+        logger.info(
+            "Fetching full time series — aggregationType=${request.aggregationType}, " +
+                    "ids=${request.medicinalProductIds.joinToString(",")}, " +
+                    "calculationMode=${request.calculationMode}, normalisation=${request.normalisationMode}, " +
+                    "granularity=${request.granularity}, district=${request.district ?: "ALL"}"
+        )
+
+        val response = eReceptTimeSeriesService.getFullTimeSeries(request)
+
+        logger.info("Returning time series with ${response.series.size} entries.")
         return response
     }
 }

@@ -104,7 +104,8 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
                 strengths,
                 dosage_form_ids,
                 administration_route_ids,
-                atc_group_ids
+                atc_group_ids,
+                substance_ids
             FROM v_medicinal_product_grouped_by_reg_number
             WHERE registration_number = ANY(?)
             ORDER BY registration_number
