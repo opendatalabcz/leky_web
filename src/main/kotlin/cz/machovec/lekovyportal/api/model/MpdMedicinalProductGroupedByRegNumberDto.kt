@@ -7,5 +7,6 @@ data class MpdMedicinalProductGroupedByRegNumberDto(
     val strengths: List<String>,
     val dosageFormIds: List<Long>,
     val administrationRouteIds: List<Long>,
-    val atcGroupIds: List<Long>
+    val atcGroupIds: List<Long>,
+    val substanceIds: List<Long>
 )
