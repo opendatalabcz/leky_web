@@ -4,6 +4,7 @@ import cz.machovec.lekovyportal.api.model.AtcGroupResponse
 import cz.machovec.lekovyportal.api.service.AtcGroupService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -12,5 +13,13 @@ class AtcGroupController(
     private val atcGroupService: AtcGroupService
 ) {
     @GetMapping
-    fun getAll(): List<AtcGroupResponse> = atcGroupService.getAll()
+    fun search(
+        @RequestParam(required = false) query: String?
+    ): List<AtcGroupResponse> {
+        return if (query.isNullOrBlank()) {
+            emptyList()
+        } else {
+            atcGroupService.search(query)
+        }
+    }
 }

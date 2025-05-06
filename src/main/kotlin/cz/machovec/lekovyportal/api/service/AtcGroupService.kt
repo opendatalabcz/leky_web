@@ -8,8 +8,14 @@ import org.springframework.stereotype.Service
 class AtcGroupService(
     private val atcGroupRepository: MpdAtcGroupRepository
 ) {
-    fun getAll(): List<AtcGroupResponse> {
-        return atcGroupRepository.findAllByOrderByNameAsc()
-            .map { AtcGroupResponse(it.id!!, it.code, it.name) }
+    fun search(query: String): List<AtcGroupResponse> {
+        return if (query.length == 1) {
+            atcGroupRepository.findByCodeIgnoreCase(query)
+                ?.let { listOf(AtcGroupResponse(it.id!!, it.code, it.name)) }
+                ?: emptyList()
+        } else {
+            atcGroupRepository.findByCodeContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByNameAsc(query, query)
+                .map { AtcGroupResponse(it.id!!, it.code, it.name) }
+        }
     }
 }

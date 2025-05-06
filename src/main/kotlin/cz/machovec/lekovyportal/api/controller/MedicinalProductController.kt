@@ -4,18 +4,19 @@ import cz.machovec.lekovyportal.api.model.MedicinalProductGroupedByRegNumberResp
 import cz.machovec.lekovyportal.api.model.MedicinalProductResponse
 import cz.machovec.lekovyportal.api.model.PagedResponse
 import cz.machovec.lekovyportal.api.service.MedicinalProductService
-import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import mu.KotlinLogging
 
 @RestController
 @RequestMapping("/api/medicinal-products")
 class MedicinalProductController(
     private val medicinalProductService: MedicinalProductService
 ) {
-    private val logger = LoggerFactory.getLogger(MedicinalProductController::class.java)
+
+    private val logger = KotlinLogging.logger {}
 
     @GetMapping
     fun searchMedicinalProducts(
@@ -25,6 +26,8 @@ class MedicinalProductController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductResponse> {
+        logger.info { "Searching medicinal products with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, page=$page, size=$size" }
+
         return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query, page, size)
     }
 
