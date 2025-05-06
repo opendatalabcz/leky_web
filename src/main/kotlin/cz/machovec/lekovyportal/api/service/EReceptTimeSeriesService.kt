@@ -6,14 +6,14 @@ import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.Granularity
 import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.api.model.enums.CalculationMode
-import cz.machovec.lekovyportal.core.repository.erecept.EReceptRepository
+import cz.machovec.lekovyportal.core.repository.erecept.EreceptRepository
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 
 @Service
 class EReceptTimeSeriesService(
-    private val ereceptRepository: EReceptRepository,
+    private val ereceptRepository: EreceptRepository,
     private val medicinalProductRepository: MpdMedicinalProductRepository
 ) {
     fun getFullTimeSeries(request: FullTimeSeriesRequest): FullTimeSeriesResponse {

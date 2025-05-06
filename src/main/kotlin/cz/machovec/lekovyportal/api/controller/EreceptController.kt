@@ -6,7 +6,7 @@ import cz.machovec.lekovyportal.api.model.FullTimeSeriesRequest
 import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesRequest
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesResponse
-import cz.machovec.lekovyportal.api.service.DistrictDataService
+import cz.machovec.lekovyportal.api.service.EreceptService
 import cz.machovec.lekovyportal.api.service.EReceptTimeSeriesService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/erecept/prescription-dispense")
 class EreceptController(
-    private val districtDataService: DistrictDataService,
+    private val districtDataService: EreceptService,
     private val eReceptTimeSeriesService: EReceptTimeSeriesService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -34,7 +34,7 @@ class EreceptController(
         )
         val startedAt = System.currentTimeMillis()
 
-        val response = districtDataService.aggregateByDistrict(request)
+        val response = districtDataService.getAggregatedPrescriptionDispenseByDistrict(request)
 
         val durationMs = System.currentTimeMillis() - startedAt
         logger.info("TIME-AGGREGATE BY DISTRICT: $durationMs ms")

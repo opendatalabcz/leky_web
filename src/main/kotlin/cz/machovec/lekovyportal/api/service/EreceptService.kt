@@ -12,8 +12,9 @@ import cz.machovec.lekovyportal.api.model.enums.EReceptDataTypeAggregation
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
 import cz.machovec.lekovyportal.core.domain.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.core.repository.erecept.EReceptDistrictDataRow
-import cz.machovec.lekovyportal.core.repository.erecept.EReceptRepository
+import cz.machovec.lekovyportal.core.repository.erecept.EreceptRepository
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.YearMonth
@@ -21,11 +22,13 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 @Service
-class DistrictDataService(
-    private val ereceptRepository: EReceptRepository,
+class EreceptService(
+    private val ereceptRepository: EreceptRepository,
     private val medicinalProductRepository: MpdMedicinalProductRepository
 ) {
-    fun aggregateByDistrict(request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    fun getAggregatedPrescriptionDispenseByDistrict(request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM")
         val from: YearMonth? = request.dateFrom?.let { YearMonth.parse(it, formatter) }
         val to: YearMonth? = request.dateTo?.let { YearMonth.parse(it, formatter) }
@@ -45,11 +48,14 @@ class DistrictDataService(
                     (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
         }
 
-        val rows = ereceptRepository.findAggregatesByDistrict(
+        val startedAt = System.currentTimeMillis()
+        val rows = ereceptRepository.findAggregatedPrescriptionDispenseByDistrict(
             medicinalProductIds = included.mapNotNull { it.id },
             dateFrom = from,
             dateTo = to
         )
+        val durationMs = System.currentTimeMillis() - startedAt
+        logger.info("TIME-AGGREGATE BY DISTRICT - REPO: $durationMs ms")
 
         val districtValues = when (request.normalisationMode) {
             NormalisationMode.PER_1000_CAPITA -> when (request.calculationMode) {
@@ -93,7 +99,7 @@ class DistrictDataService(
         var ignoredProducts: List<MedicinalProductIdentificators> = emptyList()
 
         for ((index, month) in months.withIndex()) {
-            val snapshot = aggregateByDistrict(
+            val snapshot = getAggregatedPrescriptionDispenseByDistrict(
                 PrescriptionDispenseByDistrictAggregateRequest(
                     dateFrom = month.format(formatter),
                     dateTo = month.format(formatter),

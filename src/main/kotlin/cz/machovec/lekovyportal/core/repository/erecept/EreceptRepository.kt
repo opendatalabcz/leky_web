@@ -2,8 +2,8 @@ package cz.machovec.lekovyportal.core.repository.erecept
 
 import java.time.YearMonth
 
-interface EReceptRepository {
-    fun findAggregatesByDistrict(
+interface EreceptRepository {
+    fun findAggregatedPrescriptionDispenseByDistrict(
         medicinalProductIds: List<Long>,
         dateFrom: YearMonth? = null,
         dateTo: YearMonth? = null

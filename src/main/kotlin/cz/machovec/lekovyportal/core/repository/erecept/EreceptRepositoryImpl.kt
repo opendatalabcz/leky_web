@@ -6,12 +6,12 @@ import org.springframework.stereotype.Repository
 import java.time.YearMonth
 
 @Repository
-class EReceptRepositoryImpl : EReceptRepository {
+class EreceptRepositoryImpl : EreceptRepository {
 
     @PersistenceContext
     private lateinit var em: EntityManager
 
-    override fun findAggregatesByDistrict(
+    override fun findAggregatedPrescriptionDispenseByDistrict(
         medicinalProductIds: List<Long>,
         dateFrom: YearMonth?,
         dateTo: YearMonth?
