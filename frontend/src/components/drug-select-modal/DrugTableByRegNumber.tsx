@@ -1,151 +1,158 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState } from 'react';
 import {
     DataGrid,
     GridColDef,
     GridRenderCellParams,
-    GridRowSelectionModel
-} from "@mui/x-data-grid"
-import { MedicinalProductFilterValues } from "../../types/MedicinalProductFilterValues"
-import { useDrugCart } from "./DrugCartContext"
-import { Button, Box } from "@mui/material"
+    GridRowSelectionModel,
+} from '@mui/x-data-grid';
+import { Box, Button } from '@mui/material';
+import { MedicinalProductFilterValues } from '../../types/MedicinalProductFilterValues';
+import { useDrugCart } from './DrugCartContext';
 
 export type GroupedDrug = {
-    registrationNumber: string
-    names: string[]
-    suklCodes: string[]
-    strengths: string[]
-    dosageForms: { code: string, name?: string }[]
-    administrationRoutes: { code: string, name?: string }[]
-    atcGroups: { code: string, name: string }[]
-}
+    registrationNumber: string;
+    names: string[];
+    suklCodes: string[];
+    strengths: string[];
+    dosageForms: { code: string; name?: string }[];
+    administrationRoutes: { code: string; name?: string }[];
+    atcGroups: { code: string; name: string }[];
+};
 
 type PagedResponse<T> = {
-    content: T[]
-    totalPages: number
-    page: number
-    size: number
-    totalElements: number
-}
+    content: T[];
+    totalPages: number;
+    page: number;
+    size: number;
+    totalElements: number;
+};
 
 type Props = {
-    filters: MedicinalProductFilterValues
-    triggerSearch: boolean
-    onSearchComplete: () => void
-    filtersVersion: number
-    setTriggerSearch: (val: boolean) => void
-    onAddOne: (regNum: string) => void
-    onAddSelected?: () => void
-    onSelectionUpdate?: (count: number, selectedIds: string[]) => void
-}
+    filters: MedicinalProductFilterValues;
+    triggerSearch: boolean;
+    onSearchComplete: () => void;
+    filtersVersion: number;
+    setTriggerSearch: (val: boolean) => void;
+    onAddOne: (regNum: string) => void;
+    onAddSelected?: () => void;
+    onSelectionUpdate?: (count: number, selectedIds: string[]) => void;
+};
 
 export const DrugTableByRegNumber: React.FC<Props> = ({
-                                                         filters,
-                                                         triggerSearch,
-                                                         onSearchComplete,
-                                                         filtersVersion,
-                                                         setTriggerSearch,
-                                                         onAddOne,
-                                                         onAddSelected,
-                                                         onSelectionUpdate
-                                                     }) => {
-    const [data, setData] = useState<GroupedDrug[]>([])
-    const [currentPage, setCurrentPage] = useState(0)
-    const [totalElements, setTotalElements] = useState(0)
-    const [loading, setLoading] = useState(false)
-    const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
-    const { addRegistrationNumber } = useDrugCart()
+                                                          filters,
+                                                          triggerSearch,
+                                                          onSearchComplete,
+                                                          filtersVersion,
+                                                          setTriggerSearch,
+                                                          onAddOne,
+                                                          onAddSelected,
+                                                          onSelectionUpdate,
+                                                      }) => {
+    const pageSize = 5;
 
-    const pageSize = 5
+    const [data, setData] = useState<GroupedDrug[]>([]);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
+
+    const { addRegistrationNumber } = useDrugCart();
+
+    useEffect(() => setCurrentPage(0), [filtersVersion]);
 
     useEffect(() => {
-        setCurrentPage(0)
-    }, [filtersVersion])
-
-    useEffect(() => {
-        if (!triggerSearch) return
+        if (!triggerSearch) return;
 
         const fetchData = async () => {
-            setLoading(true)
+            setLoading(true);
             try {
-                const params = new URLSearchParams()
-                if (filters.atcGroupId) params.append("atcGroupId", filters.atcGroupId.toString())
-                if (filters.substanceId) params.append("substanceId", filters.substanceId.toString())
-                if (filters.medicinalProductQuery) params.append("query", filters.medicinalProductQuery)
-                if (filters.period) params.append("period", filters.period)
-                params.append("page", currentPage.toString())
-                params.append("size", pageSize.toString())
+                const params = new URLSearchParams();
+                if (filters.atcGroupId) params.append('atcGroupId', filters.atcGroupId.toString());
+                if (filters.substanceId) params.append('substanceId', filters.substanceId.toString());
+                if (filters.medicinalProductQuery) params.append('query', filters.medicinalProductQuery);
+                if (filters.period) params.append('period', filters.period);
+                params.append('page', currentPage.toString());
+                params.append('size', pageSize.toString());
 
-                const res = await fetch(`/api/medicinal-products/grouped-by-reg-number?${params.toString()}`)
-                const json: PagedResponse<GroupedDrug> = await res.json()
+                const res = await fetch(`/api/medicinal-products/grouped-by-reg-number?${params.toString()}`);
+                const json: PagedResponse<GroupedDrug> = await res.json();
 
-                setData(json.content)
-                setTotalElements(json.totalElements)
+                setData(json.content);
+                setTotalElements(json.totalElements);
             } catch (e) {
-                console.error("Chyba při načítání:", e)
+                console.error('Chyba při načítání:', e);
             } finally {
-                setLoading(false)
-                onSearchComplete()
+                setLoading(false);
+                onSearchComplete();
             }
-        }
+        };
 
-        fetchData()
-    }, [triggerSearch, filters, currentPage])
+        fetchData();
+    }, [triggerSearch, filters, currentPage]);
 
     const handleAddSelected = () => {
-        const selectedIds = selectionModel as string[]
-        selectedIds.forEach(id => addRegistrationNumber(id))
-        onAddSelected?.()
-    }
+        const ids = selectionModel as string[];
+        ids.forEach(addRegistrationNumber);
+        onAddSelected?.();
+    };
 
     useEffect(() => {
-        const selectedIds = selectionModel as string[]
-        onSelectionUpdate?.(selectedIds.length, selectedIds)
-    }, [selectionModel, onSelectionUpdate])
+        const ids = selectionModel as string[];
+        onSelectionUpdate?.(ids.length, ids);
+    }, [selectionModel, onSelectionUpdate]);
 
-    const columns: GridColDef[] = [
-        { field: "registrationNumber", headerName: "Registrační číslo", flex: 1 },
+    const columns: GridColDef<GroupedDrug>[] = [
+        { field: 'registrationNumber', headerName: 'Registrační číslo', flex: 1 },
         {
-            field: "names",
-            headerName: "Názvy",
+            field: 'names',
+            headerName: 'Název',
             flex: 2,
-            valueGetter: (params: { row?: GroupedDrug }) => params.row?.names.join(", ") ?? "-"
+            renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
+                params.row.names.length > 0 ? params.row.names.join(', ') : '-',
         },
         {
-            field: "strengths",
-            headerName: "Síly",
+            field: 'strengths',
+            headerName: 'Síla',
             flex: 1,
-            valueGetter: (params: { row?: GroupedDrug }) => params.row?.strengths.join(", ") ?? "-"
+            renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
+                params.row.strengths.length > 0 ? params.row.strengths.join(', ') : '-',
         },
         {
-            field: "dosageForms",
-            headerName: "Lékové formy",
+            field: 'dosageForms',
+            headerName: 'Léková forma',
             flex: 1.5,
-            valueGetter: (params: { row?: GroupedDrug }) =>
-                params.row?.dosageForms.map(d => d.name || d.code).join(", ") ?? "-"
+            renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
+                params.row.dosageForms.length > 0
+                    ? params.row.dosageForms.map((d) => d.name ?? d.code).join(', ')
+                    : '-',
         },
         {
-            field: "administrationRoutes",
-            headerName: "Cesty podání",
+            field: 'administrationRoutes',
+            headerName: 'Cesta podání',
             flex: 1.5,
-            valueGetter: (params: { row?: GroupedDrug }) =>
-                params.row?.administrationRoutes.map(r => r.name || r.code).join(", ") ?? "-"
+            renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
+                params.row.administrationRoutes.length > 0
+                    ? params.row.administrationRoutes.map((r) => r.name ?? r.code).join(', ')
+                    : '-',
         },
         {
-            field: "atcGroups",
-            headerName: "ATC skupiny",
+            field: 'atcGroups',
+            headerName: 'ATC skupina',
             flex: 2,
-            valueGetter: (params: { row?: GroupedDrug }) =>
-                params.row?.atcGroups.map(a => `${a.name} (${a.code})`).join(", ") ?? "-"
+            renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
+                params.row.atcGroups.length > 0
+                    ? params.row.atcGroups.map((a) => `${a.name} (${a.code})`).join(', ')
+                    : '-',
         },
         {
-            field: "suklCodes",
-            headerName: "Počet kódů",
+            field: 'suklCodes',
+            headerName: 'Počet kódů',
             flex: 1,
-            valueGetter: (params: { row?: GroupedDrug }) => params.row?.suklCodes.length ?? 0
+            renderCell: (params: GridRenderCellParams<GroupedDrug>) => params.row.suklCodes.length,
         },
         {
-            field: "action",
-            headerName: "Akce",
+            field: 'action',
+            headerName: 'Akce',
             flex: 1,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) => (
                 <Button
@@ -156,14 +163,12 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
                     Přidat
                 </Button>
             ),
-            sortable: false,
-            filterable: false
-        }
-    ]
+        },
+    ];
 
     return (
         <Box>
-            <DataGrid<GroupedDrug>
+            <DataGrid
                 autoHeight
                 rows={data}
                 columns={columns}
@@ -176,12 +181,20 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
                 onRowSelectionModelChange={setSelectionModel}
                 loading={loading}
                 onPaginationModelChange={({ page }) => {
-                    setCurrentPage(page)
-                    setTriggerSearch(true)
+                    setCurrentPage(page);
+                    setTriggerSearch(true);
                 }}
                 getRowId={(row) => row.registrationNumber}
                 disableColumnMenu
             />
+
+            {selectionModel.length > 0 && (
+                <Box mt={1}>
+                    <Button variant="contained" size="small" onClick={handleAddSelected}>
+                        Přidat vybrané ({selectionModel.length})
+                    </Button>
+                </Box>
+            )}
         </Box>
-    )
-}
+    );
+};
