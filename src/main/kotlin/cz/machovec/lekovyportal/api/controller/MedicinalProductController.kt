@@ -19,7 +19,7 @@ class MedicinalProductController(
     private val logger = KotlinLogging.logger {}
 
     @GetMapping
-    fun searchMedicinalProducts(
+    fun search(
         @RequestParam(required = false) atcGroupId: Long?,
         @RequestParam(required = false) substanceId: Long?,
         @RequestParam(required = false) query: String?,
@@ -28,22 +28,22 @@ class MedicinalProductController(
     ): PagedResponse<MedicinalProductResponse> {
         logger.info { "Searching medicinal products with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, page=$page, size=$size" }
 
-        return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query, page, size)
+        return medicinalProductService.search(atcGroupId, substanceId, query, page, size)
     }
 
     @GetMapping("/grouped-by-reg-number")
-    fun searchMedicinalProductsGroupedByRegNumber(
+    fun searchGroupedByRegNumber(
         @RequestParam(required = false) atcGroupId: Long?,
         @RequestParam(required = false) substanceId: Long?,
         @RequestParam(required = false) query: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductGroupedByRegNumberResponse> {
-        return medicinalProductService.searchMedicinalProductsGroupedByRegNumber(atcGroupId, substanceId, query, page, size)
+        return medicinalProductService.searchGroupedByRegNumber(atcGroupId, substanceId, query, page, size)
     }
 
     @GetMapping("/by-ids")
-    fun getMedicinalProductsByIds(
+    fun findByIds(
         @RequestParam ids: List<Long>
     ): List<MedicinalProductResponse> {
         logger.info("CART - fetching medicinal products by IDs: ${ids.joinToString(", ")}")
@@ -51,7 +51,7 @@ class MedicinalProductController(
     }
 
     @GetMapping("/grouped-by-reg-numbers")
-    fun getGroupedMedicinalProductsByRegNumbers(
+    fun findGroupedByRegNumbers(
         @RequestParam regNumbers: List<String>
     ): List<MedicinalProductGroupedByRegNumberResponse> {
         logger.info("CART - fetching grouped medicinal products by regNumbers: ${regNumbers.joinToString()}")

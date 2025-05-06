@@ -22,7 +22,7 @@ class MedicinalProductService(
     private val administrationRouteRepository: MpdAdministrationRouteRepository,
     private val atcGroupRepository: MpdAtcGroupRepository
 ) {
-    fun searchMedicinalProducts(
+    fun search(
         atcGroupId: Long?,
         substanceId: Long?,
         query: String?,
@@ -57,7 +57,7 @@ class MedicinalProductService(
         )
     }
 
-    fun searchMedicinalProductsGroupedByRegNumber(
+    fun searchGroupedByRegNumber(
         atcGroupId: Long?,
         substanceId: Long?,
         query: String?,
