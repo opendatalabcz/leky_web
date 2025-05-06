@@ -127,7 +127,11 @@ export function DistributionPage() {
                 </Box>
             </Box>
 
-            <DataStatusFooter />
+            <DataStatusFooter datasetTypes={[
+                "DISTRIBUTIONS_FROM_MAHS",
+                "DISTRIBUTIONS_FROM_DISTRIBUTORS",
+                "DISTRIBUTIONS_FROM_PHARMACIES"
+            ]} />
 
             <DrugSelectorModal
                 open={isModalOpen}

@@ -273,7 +273,7 @@ export function EReceptPage() {
                 </Box>
             </Box>
 
-            <DataStatusFooter />
+            <DataStatusFooter datasetTypes={["ERECEPT_PRESCRIPTIONS", "ERECEPT_DISPENSES"]} />
 
             <DrugSelectorModal
                 open={isModalOpen}

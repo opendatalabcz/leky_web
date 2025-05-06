@@ -17,4 +17,6 @@ interface ProcessedDatasetRepository : JpaRepository<ProcessedDataset, Long> {
         datasetType: DatasetType,
         year: Int
     ): List<ProcessedDataset>
+
+    fun findFirstByDatasetTypeInOrderByCreatedAtDesc(types: List<DatasetType>): ProcessedDataset?
 }
