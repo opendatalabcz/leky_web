@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import {
     Params,
-    fetchDistrictTimeSeries,
+    getPrescriptionDispenseTimeSeriesByDistrict,
     DistrictTimeSeriesResponseWithSummary
 } from "../services/ereceptService"
 
@@ -27,7 +27,7 @@ export function useDistrictTimeSeries(params?: Params, enabled: boolean = !!para
                     }
                 })
             }
-            return fetchDistrictTimeSeries(params)
+            return getPrescriptionDispenseTimeSeriesByDistrict(params)
         },
         enabled
     })

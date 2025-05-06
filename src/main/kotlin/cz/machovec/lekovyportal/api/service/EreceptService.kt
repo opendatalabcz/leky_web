@@ -90,6 +90,23 @@ class EreceptService(
         val from = YearMonth.parse(request.dateFrom, formatter)
         val to = YearMonth.parse(request.dateTo, formatter)
 
+        val productsById = if (request.medicinalProductIds.isNotEmpty()) {
+            medicinalProductRepository.findAllByIdIn(request.medicinalProductIds)
+        } else emptyList()
+
+        val productsByRegNumbers = if (request.registrationNumbers.isNotEmpty()) {
+            medicinalProductRepository.findAllByRegistrationNumberIn(request.registrationNumbers)
+        } else emptyList()
+
+        val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
+
+        val (included, ignored) = allProducts.partition {
+            request.calculationMode != CalculationMode.DAILY_DOSES ||
+                    (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
+        }
+
+        val includedIds = included.mapNotNull { it.id }
+
         val months = generateSequence(from) { current ->
             if (current < to) current.plusMonths(1) else null
         }.plus(to).toList()
@@ -106,7 +123,7 @@ class EreceptService(
                     calculationMode = request.calculationMode,
                     aggregationType = request.aggregationType,
                     normalisationMode = request.normalisationMode,
-                    medicinalProductIds = request.medicinalProductIds
+                    medicinalProductIds = includedIds
                 )
             )
 

@@ -50,7 +50,7 @@ export type DistrictTimeSeriesResponseWithSummary = {
     ignoredMedicineProducts: MedicineProductInfo[]
 }
 
-export async function getAggregatedPrescriptionDispenseByDistrict(params: Params): Promise<EReceptDistrictDataResponseWithSummary> {
+export async function getPrescriptionDispenseTimeAggregateByDistrict(params: Params): Promise<EReceptDistrictDataResponseWithSummary> {
     const res = await fetch("/api/erecept/prescription-dispense/time-aggregate/by-district", {
         method: "POST",
         headers: {
@@ -66,13 +66,7 @@ export async function getAggregatedPrescriptionDispenseByDistrict(params: Params
     return await res.json()
 }
 
-export interface MonthSeriesEntryWithSummary {
-    month: string
-    values: Record<string, number>
-    summary: SummaryValues
-}
-
-export async function fetchDistrictTimeSeries(params: Params) {
+export async function getPrescriptionDispenseTimeSeriesByDistrict(params: Params) {
     const res = await fetch(
         "/api/erecept/prescription-dispense/time-series/by-district",
         {
@@ -81,10 +75,28 @@ export async function fetchDistrictTimeSeries(params: Params) {
             body: JSON.stringify(params)
         }
     )
-    if (!res.ok) throw new Error("Nelze načíst time‑series data")
+    if (!res.ok) {
+        throw new Error("Nepodařilo se načíst data z backendu.")
+    }
     return (await res.json()) as DistrictTimeSeriesResponseWithSummary
 }
 
+export async function getPrescriptionDispenseTimeSeries(params: FullTimeSeriesParams): Promise<FullTimeSeriesResponse> {
+    const res = await fetch("/api/erecept/prescription-dispense/time-series", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params)
+    })
+
+    if (!res.ok) throw new Error("Nepodařilo se načíst časovou řadu")
+    return res.json()
+}
+
+export interface MonthSeriesEntryWithSummary {
+    month: string
+    values: Record<string, number>
+    summary: SummaryValues
+}
 
 export interface FullTimeSeriesParams {
     aggregationType: EReceptDataTypeAggregation
@@ -111,15 +123,4 @@ export interface FullTimeSeriesResponse {
     series: FullTimeSeriesEntry[]
     includedMedicineProducts: MedicineProductInfo[]
     ignoredMedicineProducts: MedicineProductInfo[]
-}
-
-export async function fetchFullTimeSeries(params: FullTimeSeriesParams): Promise<FullTimeSeriesResponse> {
-    const res = await fetch("/api/erecept/prescription-dispense/time-series", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params)
-    })
-
-    if (!res.ok) throw new Error("Nepodařilo se načíst časovou řadu")
-    return res.json()
 }

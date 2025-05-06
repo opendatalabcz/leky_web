@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import {
     Params,
-    getAggregatedPrescriptionDispenseByDistrict,
+    getPrescriptionDispenseTimeAggregateByDistrict,
     EReceptDistrictDataResponseWithSummary
 } from "../services/ereceptService"
 
@@ -27,7 +27,7 @@ export function useAggregatedPrescriptionDispenseByDistrict(params?: Params) {
                     }
                 })
             }
-            return getAggregatedPrescriptionDispenseByDistrict(params)
+            return getPrescriptionDispenseTimeAggregateByDistrict(params)
         },
         enabled: !!params
     })
