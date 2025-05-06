@@ -6,12 +6,12 @@ import { PlayArrow, Pause } from "@mui/icons-material"
 import { format, addMonths, isBefore } from "date-fns"
 import { useFilters } from "../components/FilterContext"
 import { EReceptFiltersPanel } from "../components/EReceptFiltersPanel"
-import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
+import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
 import DistrictMap from "../components/DistrictMap"
 import { FeatureCollection } from "geojson"
-import { useUnifiedCart } from "../components/UnifiedCartContext"
+import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
 import { SummaryTiles } from "../components/SummaryTiles"
 import { useDistrictAggregate } from "../hooks/useDistrictAggregate"
 import { useDistrictTimeSeries } from "../hooks/useDistrictTimeSeries"
@@ -34,7 +34,7 @@ type DistrictFeatureCollection = GeoJSON.FeatureCollection
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
-    const { drugs } = useUnifiedCart()
+    const { drugs } = useDrugCart()
 
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
     const [districtNamesMap, setDistrictNamesMap] = useState<Record<string, string>>({})
@@ -275,7 +275,7 @@ export function EReceptPage() {
 
             <DataStatusFooter />
 
-            <MedicineSelectorModal
+            <DrugSelectorModal
                 open={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             />

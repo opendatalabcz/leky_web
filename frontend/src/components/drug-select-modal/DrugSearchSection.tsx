@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react"
-import { MedicinalProductFilterValues } from "../types/MedicinalProductFilterValues"
-import { MedicinalProductSearchMode } from "../types/MedicinalProductSearchMode"
-import { MedicinalProductFilters } from "./MedicinalProductFilters"
+import { MedicinalProductFilterValues } from "../../types/MedicinalProductFilterValues"
+import { MedicinalProductSearchMode } from "../../types/MedicinalProductSearchMode"
+import { DrugFilters } from "./DrugFilters"
 import { DrugSearchModeSwitch } from "./DrugSearchModeSwitch"
-import { DrugTableNew } from "./DrugTableNew"
-import { GroupedDrugTableNew } from "./GroupedDrugTableNew"
-import { useUnifiedCart } from "./UnifiedCartContext"
+import { DrugTableBySuklCode } from "./DrugTableBySuklCode"
+import { DrugTableByRegNumber } from "./DrugTableByRegNumber"
+import { useDrugCart } from "./DrugCartContext"
 import { Box } from "@mui/material"
 
 type Props = {
@@ -34,7 +34,7 @@ export const DrugSearchSection: React.FC<Props> = ({
 
     const [selectedIds, setSelectedIds] = useState<number[]>([])
 
-    const { addSuklId, addRegistrationNumber } = useUnifiedCart()
+    const { addSuklId, addRegistrationNumber } = useDrugCart()
 
     useEffect(() => {
         if (refreshToken) {
@@ -73,7 +73,7 @@ export const DrugSearchSection: React.FC<Props> = ({
                 onChange={handleSearchModeChange}
             />
 
-            <MedicinalProductFilters
+            <DrugFilters
                 filters={filters}
                 onChange={handleFilterChange}
                 onSearchClick={handleSearchClick}
@@ -81,7 +81,7 @@ export const DrugSearchSection: React.FC<Props> = ({
 
             <Box mt={2}>
                 {filters.searchMode === MedicinalProductSearchMode.SUKL_CODE ? (
-                    <DrugTableNew
+                    <DrugTableBySuklCode
                         filters={filters}
                         triggerSearch={shouldSearch}
                         onSearchComplete={handleSearchComplete}
@@ -94,7 +94,7 @@ export const DrugSearchSection: React.FC<Props> = ({
                         }}
                     />
                 ) : (
-                    <GroupedDrugTableNew
+                    <DrugTableByRegNumber
                         filters={filters}
                         triggerSearch={shouldSearch}
                         onSearchComplete={handleSearchComplete}

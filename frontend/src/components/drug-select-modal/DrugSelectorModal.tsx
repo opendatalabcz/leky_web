@@ -13,7 +13,7 @@ interface Props {
     onClose: () => void
 }
 
-export const MedicineSelectorModal: React.FC<Props> = ({ open, onClose }) => {
+export const DrugSelectorModal: React.FC<Props> = ({ open, onClose }) => {
     const [refreshToken, setRefreshToken] = useState(0)
     const [selectedCount, setSelectedCount] = useState(0)
     const [addSelectedHandler, setAddSelectedHandler] = useState<() => void>(() => {})

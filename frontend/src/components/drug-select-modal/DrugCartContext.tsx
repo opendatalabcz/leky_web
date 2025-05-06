@@ -1,10 +1,10 @@
-// UnifiedCartContext.tsx
+// DrugCartContext.tsx
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { Drug } from "./DrugTableNew"
-import { GroupedDrug } from "./GroupedDrugTableNew"
+import { Drug } from "./DrugTableBySuklCode"
+import { GroupedDrug } from "./DrugTableByRegNumber"
 
-type UnifiedCartContextType = {
+type DrugCartContextType = {
   suklIds: number[]
   registrationNumbers: string[]
   drugs: Drug[]
@@ -16,9 +16,9 @@ type UnifiedCartContextType = {
   clearCart: () => void
 }
 
-const UnifiedCartContext = createContext<UnifiedCartContextType | undefined>(undefined)
+const DrugCartContext = createContext<DrugCartContextType | undefined>(undefined)
 
-export const UnifiedCartProvider = ({ children }: { children: React.ReactNode }) => {
+export const DrugCartProvider = ({ children }: { children: React.ReactNode }) => {
   const [suklIds, setSuklIds] = useState<number[]>([])
   const [registrationNumbers, setRegistrationNumbers] = useState<string[]>([])
 
@@ -27,7 +27,7 @@ export const UnifiedCartProvider = ({ children }: { children: React.ReactNode })
 
   // sync from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("unified-medicine-cart")
+    const stored = localStorage.getItem("drug-cart")
     if (stored) {
       const parsed = JSON.parse(stored)
       setSuklIds(parsed.suklIds || [])
@@ -37,7 +37,7 @@ export const UnifiedCartProvider = ({ children }: { children: React.ReactNode })
 
   // persist to localStorage
   useEffect(() => {
-    localStorage.setItem("unified-medicine-cart", JSON.stringify({ suklIds, registrationNumbers }))
+    localStorage.setItem("drug-cart", JSON.stringify({ suklIds, registrationNumbers }))
   }, [suklIds, registrationNumbers])
 
   // fetch detailed drugs info
@@ -90,7 +90,7 @@ export const UnifiedCartProvider = ({ children }: { children: React.ReactNode })
   }
 
   return (
-    <UnifiedCartContext.Provider
+    <DrugCartContext.Provider
       value={{
         suklIds,
         registrationNumbers,
@@ -104,12 +104,12 @@ export const UnifiedCartProvider = ({ children }: { children: React.ReactNode })
       }}
     >
       {children}
-    </UnifiedCartContext.Provider>
+    </DrugCartContext.Provider>
   )
 }
 
-export const useUnifiedCart = () => {
-  const context = useContext(UnifiedCartContext)
-  if (!context) throw new Error("useUnifiedCart must be used within UnifiedCartProvider")
+export const useDrugCart = () => {
+  const context = useContext(DrugCartContext)
+  if (!context) throw new Error("useDrugCart must be used within DrugCartProvider")
   return context
 }

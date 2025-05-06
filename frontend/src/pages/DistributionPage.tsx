@@ -7,11 +7,11 @@ import {
 } from "@mui/material"
 import { useFilters } from "../components/FilterContext"
 import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel"
-import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
+import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
 import { SankeyChart } from "../components/distribution/SankeyChart"
-import { useUnifiedCart } from "../components/UnifiedCartContext"
+import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
 import { format } from "date-fns"
 import { useCombinedDistributionSankey } from "../hooks/useCombinedDistributionSankey"
 import { useDistributionTimeSeries } from "../hooks/useDistributionTimeSeries"
@@ -20,7 +20,7 @@ import { DistributionTimeSeriesChart } from "../components/DistributionTimeSerie
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const { drugs } = useUnifiedCart()
+    const { drugs } = useDrugCart()
 
     const hasDrugs = drugs.length > 0
     const sankeyQuery = useCombinedDistributionSankey(
@@ -129,7 +129,7 @@ export function DistributionPage() {
 
             <DataStatusFooter />
 
-            <MedicineSelectorModal
+            <DrugSelectorModal
                 open={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             />

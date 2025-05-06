@@ -8,7 +8,7 @@ import {
     Divider
 } from "@mui/material"
 import CloseIcon from "@mui/icons-material/Close"
-import { useUnifiedCart } from "./UnifiedCartContext"
+import { useDrugCart } from "./drug-select-modal/DrugCartContext"
 
 export const SelectedMedicinalProductSummary: React.FC = () => {
     const {
@@ -16,7 +16,7 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
         groupedDrugs,
         removeSuklId,
         removeRegistrationNumber
-    } = useUnifiedCart()
+    } = useDrugCart()
 
     const hasAny = drugs.length > 0 || groupedDrugs.length > 0
 

@@ -5,8 +5,8 @@ import {
     GridRenderCellParams,
     GridRowSelectionModel
 } from "@mui/x-data-grid"
-import { MedicinalProductFilterValues } from "../types/MedicinalProductFilterValues"
-import { useUnifiedCart } from "./UnifiedCartContext"
+import { MedicinalProductFilterValues } from "../../types/MedicinalProductFilterValues"
+import { useDrugCart } from "./DrugCartContext"
 import { Button, Box } from "@mui/material"
 
 export type Drug = {
@@ -37,7 +37,7 @@ type Props = {
     onSelectionUpdate?: (count: number, selectedIds: number[]) => void
 }
 
-export const DrugTableNew: React.FC<Props> = ({
+export const DrugTableBySuklCode: React.FC<Props> = ({
                                                   filters,
                                                   triggerSearch,
                                                   onSearchComplete,
@@ -52,7 +52,7 @@ export const DrugTableNew: React.FC<Props> = ({
     const [totalElements, setTotalElements] = useState(0)
     const [loading, setLoading] = useState(false)
     const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
-    const { addSuklId } = useUnifiedCart()
+    const { addSuklId } = useDrugCart()
 
     const pageSize = 5
 

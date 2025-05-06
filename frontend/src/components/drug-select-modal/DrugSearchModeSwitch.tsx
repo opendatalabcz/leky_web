@@ -1,6 +1,6 @@
 import React from "react"
 import { ToggleButton, ToggleButtonGroup, Typography, Box } from "@mui/material"
-import { MedicinalProductSearchMode } from "../types/MedicinalProductSearchMode"
+import { MedicinalProductSearchMode } from "../../types/MedicinalProductSearchMode"
 
 type Props = {
     searchMode: MedicinalProductSearchMode

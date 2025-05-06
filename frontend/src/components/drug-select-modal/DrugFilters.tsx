@@ -3,7 +3,7 @@ import {
     TextField,
     Button,
 } from "@mui/material";
-import { MedicinalProductFilterValues } from "../types/MedicinalProductFilterValues";
+import { MedicinalProductFilterValues } from "../../types/MedicinalProductFilterValues";
 import { SubstanceSelect } from "./SubstanceSelect";
 import {AtcGroupSelect} from "./AtcGroupSelect";
 import React from "react";
@@ -14,7 +14,7 @@ type Props = {
     onSearchClick: () => void;
 };
 
-export const MedicinalProductFilters: React.FC<Props> = ({
+export const DrugFilters: React.FC<Props> = ({
                                                              filters,
                                                              onChange,
                                                              onSearchClick
