@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/erecept/prescription-dispense")
-class EReceptController(
+class EreceptController(
     private val districtDataService: DistrictDataService,
     private val eReceptTimeSeriesService: EReceptTimeSeriesService
 ) {
@@ -32,16 +32,12 @@ class EReceptController(
                     "calculationMode=${request.calculationMode}, " +
                     "normalisationMode=${request.normalisationMode}"
         )
+        val startedAt = System.currentTimeMillis()
 
         val response = districtDataService.aggregateByDistrict(request)
 
-        logger.info("Returning district data: ${response.districtValues.entries.joinToString { "${it.key}=${it.value}" }}")
-        logger.info(
-            "Summary: prescribed=${response.summary.prescribed}, " +
-                    "dispensed=${response.summary.dispensed}, " +
-                    "difference=${response.summary.difference}, " +
-                    "percentage=${"%.1f".format(response.summary.percentageDifference)}%"
-        )
+        val durationMs = System.currentTimeMillis() - startedAt
+        logger.info("TIME-AGGREGATE BY DISTRICT: $durationMs ms")
 
         return response
     }
@@ -57,9 +53,13 @@ class EReceptController(
                     "calculationMode=${request.calculationMode}, normalisation=${request.normalisationMode}"
         )
 
+        val startedAt = System.currentTimeMillis()
+
         val response = districtDataService.aggregateSeriesByDistrict(request)
 
-        logger.info("Returning district series for ${response.series.size} months")
+        val durationMs = System.currentTimeMillis() - startedAt
+        logger.info("TIME-SERIES BY DISTRICT: $durationMs ms")
+
         return response
     }
 
@@ -74,9 +74,13 @@ class EReceptController(
                     "granularity=${request.granularity}, district=${request.district ?: "ALL"}"
         )
 
+        val startedAt = System.currentTimeMillis()
+
         val response = eReceptTimeSeriesService.getFullTimeSeries(request)
 
-        logger.info("Returning time series with ${response.series.size} entries.")
+        val durationMs = System.currentTimeMillis() - startedAt
+        logger.info("TIME-SERIES: $durationMs ms")
+
         return response
     }
 }
