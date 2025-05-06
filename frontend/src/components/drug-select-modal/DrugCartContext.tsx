@@ -85,8 +85,9 @@ export const DrugCartProvider = ({ children }: { children: React.ReactNode }) =>
   }
 
   const clearCart = () => {
-    setSuklIds([])
-    setRegistrationNumbers([])
+    setSuklIds([]);
+    setRegistrationNumbers([]);
+    localStorage.removeItem("drug-cart");
   }
 
   return (

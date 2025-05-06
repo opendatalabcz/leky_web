@@ -165,14 +165,6 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
                 getRowId={(row) => row.id}
                 disableColumnMenu
             />
-
-            {selectionModel.length > 0 && (
-                <Box mt={1}>
-                    <Button variant="contained" size="small" onClick={handleAddSelected}>
-                        Přidat vybrané ({selectionModel.length})
-                    </Button>
-                </Box>
-            )}
         </Box>
     );
 };
