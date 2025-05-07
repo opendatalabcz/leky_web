@@ -15,8 +15,4 @@ class DistrictService(private val districtRepository: DistrictRepository) {
             districtMap[district.code] = district.name
         }
     }
-
-    fun getDistrictName(code: String): String {
-        return districtMap[code] ?: "Neznámý okres"
-    }
 }
