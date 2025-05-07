@@ -17,16 +17,54 @@ type Props = {
 }
 
 export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
-    const chartData = useMemo(() => {
-        if (!data || data.series.length === 0) return []
+    const { chartData, allFlowKeys } = useMemo(() => {
+        if (!data || data.series.length === 0) {
+            return { chartData: [], allFlowKeys: [] }
+        }
 
-        return data.series.map(entry => ({
-            name: entry.period,
-            "MAH → Distributor": entry.mahToDistributor,
-            "Distributor → Lékárna": entry.distributorToPharmacy,
-            "Lékárna → Pacient": entry.pharmacyToPatient
-        }))
+        // Najdeme všechny unikátní source → target kombinace
+        const allFlowKeys = Array.from(
+            new Set(data.series.flatMap(entry =>
+                entry.flows.map(flow => `${flow.source} → ${flow.target}`)
+            ))
+        )
+
+        // Připravíme data pro graf
+        const chartData = data.series.map(entry => {
+            const flowMap = Object.fromEntries(
+                entry.flows.map(flow => [`${flow.source} → ${flow.target}`, flow.value])
+            )
+
+            const result: any = { name: entry.period }
+            allFlowKeys.forEach(key => {
+                result[key] = flowMap[key] || 0
+            })
+
+            return result
+        })
+
+        return { chartData, allFlowKeys }
     }, [data])
+
+    // Paleta barev (můžeš si upravit, nebo přidat více barev)
+    const colorPalette = [
+        "#1976d2", // modrá
+        "#2e7d32", // zelená
+        "#d32f2f", // červená
+        "#f9a825", // žlutá
+        "#6a1b9a", // fialová
+        "#00838f", // tyrkysová
+        "#c2185b", // růžová
+        "#5d4037"  // hnědá
+    ]
+
+    if (!data || data.series.length === 0) {
+        return (
+            <Typography color="text.secondary">
+                Žádná data k zobrazení.
+            </Typography>
+        )
+    }
 
     return (
         <Box mt={5}>
@@ -41,30 +79,17 @@ export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
                     />
                     <Legend />
 
-                    <Line
-                        type="monotone"
-                        dataKey="MAH → Distributor"
-                        stroke="#1976d2"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
-                    <Line
-                        type="monotone"
-                        dataKey="Distributor → Lékárna"
-                        stroke="#2e7d32"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
-                    <Line
-                        type="monotone"
-                        dataKey="Lékárna → Pacient"
-                        stroke="#d32f2f"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
+                    {allFlowKeys.map((key, index) => (
+                        <Line
+                            key={key}
+                            type="monotone"
+                            dataKey={key}
+                            stroke={colorPalette[index % colorPalette.length]}
+                            strokeWidth={2}
+                            dot={{ r: 2 }}
+                            activeDot={{ r: 5 }}
+                        />
+                    ))}
                 </LineChart>
             </ResponsiveContainer>
         </Box>

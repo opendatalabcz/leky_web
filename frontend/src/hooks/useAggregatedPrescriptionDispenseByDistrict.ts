@@ -4,6 +4,7 @@ import {
     getPrescriptionDispenseTimeAggregateByDistrict,
     EReceptDistrictDataResponseWithSummary
 } from "../services/ereceptService"
+import {MedicinalUnitMode} from "../types/MedicinalUnitMode";
 
 export function useAggregatedPrescriptionDispenseByDistrict(params?: Params) {
     return useQuery<EReceptDistrictDataResponseWithSummary>({
@@ -12,7 +13,7 @@ export function useAggregatedPrescriptionDispenseByDistrict(params?: Params) {
             if (!params) {
                 return Promise.resolve({
                     aggregationType: "PRESCRIBED",
-                    calculationMode: "PACKAGES",
+                    medicinalUnitMode: MedicinalUnitMode.PACKAGES,
                     normalisationMode: "ABSOLUTE",
                     dateFrom: "",
                     dateTo: "",

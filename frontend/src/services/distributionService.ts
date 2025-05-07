@@ -10,7 +10,7 @@ export type DistributionSankeyRequest = {
     registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
-    calculationMode: MedicinalUnitMode
+    medicinalUnitMode: MedicinalUnitMode
 }
 
 export type SankeyNodeDto = {
@@ -29,7 +29,7 @@ export type DistributionSankeyResponse = {
     ignoredMedicineProducts: { id: number; suklCode: string }[]
     dateFrom: string
     dateTo: string
-    calculationMode: MedicinalUnitMode
+    medicinalUnitMode: MedicinalUnitMode
     nodes: SankeyNodeDto[]
     links: SankeyLinkDto[]
 }
@@ -57,7 +57,7 @@ export type DistributionTimeSeriesRequest = {
     registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
-    calculationMode: MedicinalUnitMode
+    medicinalUnitMode: MedicinalUnitMode
     timeGranularity: TimeGranularity
 }
 
@@ -77,7 +77,7 @@ export type DistributionTimeSeriesResponse = {
     ignoredMedicineProducts: { id: number; suklCode: string }[]
     dateFrom: string
     dateTo: string
-    calculationMode: MedicinalUnitMode
+    medicinalUnitMode: MedicinalUnitMode
     timeGranularity: TimeGranularity
     series: DistributionTimeSeriesPeriodEntry[]
 }

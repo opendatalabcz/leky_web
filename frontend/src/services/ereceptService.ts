@@ -6,7 +6,7 @@ export interface Params {
     dateFrom: string
     dateTo: string
     aggregationType: EReceptDataTypeAggregation
-    calculationMode: MedicinalUnitMode
+    medicinalUnitMode: MedicinalUnitMode
     normalisationMode: PopulationNormalisationMode
     medicinalProductIds: number[]
 }
@@ -25,7 +25,7 @@ export type SummaryValues = {
 
 export type EReceptDistrictDataResponseWithSummary = {
     aggregationType: string
-    calculationMode: string
+    medicinalUnitMode: string
     normalisationMode: string
     dateFrom: string
     dateTo: string
@@ -37,7 +37,7 @@ export type EReceptDistrictDataResponseWithSummary = {
 
 export type DistrictTimeSeriesResponseWithSummary = {
     aggregationType: string
-    calculationMode: string
+    medicinalUnitMode: string
     normalisationMode: string
     dateFrom: string
     dateTo: string
@@ -100,7 +100,7 @@ export interface MonthSeriesEntryWithSummary {
 
 export interface FullTimeSeriesParams {
     aggregationType: EReceptDataTypeAggregation
-    calculationMode: MedicinalUnitMode
+    medicinalUnitMode: MedicinalUnitMode
     normalisationMode: PopulationNormalisationMode
     medicinalProductIds: number[]
     registrationNumbers: string[]
@@ -117,7 +117,7 @@ export interface FullTimeSeriesEntry {
 
 export interface FullTimeSeriesResponse {
     aggregationType: string
-    calculationMode: string
+    medicinalUnitMode: string
     normalisationMode: string
     granularity: "MONTH" | "YEAR"
     district?: string | null

@@ -21,8 +21,8 @@ type Props = {
     onChangeDateFrom: (date: Date | null) => void
     onChangeDateTo: (date: Date | null) => void
 
-    calculationMode: MedicinalUnitMode
-    onChangeCalculationMode: (mode: MedicinalUnitMode) => void
+    medicinalUnitMode: MedicinalUnitMode
+    onChangeMedicinalUnitMode: (mode: MedicinalUnitMode) => void
 
     normalisationMode: PopulationNormalisationMode
     onChangeNormalisationMode: (mode: PopulationNormalisationMode) => void
@@ -36,8 +36,8 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
                                                          dateTo,
                                                          onChangeDateFrom,
                                                          onChangeDateTo,
-                                                         calculationMode,
-                                                         onChangeCalculationMode,
+                                                         medicinalUnitMode,
+                                                         onChangeMedicinalUnitMode,
                                                          normalisationMode,
                                                          onChangeNormalisationMode,
                                                          aggregationType,
@@ -94,10 +94,10 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
                     <Select
                         id="medicinal-unit-mode-select"
                         labelId="medicinal-unit-mode-select-label"
-                        value={calculationMode}
+                        value={medicinalUnitMode}
                         label="Jednotka množství léčiv"
                         onChange={(e: SelectChangeEvent) =>
-                            onChangeCalculationMode(e.target.value as MedicinalUnitMode)
+                            onChangeMedicinalUnitMode(e.target.value as MedicinalUnitMode)
                         }
                     >
                         {Object.values(MedicinalUnitMode).map((mode) => (

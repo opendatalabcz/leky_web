@@ -4,6 +4,7 @@ import {
     getPrescriptionDispenseTimeSeriesByDistrict,
     DistrictTimeSeriesResponseWithSummary
 } from "../services/ereceptService"
+import {MedicinalUnitMode} from "../types/MedicinalUnitMode";
 
 export function useDistrictTimeSeries(params?: Params, enabled: boolean = !!params) {
     return useQuery<DistrictTimeSeriesResponseWithSummary>({
@@ -12,7 +13,7 @@ export function useDistrictTimeSeries(params?: Params, enabled: boolean = !!para
             if (!params) {
                 return Promise.resolve({
                     aggregationType: "PRESCRIBED",
-                    calculationMode: "PACKAGES",
+                    medicinalUnitMode: MedicinalUnitMode.PACKAGES,
                     normalisationMode: "ABSOLUTE",
                     dateFrom: "",
                     dateTo: "",

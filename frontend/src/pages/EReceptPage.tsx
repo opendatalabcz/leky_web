@@ -85,7 +85,7 @@ export function EReceptPage() {
     const params = hasSelection ? {
         dateFrom: format(common.dateFrom!, "yyyy-MM"),
         dateTo: format(common.dateTo!, "yyyy-MM"),
-        calculationMode: common.calculationMode,
+        medicinalUnitMode: common.medicinalUnitMode,
         aggregationType: prescriptionDispense.aggregationType,
         normalisationMode: prescriptionDispense.normalisationMode,
         medicinalProductIds: drugs.map(d => Number(d.id)),
@@ -112,7 +112,7 @@ export function EReceptPage() {
     const fullTimeSeriesQuery = useFullTimeSeries(
         hasSelection ? {
             aggregationType: prescriptionDispense.aggregationType,
-            calculationMode: common.calculationMode,
+            medicinalUnitMode: common.medicinalUnitMode,
             normalisationMode: prescriptionDispense.normalisationMode,
             medicinalProductIds: drugs.map(d => Number(d.id)),
             registrationNumbers: registrationNumbers,
@@ -188,8 +188,8 @@ export function EReceptPage() {
                         dateTo={common.dateTo}
                         onChangeDateFrom={(date) => setCommon({ ...common, dateFrom: date })}
                         onChangeDateTo={(date) => setCommon({ ...common, dateTo: date })}
-                        calculationMode={common.calculationMode}
-                        onChangeCalculationMode={(mode) => setCommon({ ...common, calculationMode: mode })}
+                        medicinalUnitMode={common.medicinalUnitMode}
+                        onChangeMedicinalUnitMode={(mode) => setCommon({ ...common, medicinalUnitMode: mode })}
                         normalisationMode={prescriptionDispense.normalisationMode}
                         onChangeNormalisationMode={(nm) =>
                             setPrescriptionDispense({ ...prescriptionDispense, normalisationMode: nm })

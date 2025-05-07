@@ -1,21 +1,18 @@
-import React, { useState } from "react"
-import {
-    Box,
-    Button,
-    Typography,
-    Paper
-} from "@mui/material"
-import { useFilters } from "../components/FilterContext"
-import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel"
-import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
-import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
-import { DataStatusFooter } from "../components/DataStatusFooter"
-import { SankeyChart } from "../components/distribution/SankeyChart"
-import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
-import { format } from "date-fns"
-import { useCombinedDistributionSankey } from "../hooks/useCombinedDistributionSankey"
-import { useDistributionTimeSeries } from "../hooks/useDistributionTimeSeries"
-import { DistributionTimeSeriesChart } from "../components/DistributionTimeSeriesChart"
+import React, {useState} from "react"
+import {Box, Button, Paper, Typography} from "@mui/material"
+import {useFilters} from "../components/FilterContext"
+import {DistributionFiltersPanel} from "../components/DistributionFiltersPanel"
+import {DrugSelectorModal} from "../components/drug-select-modal/DrugSelectorModal"
+import {SelectedMedicinalProductSummary} from "../components/SelectedMedicinalProductSummary"
+import {DataStatusFooter} from "../components/DataStatusFooter"
+import {SankeyChart} from "../components/distribution/SankeyChart"
+import {useDrugCart} from "../components/drug-select-modal/DrugCartContext"
+import {format} from "date-fns"
+import {useDistributionTimeSeries} from "../hooks/useDistributionTimeSeries"
+import {useDistributionSankeyDiagram} from "../hooks/useDistributionSankeyDiagram"
+import {MedicinalUnitMode} from "../types/MedicinalUnitMode"
+import {TimeGranularity} from "../types/TimeGranularity";
+import {DistributionTimeSeriesChart} from "../components/DistributionTimeSeriesChart";
 
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
@@ -24,13 +21,14 @@ export function DistributionPage() {
 
     const hasSelection = drugs.length > 0 || registrationNumbers.length > 0
 
-    const sankeyQuery = useCombinedDistributionSankey(
+    const sankeyQuery = useDistributionSankeyDiagram(
         hasSelection && common.dateFrom && common.dateTo
             ? {
                 dateFrom: format(common.dateFrom, "yyyy-MM"),
                 dateTo: format(common.dateTo, "yyyy-MM"),
                 medicinalProductIds: drugs.map(d => Number(d.id)),
-                registrationNumbers: registrationNumbers
+                registrationNumbers: registrationNumbers,
+                medicinalUnitMode: common.medicinalUnitMode as MedicinalUnitMode
             }
             : undefined
     )
@@ -42,7 +40,8 @@ export function DistributionPage() {
                 dateTo: format(common.dateTo, "yyyy-MM"),
                 medicinalProductIds: drugs.map(d => Number(d.id)),
                 registrationNumbers: registrationNumbers,
-                granularity: "MONTH"
+                medicinalUnitMode: common.medicinalUnitMode as MedicinalUnitMode,
+                timeGranularity: TimeGranularity.MONTH
             }
             : undefined
     )
@@ -87,9 +86,9 @@ export function DistributionPage() {
                         dateTo={common.dateTo}
                         onChangeDateFrom={(val) => setCommon(prev => ({ ...prev, dateFrom: val }))}
                         onChangeDateTo={(val) => setCommon(prev => ({ ...prev, dateTo: val }))}
-                        calculationMode={common.calculationMode}
-                        onChangeCalculationMode={(val) =>
-                            setCommon(prev => ({ ...prev, calculationMode: val }))
+                        medicinalUnitMode={common.medicinalUnitMode}
+                        onChangeMedicinalUnitMode={(val) =>
+                            setCommon(prev => ({ ...prev, medicinalUnitMode: val }))
                         }
                     />
 
@@ -126,7 +125,6 @@ export function DistributionPage() {
                             </Typography>
                         )}
                     </Box>
-
                 </Box>
             </Box>
 

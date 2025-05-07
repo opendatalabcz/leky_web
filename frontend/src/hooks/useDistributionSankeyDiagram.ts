@@ -2,17 +2,17 @@ import { useQuery } from "@tanstack/react-query"
 import {
     DistributionSankeyRequest,
     DistributionSankeyResponse,
-    fetchCombinedDistributionSankey
+    fetchDistributionSankeyDiagram
 } from "../services/distributionService"
 
-export function useCombinedDistributionSankey(
+export function useDistributionSankeyDiagram(
     req: DistributionSankeyRequest | undefined
 ) {
     return useQuery<DistributionSankeyResponse>({
-        queryKey: ["distribution-sankey-combined", req],
+        queryKey: ["distribution-sankey-diagram", req],
         queryFn: () => {
             if (!req) throw new Error("Request params missing")
-            return fetchCombinedDistributionSankey(req)
+            return fetchDistributionSankeyDiagram(req)
         },
         enabled: !!req
     })

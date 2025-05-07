@@ -108,15 +108,15 @@ class DistributionService(
             val net = delivered - returned
 
             if (net > 0) {
-                val target = when (purchaserType) {
-                    DistributorPurchaserType.DISTRIBUTOR_CR, DistributorPurchaserType.DISTRIBUTOR_EU, DistributorPurchaserType.DISTRIBUTOR_NON_EU -> "Distributor"
-                    DistributorPurchaserType.PHARMACY -> "Pharmacy"
-                    else -> {
+                if (purchaserType != DistributorPurchaserType.DISTRIBUTOR_CR) {
+                    val target = if (purchaserType == DistributorPurchaserType.PHARMACY) {
+                        "Pharmacy"
+                    } else {
                         addNode(purchaserType.name, purchaserLabels[purchaserType] ?: purchaserType.name)
                         purchaserType.name
                     }
+                    addLink("Distributor", target, net)
                 }
-                addLink("Distributor", target, net)
             }
         }
 

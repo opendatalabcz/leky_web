@@ -16,8 +16,8 @@ type Props = {
     onChangeDateFrom: (date: Date | null) => void
     onChangeDateTo: (date: Date | null) => void
 
-    calculationMode: MedicinalUnitMode
-    onChangeCalculationMode: (mode: MedicinalUnitMode) => void
+    medicinalUnitMode: MedicinalUnitMode
+    onChangeMedicinalUnitMode: (mode: MedicinalUnitMode) => void
 }
 
 export const DistributionFiltersPanel: React.FC<Props> = ({
@@ -25,8 +25,8 @@ export const DistributionFiltersPanel: React.FC<Props> = ({
                                                               dateTo,
                                                               onChangeDateFrom,
                                                               onChangeDateTo,
-                                                              calculationMode,
-                                                              onChangeCalculationMode
+                                                              medicinalUnitMode,
+                                                              onChangeMedicinalUnitMode
                                                           }) => {
     return (
         <Box
@@ -52,16 +52,16 @@ export const DistributionFiltersPanel: React.FC<Props> = ({
             />
 
             <FormControl>
-                <InputLabel id="distribution-calculation-mode-select-label">
+                <InputLabel id="distribution-medicinal-unit-mode-select-label">
                     Jednotka množství léčiv
                 </InputLabel>
                 <Select
-                    id="distribution-calculation-mode-select"
-                    labelId="distribution-calculation-mode-select-label"
-                    value={calculationMode}
+                    id="distribution-medicinal-unit-mode-select"
+                    labelId="distribution-medicinal-unit-mode-select-label"
+                    value={medicinalUnitMode}
                     label="Jednotka množství léčiv"
                     onChange={(e: SelectChangeEvent) =>
-                        onChangeCalculationMode(e.target.value as MedicinalUnitMode)
+                        onChangeMedicinalUnitMode(e.target.value as MedicinalUnitMode)
                     }
                     size="small"
                     sx={{ minWidth: 200 }}
