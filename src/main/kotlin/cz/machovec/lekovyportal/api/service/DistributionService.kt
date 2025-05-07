@@ -1,14 +1,14 @@
 package cz.machovec.lekovyportal.api.service
 
-import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesEntry
-import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesRequest
-import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.distribution.DistributionSankeyRequest
-import cz.machovec.lekovyportal.api.model.distribution.DistributionSankeyResponse
+import DistributionSankeyRequest
+import DistributionSankeyResponse
+import DistributionTimeSeriesEntry
+import DistributionTimeSeriesRequest
+import DistributionTimeSeriesResponse
+import SankeyLinkDto
+import SankeyNodeDto
 import cz.machovec.lekovyportal.api.model.erecept.Granularity
 import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
-import cz.machovec.lekovyportal.api.model.distribution.SankeyLinkDto
-import cz.machovec.lekovyportal.api.model.distribution.SankeyNodeDto
 import cz.machovec.lekovyportal.core.domain.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.MahPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.MovementType

@@ -1,9 +1,9 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.distribution.DistributionSankeyRequest
-import cz.machovec.lekovyportal.api.model.distribution.DistributionSankeyResponse
-import cz.machovec.lekovyportal.api.model.erecept.Granularity
-import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
+import DistributionSankeyRequest
+import DistributionSankeyResponse
+import DistributionTimeSeriesRequest
+import DistributionTimeSeriesResponse
 import cz.machovec.lekovyportal.api.service.DistributionService
 import mu.KotlinLogging
 import org.springframework.web.bind.annotation.PostMapping
@@ -46,25 +46,3 @@ class DistributionController(
         return response
     }
 }
-
-data class DistributionTimeSeriesRequest(
-    val medicinalProductIds: List<Long>,
-    val registrationNumbers: List<String>,
-    val dateFrom: String, // "yyyy-MM"
-    val dateTo: String,   // "yyyy-MM"
-    val granularity: Granularity = Granularity.MONTH // defaultně měsíčně
-)
-
-data class DistributionTimeSeriesEntry(
-    val period: String, // např. "2023-05" nebo "2023"
-    val mahToDistributor: Int,
-    val distributorToPharmacy: Int,
-    val pharmacyToPatient: Int
-)
-
-data class DistributionTimeSeriesResponse(
-    val granularity: Granularity,
-    val series: List<DistributionTimeSeriesEntry>,
-    val includedMedicineProducts: List<MedicinalProductIdentificators>,
-    val ignoredMedicineProducts: List<MedicinalProductIdentificators>
-)

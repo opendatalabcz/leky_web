@@ -23,7 +23,7 @@ type TooltipData = {
 export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                             nodes,
                                                             links,
-                                                            height = 350
+                                                            height = 300
                                                         }) => {
     const color = scaleOrdinal<string, string>()
         .domain(nodes.map(n => n.label))

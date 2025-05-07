@@ -108,7 +108,7 @@ export function DistributionPage() {
                                     <SankeyChart
                                         nodes={sankeyQuery.data.nodes}
                                         links={sankeyQuery.data.links}
-                                        height={500}
+                                        height={300}
                                     />
                                 </Paper>
 
