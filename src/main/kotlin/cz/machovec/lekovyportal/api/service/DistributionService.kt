@@ -7,7 +7,7 @@ import DistributionTimeSeriesRequest
 import DistributionTimeSeriesResponse
 import SankeyLinkDto
 import SankeyNodeDto
-import cz.machovec.lekovyportal.api.model.erecept.Granularity
+import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
 import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.core.domain.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.MahPurchaserType
@@ -185,7 +185,7 @@ class DistributionService(
 
         // Rozdělit dle zvolené granularity
         fun getPeriod(year: Int, month: Int): String =
-            if (request.granularity == Granularity.YEAR) year.toString()
+            if (request.timeGranularity == TimeGranularity.YEAR) year.toString()
             else "%04d-%02d".format(year, month)
 
         // Agregace MAH → Distributor
@@ -230,7 +230,7 @@ class DistributionService(
         }
 
         return DistributionTimeSeriesResponse(
-            granularity = request.granularity,
+            timeGranularity = request.timeGranularity,
             series = series,
             includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
             ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }

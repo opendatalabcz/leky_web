@@ -1,11 +1,11 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateRequest
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateResponse
-import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesResponse
+import EreceptAggregateByDistrictResponse
+import EreceptAggregateByDistrictRequest
+import EreceptFullTimeSeriesRequest
+import EreceptFullTimeSeriesResponse
+import EreceptTimeSeriesByDistrictRequest
+import EreceptTimeSeriesByDistrictResponse
 import cz.machovec.lekovyportal.api.service.EreceptService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
@@ -21,7 +21,7 @@ class EreceptController(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/time-aggregate/by-district")
-    fun getAggregatedByDistrict(@RequestBody request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
+    fun getAggregatedByDistrict(@RequestBody request: EreceptAggregateByDistrictRequest): EreceptAggregateByDistrictResponse {
         logger.info(
             "District map aggregation — aggregationType=${request.aggregationType}, " +
                     "ids=${request.medicinalProductIds.joinToString(",")}, " +
@@ -42,8 +42,8 @@ class EreceptController(
 
     @PostMapping("/time-series/by-district")
     fun getTimeSeriesByDistrict(
-        @RequestBody request: PrescriptionDispenseByDistrictTimeSeriesRequest
-    ): PrescriptionDispenseByDistrictTimeSeriesResponse {
+        @RequestBody request: EreceptTimeSeriesByDistrictRequest
+    ): EreceptTimeSeriesByDistrictResponse {
         logger.info(
             "eRecept district time series — aggregationType=${request.aggregationType}, " +
                     "ids=${request.medicinalProductIds.joinToString(",")}, " +
@@ -63,13 +63,13 @@ class EreceptController(
 
     @PostMapping("/time-series")
     fun getFullTimeSeries(
-        @RequestBody request: FullTimeSeriesRequest
-    ): FullTimeSeriesResponse {
+        @RequestBody request: EreceptFullTimeSeriesRequest
+    ): EreceptFullTimeSeriesResponse {
         logger.info(
             "Fetching full time series — aggregationType=${request.aggregationType}, " +
                     "ids=${request.medicinalProductIds.joinToString(",")}, " +
                     "calculationMode=${request.calculationMode}, normalisation=${request.normalisationMode}, " +
-                    "granularity=${request.granularity}, district=${request.district ?: "ALL"}"
+                    "granularity=${request.timeGranularity}, district=${request.district ?: "ALL"}"
         )
 
         val startedAt = System.currentTimeMillis()

@@ -1,19 +1,19 @@
 package cz.machovec.lekovyportal.api.service
 
-import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesEntry
-import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.erecept.Granularity
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateRequest
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateResponse
-import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.erecept.SummaryValues
-import cz.machovec.lekovyportal.api.model.erecept.TimeSeriesMonthDistrictValues
+import EreceptAggregateByDistrictRequest
+import EreceptAggregateByDistrictResponse
+import EreceptFullTimeSeriesRequest
+import EreceptFullTimeSeriesResponse
+import EreceptTimeSeriesByDistrictRequest
+import EreceptTimeSeriesByDistrictResponse
+import FullTimeSeriesEntry
+import SummaryValues
+import TimeSeriesMonthDistrictValues
 import cz.machovec.lekovyportal.api.model.enums.CalculationMode
-import cz.machovec.lekovyportal.api.model.enums.EReceptDataTypeAggregation
+import cz.machovec.lekovyportal.api.model.enums.EreceptType
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
+import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.core.domain.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.core.repository.erecept.EReceptDistrictDataRow
 import cz.machovec.lekovyportal.core.repository.erecept.EReceptMonthlyDistrictAggregate
@@ -33,7 +33,7 @@ class EreceptService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun getAggregatedByDistrict(request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
+    fun getAggregatedByDistrict(request: EreceptAggregateByDistrictRequest): EreceptAggregateByDistrictResponse {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM")
         val from: YearMonth? = request.dateFrom?.let { YearMonth.parse(it, formatter) }
         val to: YearMonth? = request.dateTo?.let { YearMonth.parse(it, formatter) }
@@ -75,7 +75,7 @@ class EreceptService(
 
         val summary = calculateSummaryFromRows(rows)
 
-        return PrescriptionDispenseByDistrictAggregateResponse(
+        return EreceptAggregateByDistrictResponse(
             aggregationType = request.aggregationType,
             calculationMode = request.calculationMode,
             normalisationMode = request.normalisationMode,
@@ -89,8 +89,8 @@ class EreceptService(
     }
 
     fun getTimeSeriesByDistrict(
-        request: PrescriptionDispenseByDistrictTimeSeriesRequest
-    ): PrescriptionDispenseByDistrictTimeSeriesResponse {
+        request: EreceptTimeSeriesByDistrictRequest
+    ): EreceptTimeSeriesByDistrictResponse {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM")
         val from = YearMonth.parse(request.dateFrom, formatter)
         val to = YearMonth.parse(request.dateTo, formatter)
@@ -144,7 +144,7 @@ class EreceptService(
             )
         }
 
-        return PrescriptionDispenseByDistrictTimeSeriesResponse(
+        return EreceptTimeSeriesByDistrictResponse(
             aggregationType = request.aggregationType,
             calculationMode = request.calculationMode,
             normalisationMode = request.normalisationMode,
@@ -156,7 +156,7 @@ class EreceptService(
         )
     }
 
-    fun getFullTimeSeries(request: FullTimeSeriesRequest): FullTimeSeriesResponse {
+    fun getFullTimeSeries(request: EreceptFullTimeSeriesRequest): EreceptFullTimeSeriesResponse {
         val productsById = if (request.medicinalProductIds.isNotEmpty()) {
             medicinalProductRepository.findAllByIdIn(request.medicinalProductIds)
         } else emptyList()
@@ -178,9 +178,9 @@ class EreceptService(
 
         val filtered = rawData.filter { request.district == null || it.districtCode == request.district }
 
-        val grouped = when (request.granularity) {
-            Granularity.MONTH -> filtered.groupBy { "%04d-%02d".format(it.year, it.month) }
-            Granularity.YEAR -> filtered.groupBy { it.year.toString() }
+        val grouped = when (request.timeGranularity) {
+            TimeGranularity.MONTH -> filtered.groupBy { "%04d-%02d".format(it.year, it.month) }
+            TimeGranularity.YEAR -> filtered.groupBy { it.year.toString() }
         }
 
         val series = grouped.entries.sortedBy { it.key }.map { (period, rows) ->
@@ -196,11 +196,11 @@ class EreceptService(
             )
         }
 
-        return FullTimeSeriesResponse(
+        return EreceptFullTimeSeriesResponse(
             aggregationType = request.aggregationType,
             calculationMode = request.calculationMode,
             normalisationMode = request.normalisationMode,
-            granularity = request.granularity,
+            timeGranularity = request.timeGranularity,
             district = request.district,
             series = series,
             includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
@@ -210,15 +210,15 @@ class EreceptService(
 
     private fun aggregate(
         rows: List<EReceptDistrictDataRow>,
-        aggregationType: EReceptDataTypeAggregation,
+        aggregationType: EreceptType,
         extractor: (EReceptDistrictDataRow) -> Pair<Int, Int>
     ): Map<String, Int> {
         return rows.associate {
             val (prescribed, dispensed) = extractor(it)
             val value = when (aggregationType) {
-                EReceptDataTypeAggregation.PRESCRIBED -> prescribed
-                EReceptDataTypeAggregation.DISPENSED -> dispensed
-                EReceptDataTypeAggregation.DIFFERENCE -> prescribed - dispensed
+                EreceptType.PRESCRIBED -> prescribed
+                EreceptType.DISPENSED -> dispensed
+                EreceptType.DIFFERENCE -> prescribed - dispensed
             }
             it.districtCode to value
         }
@@ -226,15 +226,15 @@ class EreceptService(
 
     private fun aggregateAndNormalize(
         rows: List<EReceptDistrictDataRow>,
-        aggregationType: EReceptDataTypeAggregation,
+        aggregationType: EreceptType,
         extractor: (EReceptDistrictDataRow) -> Pair<Int, Int>
     ): Map<String, Int> {
         return rows.associate {
             val (prescribed, dispensed) = extractor(it)
             val value = when (aggregationType) {
-                EReceptDataTypeAggregation.PRESCRIBED -> prescribed
-                EReceptDataTypeAggregation.DISPENSED -> dispensed
-                EReceptDataTypeAggregation.DIFFERENCE -> prescribed - dispensed
+                EreceptType.PRESCRIBED -> prescribed
+                EreceptType.DISPENSED -> dispensed
+                EreceptType.DIFFERENCE -> prescribed - dispensed
             }
             it.districtCode to normalize(value, it.population)
         }
@@ -243,7 +243,7 @@ class EreceptService(
     private fun aggregateWithDDD(
         rows: List<EReceptDistrictDataRow>,
         includedProducts: List<MpdMedicinalProduct>,
-        aggregationType: EReceptDataTypeAggregation
+        aggregationType: EreceptType
     ): Map<String, Int> {
         val dddMap = includedProducts.associateBy({ it.id!! }, { it.dailyDosePackaging!! })
 
@@ -253,9 +253,9 @@ class EreceptService(
                 rowsInDistrict.sumOf {
                     val ddd = dddMap[it.medicinalProductId] ?: BigDecimal.ZERO
                     val raw = when (aggregationType) {
-                        EReceptDataTypeAggregation.PRESCRIBED -> it.prescribed
-                        EReceptDataTypeAggregation.DISPENSED -> it.dispensed
-                        EReceptDataTypeAggregation.DIFFERENCE -> it.prescribed - it.dispensed
+                        EreceptType.PRESCRIBED -> it.prescribed
+                        EreceptType.DISPENSED -> it.dispensed
+                        EreceptType.DIFFERENCE -> it.prescribed - it.dispensed
                     }
                     (BigDecimal(raw) * ddd).toInt()
                 }
@@ -265,7 +265,7 @@ class EreceptService(
     private fun aggregateAndNormalizeWithDDD(
         rows: List<EReceptDistrictDataRow>,
         includedProducts: List<MpdMedicinalProduct>,
-        aggregationType: EReceptDataTypeAggregation
+        aggregationType: EreceptType
     ): Map<String, Int> {
         val dddValues = aggregateWithDDD(rows, includedProducts, aggregationType)
         return dddValues.mapValues { (district, value) ->
@@ -296,15 +296,15 @@ class EreceptService(
 
     private fun aggregateMonthly(
         rows: List<EReceptMonthlyDistrictAggregate>,
-        aggregationType: EReceptDataTypeAggregation,
+        aggregationType: EreceptType,
         extractor: (EReceptMonthlyDistrictAggregate) -> Pair<Int, Int>
     ): Map<String, Int> {
         return rows.associate {
             val (prescribed, dispensed) = extractor(it)
             val value = when (aggregationType) {
-                EReceptDataTypeAggregation.PRESCRIBED -> prescribed
-                EReceptDataTypeAggregation.DISPENSED -> dispensed
-                EReceptDataTypeAggregation.DIFFERENCE -> prescribed - dispensed
+                EreceptType.PRESCRIBED -> prescribed
+                EreceptType.DISPENSED -> dispensed
+                EreceptType.DIFFERENCE -> prescribed - dispensed
             }
             it.districtCode to value
         }
@@ -312,15 +312,15 @@ class EreceptService(
 
     private fun aggregateMonthlyAndNormalize(
         rows: List<EReceptMonthlyDistrictAggregate>,
-        aggregationType: EReceptDataTypeAggregation,
+        aggregationType: EreceptType,
         extractor: (EReceptMonthlyDistrictAggregate) -> Pair<Int, Int>
     ): Map<String, Int> {
         return rows.associate {
             val (prescribed, dispensed) = extractor(it)
             val value = when (aggregationType) {
-                EReceptDataTypeAggregation.PRESCRIBED -> prescribed
-                EReceptDataTypeAggregation.DISPENSED -> dispensed
-                EReceptDataTypeAggregation.DIFFERENCE -> prescribed - dispensed
+                EreceptType.PRESCRIBED -> prescribed
+                EreceptType.DISPENSED -> dispensed
+                EreceptType.DIFFERENCE -> prescribed - dispensed
             }
             it.districtCode to normalize(value, it.population)
         }
@@ -329,7 +329,7 @@ class EreceptService(
     private fun aggregateMonthlyWithDDD(
         rows: List<EReceptMonthlyDistrictAggregate>,
         includedProducts: List<MpdMedicinalProduct>,
-        aggregationType: EReceptDataTypeAggregation
+        aggregationType: EreceptType
     ): Map<String, Int> {
         val dddMap = includedProducts.associateBy({ it.id!! }, { it.dailyDosePackaging!! })
 
@@ -339,9 +339,9 @@ class EreceptService(
                 rowsInDistrict.sumOf {
                     val ddd = dddMap[it.medicinalProductId] ?: BigDecimal.ZERO
                     val raw = when (aggregationType) {
-                        EReceptDataTypeAggregation.PRESCRIBED -> it.prescribed
-                        EReceptDataTypeAggregation.DISPENSED -> it.dispensed
-                        EReceptDataTypeAggregation.DIFFERENCE -> it.prescribed - it.dispensed
+                        EreceptType.PRESCRIBED -> it.prescribed
+                        EreceptType.DISPENSED -> it.dispensed
+                        EreceptType.DIFFERENCE -> it.prescribed - it.dispensed
                     }
                     (BigDecimal(raw) * ddd).toInt()
                 }
@@ -351,7 +351,7 @@ class EreceptService(
     private fun aggregateMonthlyAndNormalizeWithDDD(
         rows: List<EReceptMonthlyDistrictAggregate>,
         includedProducts: List<MpdMedicinalProduct>,
-        aggregationType: EReceptDataTypeAggregation
+        aggregationType: EreceptType
     ): Map<String, Int> {
         val dddValues = aggregateMonthlyWithDDD(rows, includedProducts, aggregationType)
         return dddValues.mapValues { (district, value) ->
