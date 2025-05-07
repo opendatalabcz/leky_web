@@ -157,7 +157,16 @@ class EreceptService(
     }
 
     fun getFullTimeSeries(request: FullTimeSeriesRequest): FullTimeSeriesResponse {
-        val allProducts = medicinalProductRepository.findAllByIdIn(request.medicinalProductIds)
+        val productsById = if (request.medicinalProductIds.isNotEmpty()) {
+            medicinalProductRepository.findAllByIdIn(request.medicinalProductIds)
+        } else emptyList()
+
+        val productsByRegNumbers = if (request.registrationNumbers.isNotEmpty()) {
+            medicinalProductRepository.findAllByRegistrationNumberIn(request.registrationNumbers)
+        } else emptyList()
+
+        val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
+
         val (included, ignored) = allProducts.partition {
             request.calculationMode != CalculationMode.DAILY_DOSES ||
                     (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)

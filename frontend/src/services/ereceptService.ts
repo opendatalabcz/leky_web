@@ -103,6 +103,7 @@ export interface FullTimeSeriesParams {
     calculationMode: MedicinalUnitMode
     normalisationMode: PopulationNormalisationMode
     medicinalProductIds: number[]
+    registrationNumbers: string[]
     granularity: "MONTH" | "YEAR"
     district?: string | null
 }

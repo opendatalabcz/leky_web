@@ -115,6 +115,7 @@ export function EReceptPage() {
             calculationMode: common.calculationMode,
             normalisationMode: prescriptionDispense.normalisationMode,
             medicinalProductIds: drugs.map(d => Number(d.id)),
+            registrationNumbers: registrationNumbers,
             granularity: granularity,
             district: selectedDistrict
         } : undefined
