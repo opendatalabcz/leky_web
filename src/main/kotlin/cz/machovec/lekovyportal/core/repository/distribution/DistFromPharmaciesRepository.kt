@@ -1,66 +1,45 @@
 package cz.machovec.lekovyportal.core.repository.distribution
 
-import cz.machovec.lekovyportal.core.dto.distribution.MonthlyPharmacyAggregate
 import cz.machovec.lekovyportal.core.domain.distribution.DistFromPharmacies
-import cz.machovec.lekovyportal.core.domain.distribution.PharmacyDispenseType
+import cz.machovec.lekovyportal.core.dto.distribution.AggregatePharmacyProductDispenseCountDto
+import cz.machovec.lekovyportal.core.dto.distribution.MonthlyPharmacyProductDispenseCountDto
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
-import java.math.BigDecimal
 
 @Repository
 interface DistFromPharmaciesRepository : JpaRepository<DistFromPharmacies, Long> {
 
     @Query("""
-        SELECT 
-            SUM(d.packageCount)
+        SELECT new cz.machovec.lekovyportal.core.dto.distribution.AggregatePharmacyProductDispenseCountDto(
+            d.medicinalProduct.id, d.dispenseType, SUM(d.packageCount)
+        )
         FROM DistFromPharmacies d
         WHERE 
             d.medicinalProduct.id IN :productIds
             AND (d.year > :fromYear OR (d.year = :fromYear AND d.month >= :fromMonth))
             AND (d.year < :toYear OR (d.year = :toYear AND d.month <= :toMonth))
+        GROUP BY d.medicinalProduct.id, d.dispenseType
     """)
-    fun sumPackages(
+    fun getAggregatePharmacyProductDispenseCounts(
         @Param("productIds") productIds: List<Long>,
         @Param("fromYear") fromYear: Int,
         @Param("fromMonth") fromMonth: Int,
         @Param("toYear") toYear: Int,
         @Param("toMonth") toMonth: Int
-    ): BigDecimal?
+    ): List<AggregatePharmacyProductDispenseCountDto>
 
     @Query("""
-        SELECT 
-            d.dispenseType AS dispenseType,
-            SUM(d.packageCount) AS total
+        SELECT new cz.machovec.lekovyportal.core.dto.distribution.MonthlyPharmacyProductDispenseCountDto(
+            d.year, d.month, d.medicinalProduct.id, d.dispenseType, SUM(d.packageCount)
+        )
         FROM DistFromPharmacies d
-        WHERE 
-            d.medicinalProduct.id IN :productIds
-            AND (d.year > :fromYear OR (d.year = :fromYear AND d.month >= :fromMonth))
-            AND (d.year < :toYear OR (d.year = :toYear AND d.month <= :toMonth))
-        GROUP BY d.dispenseType
+        WHERE d.medicinalProduct.id IN :productIds
+        GROUP BY d.year, d.month, d.medicinalProduct.id, d.dispenseType
     """)
-    fun sumPackagesByDispenseType(
-        @Param("productIds") productIds: List<Long>,
-        @Param("fromYear") fromYear: Int,
-        @Param("fromMonth") fromMonth: Int,
-        @Param("toYear") toYear: Int,
-        @Param("toMonth") toMonth: Int
-    ): List<PharmacyDispenseTypeAggregation>
-
-    @Query("""
-    SELECT new cz.machovec.lekovyportal.core.dto.distribution.MonthlyPharmacyAggregate(
-        d.year, d.month, SUM(d.packageCount)
-    )
-    FROM DistFromPharmacies d
-    WHERE d.medicinalProduct.id IN :productIds
-    GROUP BY d.year, d.month
-    """)
-    fun findMonthlyAggregates(@Param("productIds") productIds: List<Long>): List<MonthlyPharmacyAggregate>
-
+    fun getMonthlyPharmacyProductDispenseCounts(
+        @Param("productIds") productIds: List<Long>
+    ): List<MonthlyPharmacyProductDispenseCountDto>
 }
 
-interface PharmacyDispenseTypeAggregation {
-    val dispenseType: PharmacyDispenseType
-    val total: BigDecimal
-}

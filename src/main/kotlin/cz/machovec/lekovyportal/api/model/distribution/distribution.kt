@@ -55,12 +55,16 @@ data class DistributionTimeSeriesResponse(
     val dateTo: String,
     val calculationMode: CalculationMode,
     val timeGranularity: TimeGranularity,
-    val series: List<DistributionTimeSeriesEntry>
+    val series: List<DistributionTimeSeriesPeriodEntry>
 )
 
-data class DistributionTimeSeriesEntry(
+data class DistributionTimeSeriesPeriodEntry(
     val period: String, // e.g. "2023-05" or "2023"
-    val mahToDistributor: Int,
-    val distributorToPharmacy: Int,
-    val pharmacyToPatient: Int
+    val flows: List<DistributionFlowEntry>
+)
+
+data class DistributionFlowEntry(
+    val source: String,
+    val target: String,
+    val value: Int
 )
