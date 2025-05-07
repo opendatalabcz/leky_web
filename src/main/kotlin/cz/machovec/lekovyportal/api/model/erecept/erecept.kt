@@ -57,7 +57,7 @@ data class EreceptTimeSeriesByDistrictResponse(
 
 data class TimeSeriesMonthDistrictValues(
     val month: String,
-    val values: Map<String, Int>,
+    val districtValues: Map<String, Int>,
     val summary: SummaryValues
 )
 
@@ -75,7 +75,6 @@ data class SummaryValues(
 data class EreceptFullTimeSeriesRequest(
     val medicinalProductIds: List<Long>,
     val registrationNumbers: List<String> = emptyList(),
-    val aggregationType: EreceptType,
     val calculationMode: CalculationMode,
     val normalisationMode: NormalisationMode,
     val timeGranularity: TimeGranularity,
@@ -85,15 +84,14 @@ data class EreceptFullTimeSeriesRequest(
 data class EreceptFullTimeSeriesResponse(
     val includedMedicineProducts: List<MedicinalProductIdentificators>,
     val ignoredMedicineProducts: List<MedicinalProductIdentificators>,
-    val aggregationType: EreceptType,
     val calculationMode: CalculationMode,
     val normalisationMode: NormalisationMode,
     val timeGranularity: TimeGranularity,
     val district: String?, // null = whole Czech Republic
-    val series: List<FullTimeSeriesEntry>
+    val series: List<EreceptFullTimeSeriesEntry>
 )
 
-data class FullTimeSeriesEntry(
+data class EreceptFullTimeSeriesEntry(
     val period: String, // e.g. "2023-05" or "2023"
     val prescribed: Int,
     val dispensed: Int,

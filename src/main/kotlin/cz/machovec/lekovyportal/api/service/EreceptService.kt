@@ -6,7 +6,7 @@ import EreceptFullTimeSeriesRequest
 import EreceptFullTimeSeriesResponse
 import EreceptTimeSeriesByDistrictRequest
 import EreceptTimeSeriesByDistrictResponse
-import FullTimeSeriesEntry
+import EreceptFullTimeSeriesEntry
 import SummaryValues
 import TimeSeriesMonthDistrictValues
 import cz.machovec.lekovyportal.api.model.enums.CalculationMode
@@ -139,7 +139,7 @@ class EreceptService(
 
             TimeSeriesMonthDistrictValues(
                 month = monthKey,
-                values = districtValues,
+                districtValues = districtValues,
                 summary = summary
             )
         }
@@ -188,7 +188,7 @@ class EreceptService(
             val dispensed = rows.sumOf { it.dispensed }
             val difference = prescribed - dispensed
 
-            FullTimeSeriesEntry(
+            EreceptFullTimeSeriesEntry(
                 period = period,
                 prescribed = prescribed,
                 dispensed = dispensed,
@@ -197,7 +197,6 @@ class EreceptService(
         }
 
         return EreceptFullTimeSeriesResponse(
-            aggregationType = request.aggregationType,
             calculationMode = request.calculationMode,
             normalisationMode = request.normalisationMode,
             timeGranularity = request.timeGranularity,

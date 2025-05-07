@@ -41,7 +41,6 @@ class DistributionService(
         val (included, ignored) = allProducts.partition { it.id != null }
         val productIds = included.mapNotNull { it.id }
 
-
         val (fromYear, fromMonth) = req.dateFrom.split("-").let { it[0].toInt() to it[1].toInt() }
         val (toYear, toMonth) = req.dateTo.split("-").let { it[0].toInt() to it[1].toInt() }
 
@@ -107,18 +106,12 @@ class DistributionService(
             DistributorPurchaserType.VETERINARY_DOCTOR
         )
 
-        // Vytvořit název uzlu OOV s výpisem
-        val oovLabels = oovTypes.mapNotNull { purchaserLabels[it] }.sorted()
-        val oovNodeLabel = "OOV (${oovLabels.joinToString(", ")})"
-
-        // MAH to OOV (shrnutý uzel)
         val mahToOov = net(mahMap[MahPurchaserType.AUTHORIZED_PERSON] ?: (0 to 0))
         if (mahToOov > 0) {
             addNode("OOV", "Osoba oprávněná k výdeji (Lékař, Lékárna, ...)")
             addLink("MAH", "OOV", mahToOov)
         }
 
-        // Distributor flows (excluding PHARMACY a DISTRIBUTOR_CR)
         purchaserLabels.forEach { (type, label) ->
             if (type == DistributorPurchaserType.PHARMACY || type == DistributorPurchaserType.DISTRIBUTOR_CR) return@forEach
 
@@ -129,13 +122,11 @@ class DistributionService(
             }
         }
 
-        // Distributor to Pharmacy
         val pharmacyValue = net(distMap[DistributorPurchaserType.PHARMACY] ?: (0 to 0))
         if (pharmacyValue > 0) {
             addLink("Distributor", "Pharmacy", pharmacyValue)
         }
 
-        // Pharmacy to dispense types
         pharmacyAggList.forEach { row ->
             val dispenseType = row.dispenseType
             val total = row.total
@@ -157,10 +148,13 @@ class DistributionService(
         }
 
         return DistributionSankeyResponse(
-            nodes = nodes,
-            links = links,
             includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            dateFrom = req.dateFrom,
+            dateTo = req.dateTo,
+            calculationMode = req.calculationMode,
+            nodes = nodes,
+            links = links
         )
     }
 
@@ -178,17 +172,14 @@ class DistributionService(
         val (included, ignored) = allProducts.partition { it.id != null }
         val productIds = included.mapNotNull { it.id }
 
-        // Načíst všechna relevantní data v surové podobě
         val mahRaw = mahRepo.findMonthlyAggregates(productIds)
         val distRaw = distRepo.findMonthlyAggregates(productIds)
         val pharmRaw = pharmRepo.findMonthlyAggregates(productIds)
 
-        // Rozdělit dle zvolené granularity
         fun getPeriod(year: Int, month: Int): String =
             if (request.timeGranularity == TimeGranularity.YEAR) year.toString()
             else "%04d-%02d".format(year, month)
 
-        // Agregace MAH → Distributor
         val mahGrouped = mahRaw
             .filter { it.purchaserType == MahPurchaserType.DISTRIBUTOR }
             .groupBy { getPeriod(it.year, it.month) }
@@ -199,7 +190,6 @@ class DistributionService(
             del - ret
         }
 
-        // Agregace Distributor → Pharmacy
         val distGrouped = distRaw
             .filter { it.purchaserType == DistributorPurchaserType.PHARMACY }
             .groupBy { getPeriod(it.year, it.month) }
@@ -210,13 +200,11 @@ class DistributionService(
             del - ret
         }
 
-        // Agregace Pharmacy → Patient
         val pharmGrouped = pharmRaw.groupBy { getPeriod(it.year, it.month) }
         val pharmFlow = pharmGrouped.mapValues { (_, list) ->
             list.sumOf { it.packageCount }.toInt()
         }
 
-        // Sjednotit všechna období
         val allPeriods = (mahFlow.keys + distFlow.keys + pharmFlow.keys).toSortedSet()
 
         val series = allPeriods.map { period ->
@@ -226,14 +214,16 @@ class DistributionService(
                 distributorToPharmacy = (distFlow[period] ?: 0L).toInt(),
                 pharmacyToPatient = (pharmFlow[period] ?: 0).toInt()
             )
-
         }
 
         return DistributionTimeSeriesResponse(
-            timeGranularity = request.timeGranularity,
-            series = series,
             includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            dateFrom = request.dateFrom,
+            dateTo = request.dateTo,
+            calculationMode = request.calculationMode,
+            timeGranularity = request.timeGranularity,
+            series = series
         )
     }
 }
