@@ -1,4 +1,4 @@
-import cz.machovec.lekovyportal.api.model.enums.CalculationMode
+import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
 import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
 
@@ -11,7 +11,7 @@ data class DistributionSankeyRequest(
     val registrationNumbers: List<String>,
     val dateFrom: String,
     val dateTo: String,
-    val calculationMode: CalculationMode
+    val medicinalUnitMode: MedicinalUnitMode
 )
 
 data class DistributionSankeyResponse(
@@ -19,7 +19,7 @@ data class DistributionSankeyResponse(
     val ignoredMedicineProducts: List<MedicinalProductIdentificators>,
     val dateFrom: String,
     val dateTo: String,
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val nodes: List<SankeyNodeDto>,
     val links: List<SankeyLinkDto>
 )
@@ -44,7 +44,7 @@ data class DistributionTimeSeriesRequest(
     val registrationNumbers: List<String>,
     val dateFrom: String, // "yyyy-MM"
     val dateTo: String,   // "yyyy-MM"
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val timeGranularity: TimeGranularity
 )
 
@@ -53,7 +53,7 @@ data class DistributionTimeSeriesResponse(
     val ignoredMedicineProducts: List<MedicinalProductIdentificators>,
     val dateFrom: String,
     val dateTo: String,
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val timeGranularity: TimeGranularity,
     val series: List<DistributionTimeSeriesPeriodEntry>
 )

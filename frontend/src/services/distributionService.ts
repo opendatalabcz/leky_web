@@ -1,10 +1,16 @@
 // services/distributionService.ts
 
+import { TimeGranularity } from "../types/TimeGranularity"
+import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
+
+// ======= DTOs: Sankey Diagram =======
+
 export type DistributionSankeyRequest = {
     medicinalProductIds: number[]
     registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
+    calculationMode: MedicinalUnitMode
 }
 
 export type SankeyNodeDto = {
@@ -19,13 +25,16 @@ export type SankeyLinkDto = {
 }
 
 export type DistributionSankeyResponse = {
-    nodes: SankeyNodeDto[]
-    links: SankeyLinkDto[]
     includedMedicineProducts: { id: number; suklCode: string }[]
     ignoredMedicineProducts: { id: number; suklCode: string }[]
+    dateFrom: string
+    dateTo: string
+    calculationMode: MedicinalUnitMode
+    nodes: SankeyNodeDto[]
+    links: SankeyLinkDto[]
 }
 
-export async function fetchCombinedDistributionSankey(
+export async function fetchDistributionSankeyDiagram(
     req: DistributionSankeyRequest
 ): Promise<DistributionSankeyResponse> {
     const res = await fetch("/api/distribution/sankey-diagram", {
@@ -35,33 +44,42 @@ export async function fetchCombinedDistributionSankey(
     })
 
     if (!res.ok) {
-        throw new Error("Nepodařilo se načíst kombinovaný distribuční tok")
+        throw new Error("Nepodařilo se načíst data pro Sankey diagram distribuce")
     }
 
     return res.json()
 }
 
-// types
+// ======= DTOs: Time Series =======
+
 export type DistributionTimeSeriesRequest = {
     medicinalProductIds: number[]
     registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
-    granularity: "MONTH" | "YEAR"
+    calculationMode: MedicinalUnitMode
+    timeGranularity: TimeGranularity
 }
 
-export type DistributionTimeSeriesEntry = {
+export type DistributionFlowEntry = {
+    source: string
+    target: string
+    value: number
+}
+
+export type DistributionTimeSeriesPeriodEntry = {
     period: string
-    mahToDistributor: number
-    distributorToPharmacy: number
-    pharmacyToPatient: number
+    flows: DistributionFlowEntry[]
 }
 
 export type DistributionTimeSeriesResponse = {
-    granularity: "MONTH" | "YEAR"
-    series: DistributionTimeSeriesEntry[]
     includedMedicineProducts: { id: number; suklCode: string }[]
     ignoredMedicineProducts: { id: number; suklCode: string }[]
+    dateFrom: string
+    dateTo: string
+    calculationMode: MedicinalUnitMode
+    timeGranularity: TimeGranularity
+    series: DistributionTimeSeriesPeriodEntry[]
 }
 
 export async function fetchDistributionTimeSeries(
@@ -74,7 +92,7 @@ export async function fetchDistributionTimeSeries(
     })
 
     if (!res.ok) {
-        throw new Error("Nepodařilo se načíst časovou řadu distribuce")
+        throw new Error("Nepodařilo se načíst data pro časovou řadu distribuce")
     }
 
     return res.json()

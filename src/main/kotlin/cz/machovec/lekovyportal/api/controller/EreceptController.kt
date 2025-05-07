@@ -27,7 +27,7 @@ class EreceptController(
                     "ids=${request.medicinalProductIds.joinToString(",")}, " +
                     "regNumbers=${request.registrationNumbers.joinToString(",")}, " +
                     "dateFrom=${request.dateFrom}, dateTo=${request.dateTo}, " +
-                    "calculationMode=${request.calculationMode}, " +
+                    "medicinalUnitMode=${request.medicinalUnitMode}, " +
                     "normalisationMode=${request.normalisationMode}"
         )
         val startedAt = System.currentTimeMillis()
@@ -48,7 +48,7 @@ class EreceptController(
             "eRecept district time series — aggregationType=${request.aggregationType}, " +
                     "ids=${request.medicinalProductIds.joinToString(",")}, " +
                     "from=${request.dateFrom} to=${request.dateTo}, " +
-                    "calculationMode=${request.calculationMode}, normalisation=${request.normalisationMode}"
+                    "medicinalUnitMode=${request.medicinalUnitMode}, normalisation=${request.normalisationMode}"
         )
 
         val startedAt = System.currentTimeMillis()
@@ -65,12 +65,6 @@ class EreceptController(
     fun getFullTimeSeries(
         @RequestBody request: EreceptFullTimeSeriesRequest
     ): EreceptFullTimeSeriesResponse {
-        logger.info(
-            "Fetching full time series — aggregationType=${request.aggregationType}, " +
-                    "ids=${request.medicinalProductIds.joinToString(",")}, " +
-                    "calculationMode=${request.calculationMode}, normalisation=${request.normalisationMode}, " +
-                    "granularity=${request.timeGranularity}, district=${request.district ?: "ALL"}"
-        )
 
         val startedAt = System.currentTimeMillis()
 

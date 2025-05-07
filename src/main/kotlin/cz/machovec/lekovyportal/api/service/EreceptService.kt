@@ -9,7 +9,7 @@ import EreceptTimeSeriesByDistrictResponse
 import EreceptFullTimeSeriesEntry
 import SummaryValues
 import TimeSeriesMonthDistrictValues
-import cz.machovec.lekovyportal.api.model.enums.CalculationMode
+import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.enums.EreceptType
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
 import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
@@ -49,7 +49,7 @@ class EreceptService(
         val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
 
         val (included, ignored) = allProducts.partition {
-            request.calculationMode != CalculationMode.DAILY_DOSES ||
+            request.medicinalUnitMode != MedicinalUnitMode.DAILY_DOSES ||
                     (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
         }
 
@@ -63,13 +63,13 @@ class EreceptService(
         logger.info("TIME-AGGREGATE BY DISTRICT - REPO: $durationMs ms")
 
         val districtValues = when (request.normalisationMode) {
-            NormalisationMode.PER_1000_CAPITA -> when (request.calculationMode) {
-                CalculationMode.PACKAGES -> aggregateAndNormalize(rows, request.aggregationType) { it.prescribed to it.dispensed }
-                CalculationMode.DAILY_DOSES -> aggregateAndNormalizeWithDDD(rows, included, request.aggregationType)
+            NormalisationMode.PER_1000_CAPITA -> when (request.medicinalUnitMode) {
+                MedicinalUnitMode.PACKAGES -> aggregateAndNormalize(rows, request.aggregationType) { it.prescribed to it.dispensed }
+                MedicinalUnitMode.DAILY_DOSES -> aggregateAndNormalizeWithDDD(rows, included, request.aggregationType)
             }
-            NormalisationMode.ABSOLUTE -> when (request.calculationMode) {
-                CalculationMode.PACKAGES -> aggregate(rows, request.aggregationType) { it.prescribed to it.dispensed }
-                CalculationMode.DAILY_DOSES -> aggregateWithDDD(rows, included, request.aggregationType)
+            NormalisationMode.ABSOLUTE -> when (request.medicinalUnitMode) {
+                MedicinalUnitMode.PACKAGES -> aggregate(rows, request.aggregationType) { it.prescribed to it.dispensed }
+                MedicinalUnitMode.DAILY_DOSES -> aggregateWithDDD(rows, included, request.aggregationType)
             }
         }
 
@@ -77,7 +77,7 @@ class EreceptService(
 
         return EreceptAggregateByDistrictResponse(
             aggregationType = request.aggregationType,
-            calculationMode = request.calculationMode,
+            medicinalUnitMode = request.medicinalUnitMode,
             normalisationMode = request.normalisationMode,
             dateFrom = request.dateFrom,
             dateTo = request.dateTo,
@@ -106,7 +106,7 @@ class EreceptService(
         val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
 
         val (included, ignored) = allProducts.partition {
-            request.calculationMode != CalculationMode.DAILY_DOSES ||
+            request.medicinalUnitMode != MedicinalUnitMode.DAILY_DOSES ||
                     (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
         }
 
@@ -125,13 +125,13 @@ class EreceptService(
 
         val series = aggregatesByMonth.entries.sortedBy { it.key }.map { (monthKey, rows) ->
             val districtValues = when (request.normalisationMode) {
-                NormalisationMode.PER_1000_CAPITA -> when (request.calculationMode) {
-                    CalculationMode.PACKAGES -> aggregateMonthlyAndNormalize( rows, request.aggregationType) { it.prescribed to it.dispensed }
-                    CalculationMode.DAILY_DOSES -> aggregateMonthlyAndNormalizeWithDDD(rows, included, request.aggregationType)
+                NormalisationMode.PER_1000_CAPITA -> when (request.medicinalUnitMode) {
+                    MedicinalUnitMode.PACKAGES -> aggregateMonthlyAndNormalize( rows, request.aggregationType) { it.prescribed to it.dispensed }
+                    MedicinalUnitMode.DAILY_DOSES -> aggregateMonthlyAndNormalizeWithDDD(rows, included, request.aggregationType)
                 }
-                NormalisationMode.ABSOLUTE -> when (request.calculationMode) {
-                    CalculationMode.PACKAGES -> aggregateMonthly(rows, request.aggregationType) { it.prescribed to it.dispensed }
-                    CalculationMode.DAILY_DOSES -> aggregateMonthlyWithDDD(rows, included, request.aggregationType)
+                NormalisationMode.ABSOLUTE -> when (request.medicinalUnitMode) {
+                    MedicinalUnitMode.PACKAGES -> aggregateMonthly(rows, request.aggregationType) { it.prescribed to it.dispensed }
+                    MedicinalUnitMode.DAILY_DOSES -> aggregateMonthlyWithDDD(rows, included, request.aggregationType)
                 }
             }
 
@@ -146,7 +146,7 @@ class EreceptService(
 
         return EreceptTimeSeriesByDistrictResponse(
             aggregationType = request.aggregationType,
-            calculationMode = request.calculationMode,
+            medicinalUnitMode = request.medicinalUnitMode,
             normalisationMode = request.normalisationMode,
             dateFrom = request.dateFrom,
             dateTo = request.dateTo,
@@ -168,7 +168,7 @@ class EreceptService(
         val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
 
         val (included, ignored) = allProducts.partition {
-            request.calculationMode != CalculationMode.DAILY_DOSES ||
+            request.medicinalUnitMode != MedicinalUnitMode.DAILY_DOSES ||
                     (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
         }
 
@@ -197,7 +197,7 @@ class EreceptService(
         }
 
         return EreceptFullTimeSeriesResponse(
-            calculationMode = request.calculationMode,
+            medicinalUnitMode = request.medicinalUnitMode,
             normalisationMode = request.normalisationMode,
             timeGranularity = request.timeGranularity,
             district = request.district,

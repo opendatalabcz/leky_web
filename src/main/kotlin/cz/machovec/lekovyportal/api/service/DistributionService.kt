@@ -144,7 +144,7 @@ class DistributionService(
             ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
             dateFrom = req.dateFrom,
             dateTo = req.dateTo,
-            calculationMode = req.calculationMode,
+            medicinalUnitMode = req.medicinalUnitMode,
             nodes = nodes.toList(),
             links = links
         )
@@ -242,7 +242,7 @@ class DistributionService(
             ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
             dateFrom = request.dateFrom,
             dateTo = request.dateTo,
-            calculationMode = request.calculationMode,
+            medicinalUnitMode = request.medicinalUnitMode,
             timeGranularity = request.timeGranularity,
             series = series
         )

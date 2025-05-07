@@ -1,4 +1,4 @@
-import cz.machovec.lekovyportal.api.model.enums.CalculationMode
+import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.enums.EreceptType
 import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
@@ -14,7 +14,7 @@ data class EreceptAggregateByDistrictRequest(
     val dateFrom: String?,
     val dateTo: String?,
     val aggregationType: EreceptType,
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val normalisationMode: NormalisationMode
 )
 
@@ -24,7 +24,7 @@ data class EreceptAggregateByDistrictResponse(
     val dateFrom: String?,
     val dateTo: String?,
     val aggregationType: EreceptType,
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val normalisationMode: NormalisationMode,
     val districtValues: Map<String, Int>,
     val summary: SummaryValues
@@ -40,7 +40,7 @@ data class EreceptTimeSeriesByDistrictRequest(
     val dateFrom: String,
     val dateTo: String,
     val aggregationType: EreceptType,
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val normalisationMode: NormalisationMode
 )
 
@@ -50,7 +50,7 @@ data class EreceptTimeSeriesByDistrictResponse(
     val dateFrom: String,
     val dateTo: String,
     val aggregationType: EreceptType,
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val normalisationMode: NormalisationMode,
     val series: List<TimeSeriesMonthDistrictValues>
 )
@@ -75,7 +75,7 @@ data class SummaryValues(
 data class EreceptFullTimeSeriesRequest(
     val medicinalProductIds: List<Long>,
     val registrationNumbers: List<String> = emptyList(),
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val normalisationMode: NormalisationMode,
     val timeGranularity: TimeGranularity,
     val district: String? = null // null = whole Czech Republic
@@ -84,7 +84,7 @@ data class EreceptFullTimeSeriesRequest(
 data class EreceptFullTimeSeriesResponse(
     val includedMedicineProducts: List<MedicinalProductIdentificators>,
     val ignoredMedicineProducts: List<MedicinalProductIdentificators>,
-    val calculationMode: CalculationMode,
+    val medicinalUnitMode: MedicinalUnitMode,
     val normalisationMode: NormalisationMode,
     val timeGranularity: TimeGranularity,
     val district: String?, // null = whole Czech Republic
