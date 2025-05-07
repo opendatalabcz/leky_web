@@ -1,11 +1,11 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateRequest
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateResponse
-import cz.machovec.lekovyportal.api.model.FullTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesResponse
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateRequest
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateResponse
+import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesRequest
+import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesResponse
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesRequest
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesResponse
 import cz.machovec.lekovyportal.api.service.EreceptService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping

@@ -1,16 +1,16 @@
 package cz.machovec.lekovyportal.api.service
 
-import cz.machovec.lekovyportal.api.model.FullTimeSeriesEntry
-import cz.machovec.lekovyportal.api.model.FullTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.Granularity
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateRequest
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateResponse
-import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesRequest
-import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.SummaryValues
-import cz.machovec.lekovyportal.api.model.TimeSeriesMonthDistrictValues
+import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesEntry
+import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesRequest
+import cz.machovec.lekovyportal.api.model.erecept.FullTimeSeriesResponse
+import cz.machovec.lekovyportal.api.model.erecept.Granularity
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateRequest
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictAggregateResponse
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesRequest
+import cz.machovec.lekovyportal.api.model.erecept.PrescriptionDispenseByDistrictTimeSeriesResponse
+import cz.machovec.lekovyportal.api.model.erecept.SummaryValues
+import cz.machovec.lekovyportal.api.model.erecept.TimeSeriesMonthDistrictValues
 import cz.machovec.lekovyportal.api.model.enums.CalculationMode
 import cz.machovec.lekovyportal.api.model.enums.EReceptDataTypeAggregation
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode

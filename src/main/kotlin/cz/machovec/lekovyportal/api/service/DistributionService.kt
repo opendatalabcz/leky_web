@@ -3,12 +3,12 @@ package cz.machovec.lekovyportal.api.service
 import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesEntry
 import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesRequest
 import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesResponse
-import cz.machovec.lekovyportal.api.model.DistributionSankeyRequest
-import cz.machovec.lekovyportal.api.model.DistributionSankeyResponse
-import cz.machovec.lekovyportal.api.model.Granularity
-import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
-import cz.machovec.lekovyportal.api.model.SankeyLinkDto
-import cz.machovec.lekovyportal.api.model.SankeyNodeDto
+import cz.machovec.lekovyportal.api.model.distribution.DistributionSankeyRequest
+import cz.machovec.lekovyportal.api.model.distribution.DistributionSankeyResponse
+import cz.machovec.lekovyportal.api.model.erecept.Granularity
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
+import cz.machovec.lekovyportal.api.model.distribution.SankeyLinkDto
+import cz.machovec.lekovyportal.api.model.distribution.SankeyNodeDto
 import cz.machovec.lekovyportal.core.domain.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.MahPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.MovementType
@@ -28,9 +28,19 @@ class DistributionService(
 ) {
 
     fun getSankeyDiagram(req: DistributionSankeyRequest): DistributionSankeyResponse {
-        val allProducts = medicinalProductRepo.findAllByIdIn(req.medicinalProductIds)
+        val productsById = if (req.medicinalProductIds.isNotEmpty()) {
+            medicinalProductRepo.findAllByIdIn(req.medicinalProductIds)
+        } else emptyList()
+
+        val productsByRegNumbers = if (req.registrationNumbers.isNotEmpty()) {
+            medicinalProductRepo.findAllByRegistrationNumberIn(req.registrationNumbers)
+        } else emptyList()
+
+        val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
+
         val (included, ignored) = allProducts.partition { it.id != null }
         val productIds = included.mapNotNull { it.id }
+
 
         val (fromYear, fromMonth) = req.dateFrom.split("-").let { it[0].toInt() to it[1].toInt() }
         val (toYear, toMonth) = req.dateTo.split("-").let { it[0].toInt() to it[1].toInt() }
@@ -155,7 +165,16 @@ class DistributionService(
     }
 
     fun getTimeSeries(request: DistributionTimeSeriesRequest): DistributionTimeSeriesResponse {
-        val allProducts = medicinalProductRepo.findAllByIdIn(request.medicinalProductIds)
+        val productsById = if (request.medicinalProductIds.isNotEmpty()) {
+            medicinalProductRepo.findAllByIdIn(request.medicinalProductIds)
+        } else emptyList()
+
+        val productsByRegNumbers = if (request.registrationNumbers.isNotEmpty()) {
+            medicinalProductRepo.findAllByRegistrationNumberIn(request.registrationNumbers)
+        } else emptyList()
+
+        val allProducts = (productsById + productsByRegNumbers).distinctBy { it.id }
+
         val (included, ignored) = allProducts.partition { it.id != null }
         val productIds = included.mapNotNull { it.id }
 

@@ -1,4 +1,6 @@
-package cz.machovec.lekovyportal.api.model
+package cz.machovec.lekovyportal.api.model.distribution
+
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
 
 data class SankeyNodeDto(
     val id: String,

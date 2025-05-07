@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.core.repository.mpd
 
-import cz.machovec.lekovyportal.api.model.MpdMedicinalProductGroupedByRegNumberDto
+import cz.machovec.lekovyportal.api.model.mpd.MpdMedicinalProductGroupedByRegNumberDto
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.persistence.Tuple

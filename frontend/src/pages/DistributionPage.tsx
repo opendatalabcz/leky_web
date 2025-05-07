@@ -20,26 +20,29 @@ import { DistributionTimeSeriesChart } from "../components/DistributionTimeSerie
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const { drugs } = useDrugCart()
+    const { drugs, registrationNumbers } = useDrugCart()
 
-    const hasDrugs = drugs.length > 0
+    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0
+
     const sankeyQuery = useCombinedDistributionSankey(
-        hasDrugs && common.dateFrom && common.dateTo
+        hasSelection && common.dateFrom && common.dateTo
             ? {
                 dateFrom: format(common.dateFrom, "yyyy-MM"),
                 dateTo: format(common.dateTo, "yyyy-MM"),
-                medicinalProductIds: drugs.map(d => Number(d.id))
+                medicinalProductIds: drugs.map(d => Number(d.id)),
+                registrationNumbers: registrationNumbers
             }
             : undefined
     )
 
     const timeSeriesQuery = useDistributionTimeSeries(
-        hasDrugs && common.dateFrom && common.dateTo
+        hasSelection && common.dateFrom && common.dateTo
             ? {
                 dateFrom: format(common.dateFrom, "yyyy-MM"),
                 dateTo: format(common.dateTo, "yyyy-MM"),
                 medicinalProductIds: drugs.map(d => Number(d.id)),
-                granularity: "MONTH" // defaultně měsíc
+                registrationNumbers: registrationNumbers,
+                granularity: "MONTH"
             }
             : undefined
     )

@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.api.model
+package cz.machovec.lekovyportal.api.model.distribution
 
 import cz.machovec.lekovyportal.api.model.enums.CalculationMode
 
@@ -6,6 +6,7 @@ data class DistributionSankeyRequest(
     val dateFrom: String,
     val dateTo: String,
     val medicinalProductIds: List<Long>,
+    val registrationNumbers: List<String>,
     val mode: Mode = Mode.PACKAGES
 )
 

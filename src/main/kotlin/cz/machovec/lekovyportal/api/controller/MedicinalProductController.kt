@@ -1,7 +1,7 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.MedicinalProductGroupedByRegNumberResponse
-import cz.machovec.lekovyportal.api.model.MedicinalProductResponse
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductGroupedByRegNumberResponse
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductResponse
 import cz.machovec.lekovyportal.api.model.PagedResponse
 import cz.machovec.lekovyportal.api.service.MedicinalProductService
 import org.springframework.web.bind.annotation.GetMapping

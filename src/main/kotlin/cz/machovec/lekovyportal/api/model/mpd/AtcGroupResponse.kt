@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.api.model
+package cz.machovec.lekovyportal.api.model.mpd
 
 data class AtcGroupResponse(
     val id: Long,

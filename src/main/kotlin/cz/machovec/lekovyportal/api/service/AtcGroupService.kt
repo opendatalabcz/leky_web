@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.api.service
 
-import cz.machovec.lekovyportal.api.model.AtcGroupResponse
+import cz.machovec.lekovyportal.api.model.mpd.AtcGroupResponse
 import cz.machovec.lekovyportal.core.repository.mpd.MpdAtcGroupRepository
 import org.springframework.stereotype.Service
 

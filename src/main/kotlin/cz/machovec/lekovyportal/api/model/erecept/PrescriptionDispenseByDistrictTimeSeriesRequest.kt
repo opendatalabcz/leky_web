@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.api.model
+package cz.machovec.lekovyportal.api.model.erecept
 
 import cz.machovec.lekovyportal.api.model.enums.CalculationMode
 import cz.machovec.lekovyportal.api.model.enums.EReceptDataTypeAggregation

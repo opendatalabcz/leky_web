@@ -2,6 +2,7 @@
 
 export type DistributionSankeyRequest = {
     medicinalProductIds: number[]
+    registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
 }
@@ -43,6 +44,7 @@ export async function fetchCombinedDistributionSankey(
 // types
 export type DistributionTimeSeriesRequest = {
     medicinalProductIds: number[]
+    registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
     granularity: "MONTH" | "YEAR"

@@ -1,10 +1,10 @@
 package cz.machovec.lekovyportal.api.service
 
-import cz.machovec.lekovyportal.api.model.AdministrationRouteResponse
-import cz.machovec.lekovyportal.api.model.AtcGroupResponse
-import cz.machovec.lekovyportal.api.model.DosageFormResponse
-import cz.machovec.lekovyportal.api.model.MedicinalProductGroupedByRegNumberResponse
-import cz.machovec.lekovyportal.api.model.MedicinalProductResponse
+import cz.machovec.lekovyportal.api.model.mpd.AdministrationRouteResponse
+import cz.machovec.lekovyportal.api.model.mpd.AtcGroupResponse
+import cz.machovec.lekovyportal.api.model.mpd.DosageFormResponse
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductGroupedByRegNumberResponse
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductResponse
 import cz.machovec.lekovyportal.api.model.PagedResponse
 import cz.machovec.lekovyportal.core.repository.mpd.MpdAdministrationRouteRepository
 import cz.machovec.lekovyportal.core.repository.mpd.MpdAtcGroupRepository

@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.AtcGroupResponse
+import cz.machovec.lekovyportal.api.model.mpd.AtcGroupResponse
 import cz.machovec.lekovyportal.api.service.AtcGroupService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
