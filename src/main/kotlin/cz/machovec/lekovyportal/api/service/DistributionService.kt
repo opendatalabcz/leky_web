@@ -52,15 +52,14 @@ class DistributionService(
         val nodes = mutableSetOf<SankeyNodeDto>()
         val links = mutableListOf<SankeyLinkDto>()
 
-        fun addNode(id: String, label: String) {
-            if (nodes.none { it.id == id }) nodes += SankeyNodeDto(id, label)
+        fun addLink(source: String, sourceLabel: String, target: String, targetLabel: String, value: Long) {
+            if (value > 0) {
+                nodes += SankeyNodeDto(source, sourceLabel)
+                nodes += SankeyNodeDto(target, targetLabel)
+                links += SankeyLinkDto(source, target, value.toInt())
+            }
         }
 
-        fun addLink(source: String, target: String, value: Long) {
-            if (value > 0) links += SankeyLinkDto(source, target, value.toInt())
-        }
-
-        // Define labels
         val purchaserLabels = mapOf(
             DistributorPurchaserType.DISTRIBUTOR_EU to "Distributor (EU)",
             DistributorPurchaserType.DISTRIBUTOR_NON_EU to "Distributor (mimo EU)",
@@ -75,12 +74,6 @@ class DistributionService(
             DistributorPurchaserType.FOREIGN_ENTITY to "Zahraniční subjekt"
         )
 
-        // Add main nodes
-        addNode("MAH", "Registrátor")
-        addNode("Distributor", "Distributor")
-        addNode("Pharmacy", "Lékárna")
-        addNode("OOV", "Osoba oprávněná k výdeji (Lékař, Lékárna, ...)")
-
         // MAH → Distributor
         mahAggregates.filter { it.purchaserType == MahPurchaserType.DISTRIBUTOR }
             .groupBy { it.movementType }
@@ -88,7 +81,7 @@ class DistributionService(
                 val delivered = grouped[MovementType.DELIVERY]?.sumOf { it.packageCount } ?: 0L
                 val returned = grouped[MovementType.RETURN]?.sumOf { it.packageCount } ?: 0L
                 val net = delivered - returned
-                addLink("MAH", "Distributor", net)
+                addLink("MAH", "Registrátor", "Distributor", "Distributor", net)
             }
 
         // MAH → OOV
@@ -98,7 +91,7 @@ class DistributionService(
                 val delivered = grouped[MovementType.DELIVERY]?.sumOf { it.packageCount } ?: 0L
                 val returned = grouped[MovementType.RETURN]?.sumOf { it.packageCount } ?: 0L
                 val net = delivered - returned
-                addLink("MAH", "OOV", net)
+                addLink("MAH", "Registrátor", "OOV", "Osoba oprávněná k výdeji (Lékař, Lékárna, ...)", net)
             }
 
         // Distributor → targets
@@ -107,16 +100,16 @@ class DistributionService(
             val returned = list.filter { it.movementType == MovementType.RETURN }.sumOf { it.packageCount }
             val net = delivered - returned
 
-            if (net > 0) {
-                if (purchaserType != DistributorPurchaserType.DISTRIBUTOR_CR) {
-                    val target = if (purchaserType == DistributorPurchaserType.PHARMACY) {
-                        "Pharmacy"
-                    } else {
-                        addNode(purchaserType.name, purchaserLabels[purchaserType] ?: purchaserType.name)
-                        purchaserType.name
-                    }
-                    addLink("Distributor", target, net)
+            if (net > 0 && purchaserType != DistributorPurchaserType.DISTRIBUTOR_CR) {
+                val targetId = when (purchaserType) {
+                    DistributorPurchaserType.PHARMACY -> "Pharmacy"
+                    else -> purchaserType.name
                 }
+                val targetLabel = when (purchaserType) {
+                    DistributorPurchaserType.PHARMACY -> "Lékárna"
+                    else -> purchaserLabels[purchaserType] ?: purchaserType.name
+                }
+                addLink("Distributor", "Distributor", targetId, targetLabel, net)
             }
         }
 
@@ -134,8 +127,7 @@ class DistributionService(
                     PharmacyDispenseType.REQUISITION -> "Výdej na žádanku"
                     PharmacyDispenseType.OTC -> "Volný prodej"
                 }
-                addNode(target, label)
-                addLink("Pharmacy", target, total.toLong())
+                addLink("Pharmacy", "Lékárna", target, label, total.toLong())
             }
         }
 
