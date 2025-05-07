@@ -22,7 +22,7 @@ export const DrugSearchSection: React.FC<Props> = ({
                                                        onSelectionUpdate
                                                    }) => {
     const [filters, setFilters] = useState<MedicinalProductFilterValues>({
-        searchMode: MedicinalProductSearchMode.SUKL_CODE,
+        searchMode: MedicinalProductSearchMode.REGISTRATION_NUMBER,
         atcGroupId: null,
         substanceId: null,
         medicinalProductQuery: "",

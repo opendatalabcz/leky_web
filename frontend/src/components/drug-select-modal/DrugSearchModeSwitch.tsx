@@ -41,11 +41,11 @@ export const DrugSearchModeSwitch: React.FC<Props> = ({ searchMode, onChange }) 
                     }
                 }}
             >
-                <ToggleButton value={MedicinalProductSearchMode.SUKL_CODE}>
-                    Dle kódu SÚKL
-                </ToggleButton>
                 <ToggleButton value={MedicinalProductSearchMode.REGISTRATION_NUMBER}>
-                    Dle Registračního čísla
+                    Registračního čísla
+                </ToggleButton>
+                <ToggleButton value={MedicinalProductSearchMode.SUKL_CODE}>
+                    Kódu SÚKL
                 </ToggleButton>
             </ToggleButtonGroup>
         </Box>
