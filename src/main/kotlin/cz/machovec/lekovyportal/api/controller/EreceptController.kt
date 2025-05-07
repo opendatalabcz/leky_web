@@ -7,7 +7,6 @@ import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesRequest
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictTimeSeriesResponse
 import cz.machovec.lekovyportal.api.service.EreceptService
-import cz.machovec.lekovyportal.api.service.EReceptTimeSeriesService
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -17,13 +16,12 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/erecept/prescription-dispense")
 class EreceptController(
-    private val districtDataService: EreceptService,
-    private val eReceptTimeSeriesService: EReceptTimeSeriesService
+    private val ereceptService: EreceptService,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/time-aggregate/by-district")
-    fun getAggregatedPrescriptionDispenseByDistrict(@RequestBody request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
+    fun getAggregatedByDistrict(@RequestBody request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
         logger.info(
             "District map aggregation — aggregationType=${request.aggregationType}, " +
                     "ids=${request.medicinalProductIds.joinToString(",")}, " +
@@ -34,7 +32,7 @@ class EreceptController(
         )
         val startedAt = System.currentTimeMillis()
 
-        val response = districtDataService.getAggregatedPrescriptionDispenseByDistrict(request)
+        val response = ereceptService.getAggregatedByDistrict(request)
 
         val durationMs = System.currentTimeMillis() - startedAt
         logger.info("TIME-AGGREGATE BY DISTRICT: $durationMs ms")
@@ -43,7 +41,7 @@ class EreceptController(
     }
 
     @PostMapping("/time-series/by-district")
-    fun getTimeSeries(
+    fun getTimeSeriesByDistrict(
         @RequestBody request: PrescriptionDispenseByDistrictTimeSeriesRequest
     ): PrescriptionDispenseByDistrictTimeSeriesResponse {
         logger.info(
@@ -55,7 +53,7 @@ class EreceptController(
 
         val startedAt = System.currentTimeMillis()
 
-        val response = districtDataService.aggregateSeriesByDistrict(request)
+        val response = ereceptService.aggregateSeriesByDistrict(request)
 
         val durationMs = System.currentTimeMillis() - startedAt
         logger.info("TIME-SERIES BY DISTRICT: $durationMs ms")
@@ -76,7 +74,7 @@ class EreceptController(
 
         val startedAt = System.currentTimeMillis()
 
-        val response = eReceptTimeSeriesService.getFullTimeSeries(request)
+        val response = ereceptService.getFullTimeSeries(request)
 
         val durationMs = System.currentTimeMillis() - startedAt
         logger.info("TIME-SERIES: $durationMs ms")

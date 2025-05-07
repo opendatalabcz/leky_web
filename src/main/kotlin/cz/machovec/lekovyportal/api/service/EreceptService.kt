@@ -1,5 +1,9 @@
 package cz.machovec.lekovyportal.api.service
 
+import cz.machovec.lekovyportal.api.model.FullTimeSeriesEntry
+import cz.machovec.lekovyportal.api.model.FullTimeSeriesRequest
+import cz.machovec.lekovyportal.api.model.FullTimeSeriesResponse
+import cz.machovec.lekovyportal.api.model.Granularity
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateRequest
 import cz.machovec.lekovyportal.api.model.PrescriptionDispenseByDistrictAggregateResponse
 import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
@@ -28,7 +32,7 @@ class EreceptService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun getAggregatedPrescriptionDispenseByDistrict(request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
+    fun getAggregatedByDistrict(request: PrescriptionDispenseByDistrictAggregateRequest): PrescriptionDispenseByDistrictAggregateResponse {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM")
         val from: YearMonth? = request.dateFrom?.let { YearMonth.parse(it, formatter) }
         val to: YearMonth? = request.dateTo?.let { YearMonth.parse(it, formatter) }
@@ -116,7 +120,7 @@ class EreceptService(
         var ignoredProducts: List<MedicinalProductIdentificators> = emptyList()
 
         for ((index, month) in months.withIndex()) {
-            val snapshot = getAggregatedPrescriptionDispenseByDistrict(
+            val snapshot = getAggregatedByDistrict(
                 PrescriptionDispenseByDistrictAggregateRequest(
                     dateFrom = month.format(formatter),
                     dateTo = month.format(formatter),
@@ -150,6 +154,49 @@ class EreceptService(
             series = series,
             includedMedicineProducts = includedProducts,
             ignoredMedicineProducts = ignoredProducts
+        )
+    }
+
+    fun getFullTimeSeries(request: FullTimeSeriesRequest): FullTimeSeriesResponse {
+        val allProducts = medicinalProductRepository.findAllByIdIn(request.medicinalProductIds)
+        val (included, ignored) = allProducts.partition {
+            request.calculationMode != CalculationMode.DAILY_DOSES ||
+                    (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
+        }
+
+        val rawData = ereceptRepository.findRawMonthlyAggregates(
+            medicinalProductIds = included.mapNotNull { it.id }
+        )
+
+        val filtered = rawData.filter { request.district == null || it.districtCode == request.district }
+
+        val grouped = when (request.granularity) {
+            Granularity.MONTH -> filtered.groupBy { "%04d-%02d".format(it.year, it.month) }
+            Granularity.YEAR -> filtered.groupBy { it.year.toString() }
+        }
+
+        val series = grouped.entries.sortedBy { it.key }.map { (period, rows) ->
+            val prescribed = rows.sumOf { it.prescribed }
+            val dispensed = rows.sumOf { it.dispensed }
+            val difference = prescribed - dispensed
+
+            FullTimeSeriesEntry(
+                period = period,
+                prescribed = prescribed,
+                dispensed = dispensed,
+                difference = difference
+            )
+        }
+
+        return FullTimeSeriesResponse(
+            aggregationType = request.aggregationType,
+            calculationMode = request.calculationMode,
+            normalisationMode = request.normalisationMode,
+            granularity = request.granularity,
+            district = request.district,
+            series = series,
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
     }
 
