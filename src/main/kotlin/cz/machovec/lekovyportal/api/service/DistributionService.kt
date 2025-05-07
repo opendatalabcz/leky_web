@@ -1,7 +1,11 @@
 package cz.machovec.lekovyportal.api.service
 
+import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesEntry
+import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesRequest
+import cz.machovec.lekovyportal.api.controller.DistributionTimeSeriesResponse
 import cz.machovec.lekovyportal.api.model.DistributionSankeyRequest
 import cz.machovec.lekovyportal.api.model.DistributionSankeyResponse
+import cz.machovec.lekovyportal.api.model.Granularity
 import cz.machovec.lekovyportal.api.model.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.api.model.SankeyLinkDto
 import cz.machovec.lekovyportal.api.model.SankeyNodeDto
@@ -14,199 +18,17 @@ import cz.machovec.lekovyportal.core.repository.distribution.DistFromMahsReposit
 import cz.machovec.lekovyportal.core.repository.distribution.DistFromPharmaciesRepository
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
 
 @Service
 class DistributionService(
     private val mahRepo: DistFromMahsRepository,
-    private val distrRepo: DistFromDistributorsRepository,
-    private val mpRepo: MpdMedicinalProductRepository,
+    private val distRepo: DistFromDistributorsRepository,
     private val pharmRepo: DistFromPharmaciesRepository,
+    private val medicinalProductRepo: MpdMedicinalProductRepository
 ) {
 
-    fun buildMahFlowSankey(req: DistributionSankeyRequest): DistributionSankeyResponse {
-        val allProducts = mpRepo.findAllByIdIn(req.medicinalProductIds)
-        val (included, ignored) = allProducts.partition { it.id != null }
-
-        val fromYear = req.dateFrom.substringBefore("-").toInt()
-        val fromMonth = req.dateFrom.substringAfter("-").toInt()
-        val toYear = req.dateTo.substringBefore("-").toInt()
-        val toMonth = req.dateTo.substringAfter("-").toInt()
-
-        val mahAggList = mahRepo.sumByPurchaser(
-            included.mapNotNull { it.id },
-            fromYear, fromMonth, toYear, toMonth
-        )
-
-        val distAggList = distrRepo.sumByPurchaser(
-            included.mapNotNull { it.id },
-            fromYear, fromMonth, toYear, toMonth
-        )
-
-        fun net(pair: Pair<Int, Int>) = pair.first - pair.second
-
-        val mahMap: Map<MahPurchaserType, Pair<Int, Int>> =
-            mahAggList
-                .groupBy { it.purchaserType }
-                .mapValues { (_, list) ->
-                    val del = list.filter { it.movementType == MovementType.DELIVERY }.sumOf { it.totalCount }
-                    val ret = list.filter { it.movementType == MovementType.RETURN }.sumOf { it.totalCount }
-                    del to ret
-                }
-
-        val distMap: Map<DistributorPurchaserType, Pair<Int, Int>> =
-            distAggList
-                .groupBy { it.purchaserType }
-                .mapValues { (_, list) ->
-                    val del = list.filter { it.movementType == MovementType.DELIVERY }.sumOf { it.totalCount }
-                    val ret = list.filter { it.movementType == MovementType.RETURN }.sumOf { it.totalCount }
-                    del to ret
-                }
-
-        val mahToDistributor = net(mahMap[MahPurchaserType.DISTRIBUTOR] ?: (0 to 0))
-        val mahToOov = net(mahMap[MahPurchaserType.AUTHORIZED_PERSON] ?: (0 to 0))
-
-        val distributorToForeign = net(
-            distMap.filterKeys {
-                it in listOf(
-                    DistributorPurchaserType.DISTRIBUTOR_EU,
-                    DistributorPurchaserType.DISTRIBUTOR_NON_EU,
-                    DistributorPurchaserType.FOREIGN_ENTITY
-                )
-            }.values.fold(0 to 0) { a, b -> a.first + b.first to a.second + b.second }
-        )
-
-        val distributorToOov = net(
-            distMap.filterKeys {
-                it in listOf(
-                    DistributorPurchaserType.DOCTOR,
-                    DistributorPurchaserType.PHARMACY,
-                    DistributorPurchaserType.NUCLEAR_MEDICINE,
-                    DistributorPurchaserType.HEALTHCARE_PROVIDER,
-                    DistributorPurchaserType.TRANSFUSION_SERVICE
-                )
-            }.values.fold(0 to 0) { a, b -> a.first + b.first to a.second + b.second }
-        )
-
-        val distributorToOthers = net(
-            distMap.filterKeys {
-                it in listOf(
-                    DistributorPurchaserType.SALES_REPRESENTATIVE,
-                    DistributorPurchaserType.VLP_SELLER,
-                    DistributorPurchaserType.VETERINARY_DOCTOR
-                )
-            }.values.fold(0 to 0) { a, b -> a.first + b.first to a.second + b.second }
-        )
-
-        val nodes = mutableListOf(
-            SankeyNodeDto("MAH", "Registrátor"),
-            SankeyNodeDto("Distributor", "Distributor")
-        )
-
-        val links = mutableListOf<SankeyLinkDto>()
-
-        fun addNode(id: String, label: String) {
-            if (nodes.none { it.id == id }) nodes += SankeyNodeDto(id, label)
-        }
-
-        fun addLink(src: String, tgt: String, value: Int) {
-            if (value > 0) links += SankeyLinkDto(src, tgt, value)
-        }
-
-        addLink("MAH", "Distributor", mahToDistributor)
-
-        if (mahToOov > 0 || distributorToOov > 0) {
-            addNode("OOV", "OOV (souhrn)")
-            addLink("MAH", "OOV", mahToOov)
-            addLink("Distributor", "OOV", distributorToOov)
-        }
-
-        if (distributorToForeign > 0) {
-            addNode("Foreign", "Zahraniční subjekty")
-            addLink("Distributor", "Foreign", distributorToForeign)
-        }
-
-        if (distributorToOthers > 0) {
-            addNode("Others", "Ostatní odběratelé")
-            addLink("Distributor", "Others", distributorToOthers)
-        }
-
-        return DistributionSankeyResponse(
-            nodes = nodes,
-            links = links,
-            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
-        )
-    }
-
-    fun buildDistributorFlowSankey(req: DistributionSankeyRequest): DistributionSankeyResponse {
-        val allProducts = mpRepo.findAllByIdIn(req.medicinalProductIds)
-        val (included, ignored) = allProducts.partition { it.id != null }
-        val productIds = included.mapNotNull { it.id }
-
-        fun parseYearMonth(date: String): Pair<Int, Int> {
-            val parts = date.split("-")
-            return parts[0].toInt() to parts[1].toInt()
-        }
-
-        val (fromYear, fromMonth) = parseYearMonth(req.dateFrom)
-        val (toYear, toMonth) = parseYearMonth(req.dateTo)
-
-        val distAggList = distrRepo.sumByPurchaser(
-            productIds, fromYear, fromMonth, toYear, toMonth
-        )
-
-        val pharmacyTotal = pharmRepo.sumPackages(
-            productIds, fromYear, fromMonth, toYear, toMonth
-        )
-
-        fun net(pair: Pair<Int, Int>) = pair.first - pair.second
-
-        val distMap: Map<DistributorPurchaserType, Pair<Int, Int>> =
-            distAggList
-                .groupBy { it.purchaserType }
-                .mapValues { (_, list) ->
-                    val del = list.filter { it.movementType == MovementType.DELIVERY }.sumOf { it.totalCount }
-                    val ret = list.filter { it.movementType == MovementType.RETURN }.sumOf { it.totalCount }
-                    del to ret
-                }
-
-        val nodes = mutableListOf(SankeyNodeDto("Distributor", "Distributor"))
-        val links = mutableListOf<SankeyLinkDto>()
-
-        fun addNode(id: String, label: String) {
-            if (nodes.none { it.id == id }) nodes += SankeyNodeDto(id, label)
-        }
-
-        fun addLink(src: String, tgt: String, value: Int) {
-            if (value > 0) links += SankeyLinkDto(src, tgt, value)
-        }
-
-        DistributorPurchaserType.entries
-            .filter { it != DistributorPurchaserType.DISTRIBUTOR_CR }
-            .forEach { type ->
-                val value = net(distMap[type] ?: (0 to 0))
-                if (value > 0) {
-                    addNode(type.name, type.descriptionCs)
-                    addLink("Distributor", type.name, value)
-                }
-            }
-
-        if (pharmacyTotal != null && pharmacyTotal > BigDecimal.ZERO) {
-            addNode("Patients", "Pacienti")
-            addLink(DistributorPurchaserType.PHARMACY.name, "Patients", pharmacyTotal.toInt())
-        }
-
-        return DistributionSankeyResponse(
-            nodes = nodes,
-            links = links,
-            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
-            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
-        )
-    }
-
-    fun buildFullDistributionSankey(req: DistributionSankeyRequest): DistributionSankeyResponse {
-        val allProducts = mpRepo.findAllByIdIn(req.medicinalProductIds)
+    fun getSankeyDiagram(req: DistributionSankeyRequest): DistributionSankeyResponse {
+        val allProducts = medicinalProductRepo.findAllByIdIn(req.medicinalProductIds)
         val (included, ignored) = allProducts.partition { it.id != null }
         val productIds = included.mapNotNull { it.id }
 
@@ -214,7 +36,7 @@ class DistributionService(
         val (toYear, toMonth) = req.dateTo.split("-").let { it[0].toInt() to it[1].toInt() }
 
         val mahAggList = mahRepo.sumByPurchaser(productIds, fromYear, fromMonth, toYear, toMonth)
-        val distAggList = distrRepo.sumByPurchaser(productIds, fromYear, fromMonth, toYear, toMonth)
+        val distAggList = distRepo.sumByPurchaser(productIds, fromYear, fromMonth, toYear, toMonth)
         val pharmacyAggList = pharmRepo.sumPackagesByDispenseType(productIds, fromYear, fromMonth, toYear, toMonth)
 
         fun net(pair: Pair<Int, Int>) = pair.first - pair.second
@@ -327,6 +149,70 @@ class DistributionService(
         return DistributionSankeyResponse(
             nodes = nodes,
             links = links,
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
+        )
+    }
+
+    fun getTimeSeries(request: DistributionTimeSeriesRequest): DistributionTimeSeriesResponse {
+        val allProducts = medicinalProductRepo.findAllByIdIn(request.medicinalProductIds)
+        val (included, ignored) = allProducts.partition { it.id != null }
+        val productIds = included.mapNotNull { it.id }
+
+        // Načíst všechna relevantní data v surové podobě
+        val mahRaw = mahRepo.findMonthlyAggregates(productIds)
+        val distRaw = distRepo.findMonthlyAggregates(productIds)
+        val pharmRaw = pharmRepo.findMonthlyAggregates(productIds)
+
+        // Rozdělit dle zvolené granularity
+        fun getPeriod(year: Int, month: Int): String =
+            if (request.granularity == Granularity.YEAR) year.toString()
+            else "%04d-%02d".format(year, month)
+
+        // Agregace MAH → Distributor
+        val mahGrouped = mahRaw
+            .filter { it.purchaserType == MahPurchaserType.DISTRIBUTOR }
+            .groupBy { getPeriod(it.year, it.month) }
+
+        val mahFlow = mahGrouped.mapValues { (_, list) ->
+            val del = list.filter { it.movementType == MovementType.DELIVERY }.sumOf { it.totalCount }
+            val ret = list.filter { it.movementType == MovementType.RETURN }.sumOf { it.totalCount }
+            del - ret
+        }
+
+        // Agregace Distributor → Pharmacy
+        val distGrouped = distRaw
+            .filter { it.purchaserType == DistributorPurchaserType.PHARMACY }
+            .groupBy { getPeriod(it.year, it.month) }
+
+        val distFlow = distGrouped.mapValues { (_, list) ->
+            val del = list.filter { it.movementType == MovementType.DELIVERY }.sumOf { it.totalCount }
+            val ret = list.filter { it.movementType == MovementType.RETURN }.sumOf { it.totalCount }
+            del - ret
+        }
+
+        // Agregace Pharmacy → Patient
+        val pharmGrouped = pharmRaw.groupBy { getPeriod(it.year, it.month) }
+        val pharmFlow = pharmGrouped.mapValues { (_, list) ->
+            list.sumOf { it.packageCount }.toInt()
+        }
+
+        // Sjednotit všechna období
+        val allPeriods = (mahFlow.keys + distFlow.keys + pharmFlow.keys).toSortedSet()
+
+        val series = allPeriods.map { period ->
+            DistributionTimeSeriesEntry(
+                period = period,
+                mahToDistributor = (mahFlow[period] ?: 0L).toInt(),
+                distributorToPharmacy = (distFlow[period] ?: 0L).toInt(),
+                pharmacyToPatient = (pharmFlow[period] ?: 0).toInt()
+            )
+
+        }
+
+        return DistributionTimeSeriesResponse(
+            granularity = request.granularity,
+            series = series,
             includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
             ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
