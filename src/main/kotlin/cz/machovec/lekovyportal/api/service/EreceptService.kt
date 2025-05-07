@@ -16,6 +16,7 @@ import cz.machovec.lekovyportal.api.model.enums.EReceptDataTypeAggregation
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
 import cz.machovec.lekovyportal.core.domain.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.core.repository.erecept.EReceptDistrictDataRow
+import cz.machovec.lekovyportal.core.repository.erecept.EReceptMonthlyDistrictAggregate
 import cz.machovec.lekovyportal.core.repository.erecept.EreceptRepository
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
 import org.slf4j.LoggerFactory
@@ -53,7 +54,7 @@ class EreceptService(
         }
 
         val startedAt = System.currentTimeMillis()
-        val rows = ereceptRepository.findAggregatedPrescriptionDispenseByDistrict(
+        val rows = ereceptRepository.findAggregatesAllDistricts(
             medicinalProductIds = included.mapNotNull { it.id },
             dateFrom = from,
             dateTo = to
@@ -87,7 +88,7 @@ class EreceptService(
         )
     }
 
-    fun aggregateSeriesByDistrict(
+    fun getTimeSeriesByDistrict(
         request: PrescriptionDispenseByDistrictTimeSeriesRequest
     ): PrescriptionDispenseByDistrictTimeSeriesResponse {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM")
@@ -111,37 +112,35 @@ class EreceptService(
 
         val includedIds = included.mapNotNull { it.id }
 
-        val months = generateSequence(from) { current ->
-            if (current < to) current.plusMonths(1) else null
-        }.plus(to).toList()
+        val startedAt = System.currentTimeMillis()
+        val rawAggregates = ereceptRepository.findMonthlyAllDistricts(
+            medicinalProductIds = includedIds,
+            dateFrom = from,
+            dateTo = to
+        )
+        val durationMs = System.currentTimeMillis() - startedAt
+        logger.info("TIME-SERIES BY DISTRICT - REPO: $durationMs ms")
 
-        val series = mutableListOf<TimeSeriesMonthDistrictValues>()
-        var includedProducts: List<MedicinalProductIdentificators> = emptyList()
-        var ignoredProducts: List<MedicinalProductIdentificators> = emptyList()
+        val aggregatesByMonth = rawAggregates.groupBy { "${it.year}-${"%02d".format(it.month)}" }
 
-        for ((index, month) in months.withIndex()) {
-            val snapshot = getAggregatedByDistrict(
-                PrescriptionDispenseByDistrictAggregateRequest(
-                    dateFrom = month.format(formatter),
-                    dateTo = month.format(formatter),
-                    calculationMode = request.calculationMode,
-                    aggregationType = request.aggregationType,
-                    normalisationMode = request.normalisationMode,
-                    medicinalProductIds = includedIds
-                )
-            )
-
-            if (index == 0) {
-                includedProducts = snapshot.includedMedicineProducts
-                ignoredProducts = snapshot.ignoredMedicineProducts
+        val series = aggregatesByMonth.entries.sortedBy { it.key }.map { (monthKey, rows) ->
+            val districtValues = when (request.normalisationMode) {
+                NormalisationMode.PER_1000_CAPITA -> when (request.calculationMode) {
+                    CalculationMode.PACKAGES -> aggregateMonthlyAndNormalize( rows, request.aggregationType) { it.prescribed to it.dispensed }
+                    CalculationMode.DAILY_DOSES -> aggregateMonthlyAndNormalizeWithDDD(rows, included, request.aggregationType)
+                }
+                NormalisationMode.ABSOLUTE -> when (request.calculationMode) {
+                    CalculationMode.PACKAGES -> aggregateMonthly(rows, request.aggregationType) { it.prescribed to it.dispensed }
+                    CalculationMode.DAILY_DOSES -> aggregateMonthlyWithDDD(rows, included, request.aggregationType)
+                }
             }
 
-            series.add(
-                TimeSeriesMonthDistrictValues(
-                    month = month.format(formatter),
-                    values = snapshot.districtValues,
-                    summary = snapshot.summary
-                )
+            val summary = calculateSummaryFromRawRows(rows)
+
+            TimeSeriesMonthDistrictValues(
+                month = monthKey,
+                values = districtValues,
+                summary = summary
             )
         }
 
@@ -152,8 +151,8 @@ class EreceptService(
             dateFrom = request.dateFrom,
             dateTo = request.dateTo,
             series = series,
-            includedMedicineProducts = includedProducts,
-            ignoredMedicineProducts = ignoredProducts
+            includedMedicineProducts = included.map { MedicinalProductIdentificators(it.id!!, it.suklCode) },
+            ignoredMedicineProducts = ignored.map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
         )
     }
 
@@ -164,7 +163,7 @@ class EreceptService(
                     (it.dailyDosePackaging != null && it.dailyDosePackaging > BigDecimal.ZERO)
         }
 
-        val rawData = ereceptRepository.findRawMonthlyAggregates(
+        val rawData = ereceptRepository.findFullMonthly(
             medicinalProductIds = included.mapNotNull { it.id }
         )
 
@@ -276,5 +275,79 @@ class EreceptService(
         val difference = prescribed - dispensed
         val percentage = if (prescribed == 0) 0.0 else (difference.toDouble() / prescribed) * 100
         return SummaryValues(prescribed, dispensed, difference, percentage)
+    }
+
+    private fun calculateSummaryFromRawRows(rows: List<EReceptMonthlyDistrictAggregate>): SummaryValues {
+        val prescribed = rows.sumOf { it.prescribed }
+        val dispensed = rows.sumOf { it.dispensed }
+        val difference = prescribed - dispensed
+        val percentage = if (prescribed == 0) 0.0 else (difference.toDouble() / prescribed) * 100
+        return SummaryValues(prescribed, dispensed, difference, percentage)
+    }
+
+    private fun aggregateMonthly(
+        rows: List<EReceptMonthlyDistrictAggregate>,
+        aggregationType: EReceptDataTypeAggregation,
+        extractor: (EReceptMonthlyDistrictAggregate) -> Pair<Int, Int>
+    ): Map<String, Int> {
+        return rows.associate {
+            val (prescribed, dispensed) = extractor(it)
+            val value = when (aggregationType) {
+                EReceptDataTypeAggregation.PRESCRIBED -> prescribed
+                EReceptDataTypeAggregation.DISPENSED -> dispensed
+                EReceptDataTypeAggregation.DIFFERENCE -> prescribed - dispensed
+            }
+            it.districtCode to value
+        }
+    }
+
+    private fun aggregateMonthlyAndNormalize(
+        rows: List<EReceptMonthlyDistrictAggregate>,
+        aggregationType: EReceptDataTypeAggregation,
+        extractor: (EReceptMonthlyDistrictAggregate) -> Pair<Int, Int>
+    ): Map<String, Int> {
+        return rows.associate {
+            val (prescribed, dispensed) = extractor(it)
+            val value = when (aggregationType) {
+                EReceptDataTypeAggregation.PRESCRIBED -> prescribed
+                EReceptDataTypeAggregation.DISPENSED -> dispensed
+                EReceptDataTypeAggregation.DIFFERENCE -> prescribed - dispensed
+            }
+            it.districtCode to normalize(value, it.population)
+        }
+    }
+
+    private fun aggregateMonthlyWithDDD(
+        rows: List<EReceptMonthlyDistrictAggregate>,
+        includedProducts: List<MpdMedicinalProduct>,
+        aggregationType: EReceptDataTypeAggregation
+    ): Map<String, Int> {
+        val dddMap = includedProducts.associateBy({ it.id!! }, { it.dailyDosePackaging!! })
+
+        return rows
+            .groupBy { it.districtCode }
+            .mapValues { (_, rowsInDistrict) ->
+                rowsInDistrict.sumOf {
+                    val ddd = dddMap[it.medicinalProductId] ?: BigDecimal.ZERO
+                    val raw = when (aggregationType) {
+                        EReceptDataTypeAggregation.PRESCRIBED -> it.prescribed
+                        EReceptDataTypeAggregation.DISPENSED -> it.dispensed
+                        EReceptDataTypeAggregation.DIFFERENCE -> it.prescribed - it.dispensed
+                    }
+                    (BigDecimal(raw) * ddd).toInt()
+                }
+            }
+    }
+
+    private fun aggregateMonthlyAndNormalizeWithDDD(
+        rows: List<EReceptMonthlyDistrictAggregate>,
+        includedProducts: List<MpdMedicinalProduct>,
+        aggregationType: EReceptDataTypeAggregation
+    ): Map<String, Int> {
+        val dddValues = aggregateMonthlyWithDDD(rows, includedProducts, aggregationType)
+        return dddValues.mapValues { (district, value) ->
+            val population = rows.find { it.districtCode == district }?.population ?: 0
+            normalize(value, population)
+        }
     }
 }

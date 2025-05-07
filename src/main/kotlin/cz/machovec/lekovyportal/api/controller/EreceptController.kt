@@ -53,7 +53,7 @@ class EreceptController(
 
         val startedAt = System.currentTimeMillis()
 
-        val response = ereceptService.aggregateSeriesByDistrict(request)
+        val response = ereceptService.getTimeSeriesByDistrict(request)
 
         val durationMs = System.currentTimeMillis() - startedAt
         logger.info("TIME-SERIES BY DISTRICT: $durationMs ms")
