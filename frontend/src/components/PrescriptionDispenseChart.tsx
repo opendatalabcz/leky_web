@@ -19,11 +19,11 @@ import {
     Typography
 } from "@mui/material"
 import { format } from "date-fns"
-import { FullTimeSeriesResponse } from "../services/ereceptService"
+import { EreceptFullTimeSeriesResponse } from "../services/ereceptService"
 import { TimeGranularity, TimeGranularityLabels } from "../types/TimeGranularity"
 
 type Props = {
-    data: FullTimeSeriesResponse | undefined
+    data: EreceptFullTimeSeriesResponse | undefined
     selectedDistrict: string | null
     onDistrictChange: (value: string | null) => void
     districtNameMap: Record<string, string>
@@ -45,7 +45,7 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                                            }) => {
     const chartData = useMemo(() => {
         if (!data || data.series.length === 0) {
-            // Vrať 12 měsíců pro placeholder
+            // Return placeholder 12 months
             return Array.from({ length: 12 }).map((_, i) => ({
                 name: format(new Date(2023, i, 1), timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM"),
                 Předepsané: 0,
@@ -91,7 +91,7 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                 .sort(([codeA, nameA], [codeB, nameB]) => {
                                     if (nameA === "Hlavní město Praha") return -1
                                     if (nameB === "Hlavní město Praha") return 1
-                                    return nameA.localeCompare(nameB, "cs") // seřazení podle češtiny
+                                    return nameA.localeCompare(nameB, "cs")
                                 })
                                 .map(([code, name]) => (
                                     <MenuItem key={code} value={code}>

@@ -13,11 +13,11 @@ import DistrictMap from "../components/DistrictMap"
 import { FeatureCollection } from "geojson"
 import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
 import { SummaryTiles } from "../components/SummaryTiles"
-import { useAggregatedPrescriptionDispenseByDistrict } from "../hooks/useAggregatedPrescriptionDispenseByDistrict"
-import { useDistrictTimeSeries } from "../hooks/useDistrictTimeSeries"
-import { usePreparedDistrictData } from "../hooks/usePreparedDistrictData"
+import { useEreceptAggregateByDistrict } from "../hooks/useEreceptAggregateByDistrict"
+import { useEreceptTimeSeriesByDistrict } from "../hooks/useEreceptTimeSeriesByDistrict"
+import { useEreceptPrepareAnimationData } from "../hooks/useEreceptPrepareAnimationData"
 import { PrescriptionDispenseChart } from "../components/PrescriptionDispenseChart"
-import { useFullTimeSeries } from "../hooks/useFullTimeSeries"
+import { useEreceptFullTimeSeries } from "../hooks/useEreceptFullTimeSeries"
 import { TimeGranularity } from "../types/TimeGranularity"
 
 interface DistrictFeatureProperties {
@@ -30,7 +30,6 @@ interface DistrictFeature extends GeoJSON.Feature {
 }
 
 type DistrictFeatureCollection = GeoJSON.FeatureCollection
-
 
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
@@ -92,15 +91,15 @@ export function EReceptPage() {
         registrationNumbers: registrationNumbers
     } : undefined
 
-    const aggregateQuery = useAggregatedPrescriptionDispenseByDistrict(params)
-    const seriesQuery = useDistrictTimeSeries(params, !!aggregateQuery.data)
+    const aggregateQuery = useEreceptAggregateByDistrict(params)
+    const seriesQuery = useEreceptTimeSeriesByDistrict(params)
 
     const {
         monthly,
         aggregated,
         monthlySummaries,
         aggregatedSummary
-    } = usePreparedDistrictData(seriesQuery.data?.series ?? [])
+    } = useEreceptPrepareAnimationData(seriesQuery.data?.series ?? [])
 
     const currentMonthStr = months[monthIndex]
     const monthValues = monthly.get(currentMonthStr) ?? {}
@@ -109,7 +108,7 @@ export function EReceptPage() {
     const summary = sliderActive ? monthSummary : aggregateQuery.data?.summary
 
     // Full time series for chart
-    const fullTimeSeriesQuery = useFullTimeSeries(
+    const fullTimeSeriesQuery = useEreceptFullTimeSeries(
         hasSelection ? {
             medicinalUnitMode: common.medicinalUnitMode,
             normalisationMode: prescriptionDispense.normalisationMode,
@@ -222,7 +221,6 @@ export function EReceptPage() {
 
                     <Box mt={2}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
-                            {/* Nadpis + období */}
                             <Typography
                                 variant="h6"
                                 sx={{ color: "#1f2b3d", fontWeight: 600, mb: 3 }}
@@ -232,7 +230,6 @@ export function EReceptPage() {
                                 : `${format(common.dateFrom!, "yyyy-MM")} až ${format(common.dateTo!, "yyyy-MM")}`})
                             </Typography>
 
-                            {/* Mapa a SummaryTiles */}
                             <Box display="flex" gap={2}>
                                 <Box flex={1} height={500}>
                                     {geojsonData && (

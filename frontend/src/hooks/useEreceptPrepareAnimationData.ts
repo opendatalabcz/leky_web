@@ -1,7 +1,7 @@
 import { useMemo } from "react"
-import { MonthSeriesEntryWithSummary, SummaryValues } from "../services/ereceptService"
+import { SummaryValues } from "../services/ereceptService"
 
-export function usePreparedDistrictData(series: MonthSeriesEntryWithSummary[]) {
+export function useEreceptPrepareAnimationData(series: MonthSeriesEntryWithSummary[]) {
 
     const monthly = useMemo(() => {
         const map = new Map()
@@ -57,4 +57,11 @@ export function usePreparedDistrictData(series: MonthSeriesEntryWithSummary[]) {
         aggregated,
         aggregatedSummary
     }
+
+}
+
+export interface MonthSeriesEntryWithSummary {
+    month: string
+    districtValues: Record<string, number>
+    summary: SummaryValues
 }
