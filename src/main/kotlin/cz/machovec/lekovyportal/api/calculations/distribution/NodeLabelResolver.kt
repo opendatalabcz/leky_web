@@ -1,5 +1,5 @@
 // logic/distribution/NodeLabelResolver.kt
-package cz.machovec.lekovyportal.api.logic.distribution
+package cz.machovec.lekovyportal.api.calculations.distribution
 
 import cz.machovec.lekovyportal.core.domain.distribution.DistributorPurchaserType
 import cz.machovec.lekovyportal.core.domain.distribution.PharmacyDispenseType

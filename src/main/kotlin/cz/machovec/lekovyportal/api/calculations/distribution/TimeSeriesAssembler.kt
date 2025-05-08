@@ -1,8 +1,8 @@
-package cz.machovec.lekovyportal.api.logic.distribution
+package cz.machovec.lekovyportal.api.calculations.distribution
 
 import DistributionFlowEntry
 import DistributionTimeSeriesPeriodEntry
-import cz.machovec.lekovyportal.api.logic.DoseUnitConverter
+import cz.machovec.lekovyportal.api.calculations.DoseUnitConverter
 import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
 import cz.machovec.lekovyportal.core.domain.distribution.*
 import cz.machovec.lekovyportal.core.dto.distribution.MonthlyDistributorProductMovementCountDto

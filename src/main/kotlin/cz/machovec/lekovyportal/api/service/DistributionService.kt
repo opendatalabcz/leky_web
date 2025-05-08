@@ -4,9 +4,9 @@ import DistributionSankeyRequest
 import DistributionSankeyResponse
 import DistributionTimeSeriesRequest
 import DistributionTimeSeriesResponse
-import cz.machovec.lekovyportal.api.logic.DoseUnitConverterFactory
-import cz.machovec.lekovyportal.api.logic.distribution.SankeyDiagramAssembler
-import cz.machovec.lekovyportal.api.logic.distribution.TimeSeriesAssembler
+import cz.machovec.lekovyportal.api.calculations.DoseUnitConverterFactory
+import cz.machovec.lekovyportal.api.calculations.distribution.SankeyDiagramAssembler
+import cz.machovec.lekovyportal.api.calculations.distribution.TimeSeriesAssembler
 import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.core.repository.distribution.*
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository

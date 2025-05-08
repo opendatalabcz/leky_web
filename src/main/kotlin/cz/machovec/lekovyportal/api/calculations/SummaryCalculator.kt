@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.api.logic
+package cz.machovec.lekovyportal.api.calculations
 
 import SummaryValues
 import cz.machovec.lekovyportal.core.dto.erecept.EreceptAggregatedDistrictDto

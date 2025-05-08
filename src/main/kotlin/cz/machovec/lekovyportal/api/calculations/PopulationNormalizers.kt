@@ -1,4 +1,4 @@
-package cz.machovec.lekovyportal.api.logic
+package cz.machovec.lekovyportal.api.calculations
 
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
 import org.springframework.stereotype.Component

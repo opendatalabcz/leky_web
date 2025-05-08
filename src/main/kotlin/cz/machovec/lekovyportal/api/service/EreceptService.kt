@@ -8,8 +8,8 @@ import EreceptFullTimeSeriesEntry
 import EreceptTimeSeriesByDistrictRequest
 import EreceptTimeSeriesByDistrictResponse
 import TimeSeriesMonthDistrictValues
-import cz.machovec.lekovyportal.api.logic.DistrictAggregator
-import cz.machovec.lekovyportal.api.logic.SummaryCalculator
+import cz.machovec.lekovyportal.api.calculations.DistrictAggregator
+import cz.machovec.lekovyportal.api.calculations.SummaryCalculator
 import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
 import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators

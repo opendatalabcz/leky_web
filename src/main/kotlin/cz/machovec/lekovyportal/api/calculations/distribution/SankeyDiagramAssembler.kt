@@ -1,8 +1,8 @@
-package cz.machovec.lekovyportal.api.logic.distribution
+package cz.machovec.lekovyportal.api.calculations.distribution
 
 import SankeyLinkDto
 import SankeyNodeDto
-import cz.machovec.lekovyportal.api.logic.DoseUnitConverter
+import cz.machovec.lekovyportal.api.calculations.DoseUnitConverter
 import cz.machovec.lekovyportal.core.domain.distribution.*
 import cz.machovec.lekovyportal.core.dto.distribution.AggregateDistributorProductMovementCountDto
 import cz.machovec.lekovyportal.core.dto.distribution.AggregateMahProductMovementCountDto
