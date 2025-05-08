@@ -1,17 +1,17 @@
 package cz.machovec.lekovyportal.api.logic
 
 import SummaryValues
-import cz.machovec.lekovyportal.core.repository.erecept.EReceptDistrictDataRow
-import cz.machovec.lekovyportal.core.repository.erecept.EReceptMonthlyDistrictAggregate
+import cz.machovec.lekovyportal.core.dto.erecept.EreceptAggregatedDistrictDto
+import cz.machovec.lekovyportal.core.dto.erecept.EreceptTimeSeriesDistrictDto
 import org.springframework.stereotype.Component
 
 @Component
 class SummaryCalculator {
 
-    fun fromDistrictRows(rows: List<EReceptDistrictDataRow>): SummaryValues =
+    fun fromDistrictRows(rows: List<EreceptAggregatedDistrictDto>): SummaryValues =
         build(rows.sumOf { it.prescribed }, rows.sumOf { it.dispensed })
 
-    fun fromMonthlyRows(rows: List<EReceptMonthlyDistrictAggregate>): SummaryValues =
+    fun fromMonthlyRows(rows: List<EreceptTimeSeriesDistrictDto>): SummaryValues =
         build(rows.sumOf { it.prescribed }, rows.sumOf { it.dispensed })
 
     private fun build(prescribed: Int, dispensed: Int): SummaryValues {

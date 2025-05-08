@@ -3,8 +3,8 @@ package cz.machovec.lekovyportal.api.logic
 import cz.machovec.lekovyportal.api.model.enums.EreceptType
 import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
-import cz.machovec.lekovyportal.core.repository.erecept.EReceptDistrictDataRow
-import cz.machovec.lekovyportal.core.repository.erecept.EReceptMonthlyDistrictAggregate
+import cz.machovec.lekovyportal.core.dto.erecept.EreceptAggregatedDistrictDto
+import cz.machovec.lekovyportal.core.dto.erecept.EreceptTimeSeriesDistrictDto
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
 
@@ -15,7 +15,7 @@ class DistrictAggregator(
 ) {
 
     fun aggregate(
-        rows: List<EReceptDistrictDataRow>,
+        rows: List<EreceptAggregatedDistrictDto>,
         aggType: EreceptType,
         unitMode: MedicinalUnitMode,
         normMode: NormalisationMode,
@@ -47,14 +47,14 @@ class DistrictAggregator(
     }
 
     fun aggregateMonthly(
-        rows: List<EReceptMonthlyDistrictAggregate>,
+        rows: List<EreceptTimeSeriesDistrictDto>,
         aggType: EreceptType,
         unitMode: MedicinalUnitMode,
         normMode: NormalisationMode,
         dddPerProduct: Map<Long, BigDecimal>
     ): Map<String, Int> = aggregate(
         rows.map {
-            EReceptDistrictDataRow(
+            EreceptAggregatedDistrictDto(
                 districtCode       = it.districtCode,
                 medicinalProductId = it.medicinalProductId,
                 prescribed         = it.prescribed,
