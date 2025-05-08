@@ -1,4 +1,3 @@
-// api/service/DistributionService.kt
 package cz.machovec.lekovyportal.api.service
 
 import DistributionSankeyRequest

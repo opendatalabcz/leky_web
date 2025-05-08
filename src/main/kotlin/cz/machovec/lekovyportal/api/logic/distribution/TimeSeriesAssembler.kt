@@ -1,4 +1,3 @@
-// logic/distribution/TimeSeriesAssembler.kt
 package cz.machovec.lekovyportal.api.logic.distribution
 
 import DistributionFlowEntry
@@ -28,7 +27,6 @@ class TimeSeriesAssembler(
         fun periodKey(y: Int, m: Int): String =
             if (granularity == TimeGranularity.YEAR) y.toString() else "%04d-%02d".format(y, m)
 
-        /* všechny period keys, aby i „prázdné“ měsíce měly záznam */
         val allPeriods = buildSet {
             mah.forEach { add(periodKey(it.year, it.month)) }
             dist.forEach { add(periodKey(it.year, it.month)) }
@@ -38,51 +36,59 @@ class TimeSeriesAssembler(
         return allPeriods.map { key ->
             val flows = mutableListOf<DistributionFlowEntry>()
 
-            /* ---------- MAH ---------- */
+            val sourceMahLabel = "Registrátor"
+            val sourceDistributorLabel = "Distributor"
+            val sourcePharmacyLabel = "Lékárna"
+
+            // ---------- MAH → Distributor ----------
             mah.filter { periodKey(it.year, it.month) == key && it.purchaserType == MahPurchaserType.DISTRIBUTOR }
                 .groupBy { it.movementType }
                 .let { g ->
                     val deliv = g[MovementType.DELIVERY]?.sumOf {
                         converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                     } ?: 0L
-                    val ret   = g[MovementType.RETURN]?.sumOf {
+                    val ret = g[MovementType.RETURN]?.sumOf {
                         converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                     } ?: 0L
-                    val net   = deliv - ret
-                    if (net > 0) flows += DistributionFlowEntry("MAH", "Distributor", net.toInt())
+                    val net = deliv - ret
+                    if (net > 0) flows += DistributionFlowEntry(sourceMahLabel, sourceDistributorLabel, net.toInt())
                 }
 
+            // ---------- MAH → OOV ----------
             mah.filter { periodKey(it.year, it.month) == key && it.purchaserType == MahPurchaserType.AUTHORIZED_PERSON }
                 .groupBy { it.movementType }
                 .let { g ->
                     val deliv = g[MovementType.DELIVERY]?.sumOf {
                         converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                     } ?: 0L
-                    val ret   = g[MovementType.RETURN]?.sumOf {
+                    val ret = g[MovementType.RETURN]?.sumOf {
                         converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                     } ?: 0L
-                    val net   = deliv - ret
-                    if (net > 0) flows += DistributionFlowEntry("MAH", "OOV", net.toInt())
+                    val net = deliv - ret
+                    if (net > 0) {
+                        val target = labelResolver.nodeLabelForMahPurchaser(MahPurchaserType.AUTHORIZED_PERSON)
+                        if (sourceMahLabel != target) flows += DistributionFlowEntry(sourceMahLabel, target, net.toInt())
+                    }
                 }
 
-            /* ---------- Distributor ---------- */
+            // ---------- Distributor → Purchasers ----------
             dist.filter { periodKey(it.year, it.month) == key }
                 .groupBy { it.purchaserType }
                 .forEach { (purch, list) ->
                     val deliv = list.filter { it.movementType == MovementType.DELIVERY }.sumOf {
                         converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                     }
-                    val ret   = list.filter { it.movementType == MovementType.RETURN }.sumOf {
+                    val ret = list.filter { it.movementType == MovementType.RETURN }.sumOf {
                         converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                     }
                     val net = deliv - ret
                     if (net <= 0) return@forEach
 
-                    val targetId = labelResolver.nodeIdForDistributorPurchaser(purch)
-                    flows += DistributionFlowEntry("Distributor", targetId, net.toInt())
+                    val target = labelResolver.nodeLabelForDistributorPurchaser(purch)
+                    if (sourceDistributorLabel != target) flows += DistributionFlowEntry(sourceDistributorLabel, target, net.toInt())
                 }
 
-            /* ---------- Pharmacy ---------- */
+            // ---------- Pharmacy → Dispense Types ----------
             pharm.filter { periodKey(it.year, it.month) == key }
                 .groupBy { it.dispenseType }
                 .forEach { (disp, list) ->
@@ -90,8 +96,8 @@ class TimeSeriesAssembler(
                         converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                     }
                     if (total > 0) {
-                        val target = labelResolver.nodeIdForDispenseType(disp)
-                        flows += DistributionFlowEntry("Pharmacy", target, total.toInt())
+                        val target = labelResolver.nodeLabelForDispenseType(disp)
+                        if (sourcePharmacyLabel != target) flows += DistributionFlowEntry(sourcePharmacyLabel, target, total.toInt())
                     }
                 }
 
