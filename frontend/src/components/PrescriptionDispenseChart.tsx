@@ -27,8 +27,8 @@ type Props = {
     selectedDistrict: string | null
     onDistrictChange: (value: string | null) => void
     districtNameMap: Record<string, string>
-    granularity: TimeGranularity
-    onGranularityChange: (value: TimeGranularity) => void
+    timeGranularity: TimeGranularity
+    onTimeGranularityChange: (value: TimeGranularity) => void
     dateFrom?: Date | null
     dateTo?: Date | null
 }
@@ -38,8 +38,8 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                                                selectedDistrict,
                                                                onDistrictChange,
                                                                districtNameMap,
-                                                               granularity,
-                                                               onGranularityChange,
+                                                               timeGranularity,
+                                                               onTimeGranularityChange,
                                                                dateFrom,
                                                                dateTo
                                                            }) => {
@@ -47,7 +47,7 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
         if (!data || data.series.length === 0) {
             // Vrať 12 měsíců pro placeholder
             return Array.from({ length: 12 }).map((_, i) => ({
-                name: format(new Date(2023, i, 1), granularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM"),
+                name: format(new Date(2023, i, 1), timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM"),
                 Předepsané: 0,
                 Vydané: 0
             }))
@@ -58,14 +58,14 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
             Předepsané: item.prescribed,
             Vydané: item.dispensed
         }))
-    }, [data, granularity])
+    }, [data, timeGranularity])
 
     const highlightRange = useMemo(() => {
         if (!dateFrom || !dateTo) return null
-        const start = format(dateFrom, granularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
-        const end = format(dateTo, granularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
+        const start = format(dateFrom, timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
+        const end = format(dateTo, timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
         return { start, end }
-    }, [dateFrom, dateTo, granularity])
+    }, [dateFrom, dateTo, timeGranularity])
 
     return (
         <Box mt={5}>
@@ -105,8 +105,8 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                         <InputLabel>Granularita</InputLabel>
                         <Select
                             label="Granularita"
-                            value={granularity}
-                            onChange={(e) => onGranularityChange(e.target.value as TimeGranularity)}
+                            value={timeGranularity}
+                            onChange={(e) => onTimeGranularityChange(e.target.value as TimeGranularity)}
                         >
                             {Object.entries(TimeGranularityLabels).map(([value, label]) => (
                                 <MenuItem key={value} value={value}>

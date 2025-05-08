@@ -5,91 +5,73 @@ import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.enums.NormalisationMode
 import cz.machovec.lekovyportal.core.repository.erecept.EReceptDistrictDataRow
 import cz.machovec.lekovyportal.core.repository.erecept.EReceptMonthlyDistrictAggregate
-import kotlin.math.roundToInt
+import org.springframework.stereotype.Component
+import java.math.BigDecimal
 
-/**
- * All heavy-weight arithmetic for eRecept endpoints in one place.
- * No Spring annotations – plain Kotlin → easy unit-testing.
- */
+@Component
 class DistrictAggregator(
-    private val converter: DoseUnitConverter
+    private val converterFactory: DoseUnitConverterFactory,
+    private val normaliserFactory: PopulationNormaliserFactory
 ) {
 
-    /* ---------- helpers ---------- */
-
-    private fun pickValue(
-        type: EreceptType,
-        prescribed: Long,
-        dispensed: Long
-    ) = when (type) {
-        EreceptType.PRESCRIBED -> prescribed
-        EreceptType.DISPENSED  -> dispensed
-        EreceptType.DIFFERENCE -> prescribed - dispensed
-    }
-
-    private fun normalisePerThousand(
-        raw: Long,
-        population: Int,
-        normMode: NormalisationMode
-    ): Long =
-        if (normMode == NormalisationMode.ABSOLUTE || population <= 0) raw
-        else (raw / (population / 1000.0)).roundToInt().toLong()
-
-    /* ---------- public API ---------- */
-
-    /**
-     * Aggregates district-level rows (all months collapsed).
-     */
-    fun aggregateDistrictRows(
+    fun aggregate(
         rows: List<EReceptDistrictDataRow>,
         aggType: EreceptType,
         unitMode: MedicinalUnitMode,
-        normMode: NormalisationMode
-    ): Map<String, Int> =
-        rows
-            .groupBy { it.districtCode }
-            .mapValues { (_, districtRows) ->
-                var prescribed = 0L
-                var dispensed  = 0L
-                var population = 0
+        normMode: NormalisationMode,
+        dddPerProduct: Map<Long, BigDecimal>
+    ): Map<String, Int> {
 
-                districtRows.forEach { r ->
-                    prescribed += converter.convert(r.medicinalProductId, r.prescribed.toLong(), unitMode)
-                    dispensed  += converter.convert(r.medicinalProductId, r.dispensed .toLong(), unitMode)
-                    population  = r.population
+        val converter   = converterFactory.of(unitMode)
+        val normaliser  = normaliserFactory.of(normMode)
+
+        return rows.groupBy { it.districtCode }
+            .mapValues { (_, districtRows) ->
+
+                val prescribed = districtRows.sumOf {
+                    converter.convert(it.medicinalProductId, it.prescribed.toLong(), dddPerProduct)
+                }
+                val dispensed  = districtRows.sumOf {
+                    converter.convert(it.medicinalProductId, it.dispensed.toLong(), dddPerProduct)
+                }
+                val population = districtRows.first().population
+
+                val raw = when (aggType) {
+                    EreceptType.PRESCRIBED -> prescribed
+                    EreceptType.DISPENSED  -> dispensed
+                    EreceptType.DIFFERENCE -> prescribed - dispensed
                 }
 
-                val raw   = pickValue(aggType, prescribed, dispensed)
-                val final = normalisePerThousand(raw, population, normMode)
-
-                final.toInt()
+                normaliser.normalise(raw, population).toInt()
             }
+    }
 
-    /**
-     * Aggregates monthly+distric rows (one map per month).
-     */
-    fun aggregateMonthlyDistrictRows(
+    fun aggregateMonthly(
         rows: List<EReceptMonthlyDistrictAggregate>,
         aggType: EreceptType,
         unitMode: MedicinalUnitMode,
-        normMode: NormalisationMode
-    ): Map<String, Int> =
-        rows
-            .groupBy { it.districtCode }
-            .mapValues { (_, districtRows) ->
-                var prescribed = 0L
-                var dispensed  = 0L
-                var population = 0
+        normMode: NormalisationMode,
+        dddPerProduct: Map<Long, BigDecimal>
+    ): Map<String, Int> = aggregate(
+        rows.map {
+            EReceptDistrictDataRow(
+                districtCode       = it.districtCode,
+                medicinalProductId = it.medicinalProductId,
+                prescribed         = it.prescribed,
+                dispensed          = it.dispensed,
+                population         = it.population,
+            )
+        },
+        aggType, unitMode, normMode, dddPerProduct
+    )
 
-                districtRows.forEach { r ->
-                    prescribed += converter.convert(r.medicinalProductId, r.prescribed.toLong(), unitMode)
-                    dispensed  += converter.convert(r.medicinalProductId, r.dispensed .toLong(), unitMode)
-                    population  = r.population
-                }
-
-                val raw   = pickValue(aggType, prescribed, dispensed)
-                val final = normalisePerThousand(raw, population, normMode)
-
-                final.toInt()
-            }
+    fun convertValue(
+        productId: Long,
+        rawPackages: Long,
+        unitMode: MedicinalUnitMode,
+        dddPerProduct: Map<Long, BigDecimal>
+    ): Long {
+        val converter = converterFactory.of(unitMode)
+        return converter.convert(productId, rawPackages, dddPerProduct)
+    }
 }

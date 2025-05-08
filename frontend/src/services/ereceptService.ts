@@ -1,6 +1,7 @@
 import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
 import { PopulationNormalisationMode } from "../types/PopulationNormalisationMode"
 import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
+import {TimeGranularity} from "../types/TimeGranularity";
 
 export interface Params {
     dateFrom: string
@@ -43,7 +44,7 @@ export type DistrictTimeSeriesResponseWithSummary = {
     dateTo: string
     series: {
         month: string
-        values: Record<string, number>
+        districtValues: Record<string, number>
         summary: SummaryValues
     }[]
     includedMedicineProducts: MedicineProductInfo[]
@@ -94,17 +95,16 @@ export async function getPrescriptionDispenseTimeSeries(params: FullTimeSeriesPa
 
 export interface MonthSeriesEntryWithSummary {
     month: string
-    values: Record<string, number>
+    districtValues: Record<string, number>
     summary: SummaryValues
 }
 
 export interface FullTimeSeriesParams {
-    aggregationType: EReceptDataTypeAggregation
     medicinalUnitMode: MedicinalUnitMode
     normalisationMode: PopulationNormalisationMode
     medicinalProductIds: number[]
     registrationNumbers: string[]
-    granularity: "MONTH" | "YEAR"
+    timeGranularity: TimeGranularity
     district?: string | null
 }
 
@@ -119,7 +119,7 @@ export interface FullTimeSeriesResponse {
     aggregationType: string
     medicinalUnitMode: string
     normalisationMode: string
-    granularity: "MONTH" | "YEAR"
+    timeGranularity: TimeGranularity
     district?: string | null
     series: FullTimeSeriesEntry[]
     includedMedicineProducts: MedicineProductInfo[]

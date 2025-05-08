@@ -2,9 +2,10 @@ import { useMemo } from "react"
 import { MonthSeriesEntryWithSummary, SummaryValues } from "../services/ereceptService"
 
 export function usePreparedDistrictData(series: MonthSeriesEntryWithSummary[]) {
+
     const monthly = useMemo(() => {
-        const map = new Map<string, Record<string, number>>()
-        series.forEach(s => map.set(s.month, s.values))
+        const map = new Map()
+        series.forEach(s => {map.set(s.month, s.districtValues)})
         return map
     }, [series])
 
@@ -17,7 +18,7 @@ export function usePreparedDistrictData(series: MonthSeriesEntryWithSummary[]) {
     const aggregated = useMemo(() => {
         const agg: Record<string, number> = {}
         series.forEach(s => {
-            Object.entries(s.values).forEach(([dist, val]) => {
+            Object.entries(s.districtValues).forEach(([dist, val]) => {
                 agg[dist] = (agg[dist] ?? 0) + val
             })
         })

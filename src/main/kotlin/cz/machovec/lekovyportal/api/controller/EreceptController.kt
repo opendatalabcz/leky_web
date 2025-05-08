@@ -65,6 +65,7 @@ class EreceptController(
     fun getFullTimeSeries(
         @RequestBody request: EreceptFullTimeSeriesRequest
     ): EreceptFullTimeSeriesResponse {
+        println("hihi")
 
         val startedAt = System.currentTimeMillis()
 

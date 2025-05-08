@@ -46,7 +46,7 @@ export function EReceptPage() {
     const [months, setMonths] = useState<string[]>([])
     const [monthIndex, setMonthIndex] = useState(0)
 
-    const [granularity, setGranularity] = useState<TimeGranularity>(TimeGranularity.MONTH)
+    const [timeGranularity, setTimeGranularity] = useState<TimeGranularity>(TimeGranularity.MONTH)
     const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null)
     const [availableDistrictCodes, setAvailableDistrictCodes] = useState<string[]>([])
 
@@ -111,12 +111,11 @@ export function EReceptPage() {
     // Full time series for chart
     const fullTimeSeriesQuery = useFullTimeSeries(
         hasSelection ? {
-            aggregationType: prescriptionDispense.aggregationType,
             medicinalUnitMode: common.medicinalUnitMode,
             normalisationMode: prescriptionDispense.normalisationMode,
             medicinalProductIds: drugs.map(d => Number(d.id)),
             registrationNumbers: registrationNumbers,
-            granularity: granularity,
+            timeGranularity: timeGranularity,
             district: selectedDistrict
         } : undefined
     )
@@ -126,7 +125,7 @@ export function EReceptPage() {
         if (!seriesQuery.data?.series?.length) return
         const all = new Set<string>()
         seriesQuery.data.series.forEach(entry => {
-            Object.keys(entry.values).forEach(code => all.add(code))
+            Object.keys(entry.districtValues).forEach(code => all.add(code))
         })
         setAvailableDistrictCodes(Array.from(all).sort())
     }, [seriesQuery.data])
@@ -264,8 +263,8 @@ export function EReceptPage() {
                                     selectedDistrict={selectedDistrict}
                                     onDistrictChange={setSelectedDistrict}
                                     districtNameMap={districtNamesMap}
-                                    granularity={granularity}
-                                    onGranularityChange={setGranularity}
+                                    timeGranularity={timeGranularity}
+                                    onTimeGranularityChange={setTimeGranularity}
                                     dateFrom={common.dateFrom}
                                     dateTo={common.dateTo}
                                 />
