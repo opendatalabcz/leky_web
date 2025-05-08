@@ -1,9 +1,9 @@
 import React, {useState} from "react";
 import { Sankey, sankeyCenter, SankeyNode, SankeyLink } from "@visx/sankey";
 import { Group } from "@visx/group";
-import { LinkHorizontal } from "@visx/shape";
 import { ParentSize } from "@visx/responsive";
 import { scaleOrdinal } from "d3-scale";
+import {MedicinalUnitMode, MedicinalUnitModeUnits} from "../../types/MedicinalUnitMode";
 
 type NodeDatum = { id: string; label: string };
 type LinkDatum = { source: string; target: string; value: number };
@@ -11,25 +11,21 @@ type LinkDatum = { source: string; target: string; value: number };
 interface SankeyChartProps {
     nodes: NodeDatum[];
     links: LinkDatum[];
+    medicinalUnitMode: MedicinalUnitMode;
     height?: number;
 }
-
-type TooltipData = {
-    x: number;
-    y: number;
-    content: string;
-};
 
 export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                             nodes,
                                                             links,
+                                                            medicinalUnitMode,
                                                             height = 300
                                                         }) => {
     const color = scaleOrdinal<string, string>()
         .domain(nodes.map(n => n.label))
         .range(["#34558a", "#4f6da2", "#6c88b8", "#8aa2cb", "#abc", "#ddd"]);
 
-    const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+    const unitWord = MedicinalUnitModeUnits[medicinalUnitMode];
 
     const graph = { nodes, links };
 
@@ -71,8 +67,6 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                         const sourceNode = link.source as SankeyNode<NodeDatum, LinkDatum>;
                                         const targetNode = link.target as SankeyNode<NodeDatum, LinkDatum>;
 
-
-
                                         const linkWidth = link.width ?? 1;
                                         const textOffset = linkWidth < 20 ? 14 : 0; // Pokud je link moc úzký, posunout text nahoru
 
@@ -99,7 +93,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                     strokeWidth={Math.max(1, linkWidth)}
                                                     strokeOpacity={0.35}
                                                 >
-                                                    <title>{`${sourceLabel} → ${targetLabel}: ${link.value} balení`}</title>
+                                                    <title>{`${sourceLabel} → ${targetLabel}: ${link.value} ${unitWord}`}</title>
                                                 </path>
 
                                                 {link.width && link.width > 64 && (
@@ -112,7 +106,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                         fill="#555"
                                                         pointerEvents="none"
                                                     >
-                                                        {`${sourceLabel} → ${targetLabel}: ${link.value} balení`}
+                                                        {`${sourceLabel} → ${targetLabel}: ${link.value} ${unitWord}`}
                                                     </text>
                                                 )}
 

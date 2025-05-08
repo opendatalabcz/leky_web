@@ -225,7 +225,7 @@ export function EReceptPage() {
                                 variant="h6"
                                 sx={{ color: "#1f2b3d", fontWeight: 600, mb: 3 }}
                             >
-                                Preskripce a výdej vybraných léčiv ({sliderActive
+                                Předepisování a výdej vybraných léčiv ({sliderActive
                                 ? months[monthIndex]
                                 : `${format(common.dateFrom!, "yyyy-MM")} až ${format(common.dateTo!, "yyyy-MM")}`})
                             </Typography>
@@ -249,7 +249,7 @@ export function EReceptPage() {
                     <Box mt={6}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
                             <Typography variant="h6" fontWeight={600} mb={2}>
-                                Vývoj preskripce a výdeje v čase ({format(common.dateFrom!, "yyyy-MM")} až {format(common.dateTo!, "yyyy-MM")})
+                                Vývoj předepisování a výdeje v čase
                             </Typography>
 
                             {fullTimeSeriesQuery.isLoading ? (

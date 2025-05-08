@@ -11,25 +11,25 @@ import {
 } from "recharts"
 import { Box, Typography } from "@mui/material"
 import { DistributionTimeSeriesResponse } from "../services/distributionService"
+import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../types/MedicinalUnitMode"
 
 type Props = {
     data: DistributionTimeSeriesResponse | undefined
+    medicinalUnitMode: MedicinalUnitMode
 }
 
-export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
+export const DistributionTimeSeriesChart: React.FC<Props> = ({ data, medicinalUnitMode }) => {
     const { chartData, allFlowKeys } = useMemo(() => {
         if (!data || data.series.length === 0) {
             return { chartData: [], allFlowKeys: [] }
         }
 
-        // Najdeme všechny unikátní source → target kombinace
         const allFlowKeys = Array.from(
             new Set(data.series.flatMap(entry =>
                 entry.flows.map(flow => `${flow.source} → ${flow.target}`)
             ))
         )
 
-        // Připravíme data pro graf
         const chartData = data.series.map(entry => {
             const flowMap = Object.fromEntries(
                 entry.flows.map(flow => [`${flow.source} → ${flow.target}`, flow.value])
@@ -46,16 +46,15 @@ export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
         return { chartData, allFlowKeys }
     }, [data])
 
-    // Paleta barev (můžeš si upravit, nebo přidat více barev)
     const colorPalette = [
-        "#1976d2", // modrá
-        "#2e7d32", // zelená
-        "#d32f2f", // červená
-        "#f9a825", // žlutá
-        "#6a1b9a", // fialová
-        "#00838f", // tyrkysová
-        "#c2185b", // růžová
-        "#5d4037"  // hnědá
+        "#1976d2",
+        "#2e7d32",
+        "#d32f2f",
+        "#f9a825",
+        "#6a1b9a",
+        "#00838f",
+        "#c2185b",
+        "#5d4037"
     ]
 
     if (!data || data.series.length === 0) {
@@ -66,6 +65,8 @@ export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
         )
     }
 
+    const unitLabel = MedicinalUnitModeUnits[medicinalUnitMode] || ""
+
     return (
         <Box mt={5}>
             <ResponsiveContainer width="100%" height={300}>
@@ -74,7 +75,7 @@ export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip
-                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} balení`]}
+                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
                         labelFormatter={(label) => `Období: ${label}`}
                     />
                     <Legend />

@@ -21,6 +21,7 @@ import {
 import { format } from "date-fns"
 import { EreceptFullTimeSeriesResponse } from "../services/ereceptService"
 import { TimeGranularity, TimeGranularityLabels } from "../types/TimeGranularity"
+import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../types/MedicinalUnitMode"
 
 type Props = {
     data: EreceptFullTimeSeriesResponse | undefined
@@ -45,7 +46,6 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                                            }) => {
     const chartData = useMemo(() => {
         if (!data || data.series.length === 0) {
-            // Return placeholder 12 months
             return Array.from({ length: 12 }).map((_, i) => ({
                 name: format(new Date(2023, i, 1), timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM"),
                 Předepsané: 0,
@@ -67,12 +67,12 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
         return { start, end }
     }, [dateFrom, dateTo, timeGranularity])
 
+    const unitLabel = data ? MedicinalUnitModeUnits[data.medicinalUnitMode as MedicinalUnitMode] : ""
+
     return (
         <Box mt={5}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">
-                    Vývoj předepsaných a vydaných léčiv v čase
-                </Typography>
+                <Typography variant="h6"></Typography>
 
                 <Box display="flex" gap={2}>
                     <FormControl size="small">
@@ -123,7 +123,10 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                     <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip
+                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
+                        labelFormatter={(label) => `Období: ${label}`}
+                    />
                     <Legend />
 
                     {highlightRange && (

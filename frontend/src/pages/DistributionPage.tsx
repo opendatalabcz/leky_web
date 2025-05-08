@@ -107,6 +107,7 @@ export function DistributionPage() {
                                     <SankeyChart
                                         nodes={sankeyQuery.data.nodes}
                                         links={sankeyQuery.data.links}
+                                        medicinalUnitMode={sankeyQuery.data.medicinalUnitMode as MedicinalUnitMode}
                                         height={300}
                                     />
                                 </Paper>
@@ -116,7 +117,10 @@ export function DistributionPage() {
                                         Časový vývoj distribučních pohybů
                                     </Typography>
 
-                                    <DistributionTimeSeriesChart data={timeSeriesQuery.data} />
+                                    <DistributionTimeSeriesChart
+                                        data={timeSeriesQuery.data}
+                                        medicinalUnitMode={timeSeriesQuery.data?.medicinalUnitMode as MedicinalUnitMode}
+                                    />
                                 </Paper>
                             </>
                         ) : (
