@@ -46,7 +46,7 @@ class EreceptService(
         val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
 
         // Step 2: Query aggregated data per district
-        val rows = ereceptRepository.findAggregatesAllDistricts(
+        val rows = ereceptRepository.getAggregatedByDistrictRows(
             medicinalProductIds = included.mapNotNull { it.id },
             dateFrom = request.dateFrom?.let { YearMonth.parse(it, ymFormatter) },
             dateTo = request.dateTo?.let { YearMonth.parse(it, ymFormatter) }
@@ -91,7 +91,7 @@ class EreceptService(
         val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
 
         // Step 2: Query monthly aggregated data per district
-        val raw = ereceptRepository.findMonthlyAllDistricts(
+        val raw = ereceptRepository.getTimeSeriesByDistrictRows(
             medicinalProductIds = included.mapNotNull { it.id },
             dateFrom = YearMonth.parse(request.dateFrom, ymFormatter),
             dateTo = YearMonth.parse(request.dateTo, ymFormatter)
@@ -142,7 +142,7 @@ class EreceptService(
         val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
 
         // Step 2: Query full monthly data, optionally filter by district
-        val raw = ereceptRepository.findFullMonthly(
+        val raw = ereceptRepository.getFullTimeSeriesRows(
             medicinalProductIds = included.mapNotNull { it.id }
         ).filter { request.district == null || it.districtCode == request.district }
 
