@@ -1,45 +1,47 @@
-import React, { useState } from "react"
-import {
-    Box,
-    Button,
-    Typography,
-    Paper
-} from "@mui/material"
-import { useFilters } from "../components/FilterContext"
-import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel"
-import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
-import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
-import { DataStatusFooter } from "../components/DataStatusFooter"
-import { SankeyChart } from "../components/distribution/SankeyChart"
-import { useUnifiedCart } from "../components/UnifiedCartContext"
-import { format } from "date-fns"
-import { useCombinedDistributionSankey } from "../hooks/useCombinedDistributionSankey"
-import { useDistributionTimeSeries } from "../hooks/useDistributionTimeSeries"
-import { DistributionTimeSeriesChart } from "../components/DistributionTimeSeriesChart"
+import React, {useState} from "react"
+import {Box, Button, Paper, Typography} from "@mui/material"
+import {useFilters} from "../components/FilterContext"
+import {DistributionFiltersPanel} from "../components/DistributionFiltersPanel"
+import {DrugSelectorModal} from "../components/drug-select-modal/DrugSelectorModal"
+import {SelectedMedicinalProductSummary} from "../components/SelectedMedicinalProductSummary"
+import {DataStatusFooter} from "../components/DataStatusFooter"
+import {SankeyChart} from "../components/distribution/SankeyChart"
+import {useDrugCart} from "../components/drug-select-modal/DrugCartContext"
+import {format} from "date-fns"
+import {useDistributionTimeSeries} from "../hooks/useDistributionTimeSeries"
+import {useDistributionSankeyDiagram} from "../hooks/useDistributionSankeyDiagram"
+import {MedicinalUnitMode} from "../types/MedicinalUnitMode"
+import {TimeGranularity} from "../types/TimeGranularity";
+import {DistributionTimeSeriesChart} from "../components/DistributionTimeSeriesChart";
 
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const { drugs } = useUnifiedCart()
+    const { drugs, registrationNumbers } = useDrugCart()
 
-    const hasDrugs = drugs.length > 0
-    const sankeyQuery = useCombinedDistributionSankey(
-        hasDrugs && common.dateFrom && common.dateTo
+    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0
+
+    const sankeyQuery = useDistributionSankeyDiagram(
+        hasSelection && common.dateFrom && common.dateTo
             ? {
                 dateFrom: format(common.dateFrom, "yyyy-MM"),
                 dateTo: format(common.dateTo, "yyyy-MM"),
-                medicinalProductIds: drugs.map(d => Number(d.id))
+                medicinalProductIds: drugs.map(d => Number(d.id)),
+                registrationNumbers: registrationNumbers,
+                medicinalUnitMode: common.medicinalUnitMode as MedicinalUnitMode
             }
             : undefined
     )
 
     const timeSeriesQuery = useDistributionTimeSeries(
-        hasDrugs && common.dateFrom && common.dateTo
+        hasSelection && common.dateFrom && common.dateTo
             ? {
                 dateFrom: format(common.dateFrom, "yyyy-MM"),
                 dateTo: format(common.dateTo, "yyyy-MM"),
                 medicinalProductIds: drugs.map(d => Number(d.id)),
-                granularity: "MONTH" // defaultně měsíc
+                registrationNumbers: registrationNumbers,
+                medicinalUnitMode: common.medicinalUnitMode as MedicinalUnitMode,
+                timeGranularity: TimeGranularity.MONTH
             }
             : undefined
     )
@@ -84,9 +86,9 @@ export function DistributionPage() {
                         dateTo={common.dateTo}
                         onChangeDateFrom={(val) => setCommon(prev => ({ ...prev, dateFrom: val }))}
                         onChangeDateTo={(val) => setCommon(prev => ({ ...prev, dateTo: val }))}
-                        calculationMode={common.calculationMode}
-                        onChangeCalculationMode={(val) =>
-                            setCommon(prev => ({ ...prev, calculationMode: val }))
+                        medicinalUnitMode={common.medicinalUnitMode}
+                        onChangeMedicinalUnitMode={(val) =>
+                            setCommon(prev => ({ ...prev, medicinalUnitMode: val }))
                         }
                     />
 
@@ -105,7 +107,8 @@ export function DistributionPage() {
                                     <SankeyChart
                                         nodes={sankeyQuery.data.nodes}
                                         links={sankeyQuery.data.links}
-                                        height={500}
+                                        medicinalUnitMode={sankeyQuery.data.medicinalUnitMode as MedicinalUnitMode}
+                                        height={300}
                                     />
                                 </Paper>
 
@@ -114,7 +117,10 @@ export function DistributionPage() {
                                         Časový vývoj distribučních pohybů
                                     </Typography>
 
-                                    <DistributionTimeSeriesChart data={timeSeriesQuery.data} />
+                                    <DistributionTimeSeriesChart
+                                        data={timeSeriesQuery.data}
+                                        medicinalUnitMode={timeSeriesQuery.data?.medicinalUnitMode as MedicinalUnitMode}
+                                    />
                                 </Paper>
                             </>
                         ) : (
@@ -123,13 +129,16 @@ export function DistributionPage() {
                             </Typography>
                         )}
                     </Box>
-
                 </Box>
             </Box>
 
-            <DataStatusFooter />
+            <DataStatusFooter datasetTypes={[
+                "DISTRIBUTIONS_FROM_MAHS",
+                "DISTRIBUTIONS_FROM_DISTRIBUTORS",
+                "DISTRIBUTIONS_FROM_PHARMACIES"
+            ]} />
 
-            <MedicineSelectorModal
+            <DrugSelectorModal
                 open={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             />

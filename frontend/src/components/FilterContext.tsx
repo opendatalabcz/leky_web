@@ -6,7 +6,7 @@ import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
 interface CommonFilters {
     dateFrom: Date | null
     dateTo: Date | null
-    calculationMode: MedicinalUnitMode
+    medicinalUnitMode: MedicinalUnitMode
 }
 
 interface PrescriptionDispenseFilters {
@@ -38,7 +38,7 @@ const defaultDateFrom = new Date(today.getFullYear() - 1, today.getMonth() - 3, 
 const defaultCommon: CommonFilters = {
     dateFrom: defaultDateFrom,
     dateTo: defaultDateTo,
-    calculationMode: MedicinalUnitMode.PACKAGES,
+    medicinalUnitMode: MedicinalUnitMode.PACKAGES,
 }
 
 const defaultPrescriptionDispense: PrescriptionDispenseFilters = {

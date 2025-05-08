@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { Navbar } from "./components/Navbar"
 import { AboutPage } from "./pages/AboutPage"
-import { UnifiedCartProvider } from "./components/UnifiedCartContext"
+import { DrugCartProvider } from "./components/drug-select-modal/DrugCartContext"
 import { DistributionPage } from "./pages/DistributionPage"
 import { EReceptPage } from "./pages/EReceptPage"
 import { FilterProvider } from "./components/FilterContext"
@@ -12,7 +12,7 @@ const queryClient = new QueryClient()
 export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <UnifiedCartProvider>
+            <DrugCartProvider>
                 <FilterProvider>
                     <BrowserRouter>
                         <Navbar />
@@ -26,7 +26,7 @@ export default function App() {
                         </main>
                     </BrowserRouter>
                 </FilterProvider>
-            </UnifiedCartProvider>
+            </DrugCartProvider>
         </QueryClientProvider>
     )
 }

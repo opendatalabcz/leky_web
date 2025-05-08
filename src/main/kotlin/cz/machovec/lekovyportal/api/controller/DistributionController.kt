@@ -1,91 +1,47 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.DistributionSankeyRequest
-import cz.machovec.lekovyportal.api.model.DistributionSankeyResponse
+import DistributionSankeyRequest
+import DistributionSankeyResponse
+import DistributionTimeSeriesRequest
+import DistributionTimeSeriesResponse
 import cz.machovec.lekovyportal.api.service.DistributionService
+import mu.KotlinLogging
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-import org.slf4j.LoggerFactory
-
 @RestController
 @RequestMapping("/api/distribution")
 class DistributionController(
-    private val distributionService: DistributionService
+    private val distributionService: DistributionService,
 ) {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
-    @PostMapping("/graph")
-    fun getDistributionGraph(
+    @PostMapping("/sankey-diagram")
+    fun getSankeyDiagram(
         @RequestBody request: DistributionSankeyRequest
     ): DistributionSankeyResponse {
-        logger.info(
-            "Distribution Sankey request — productIds=${request.medicinalProductIds.joinToString(",")}, " +
-                    "from=${request.dateFrom}, to=${request.dateTo}"
-        )
+        val startedAt = System.currentTimeMillis()
 
-        val response = distributionService.buildMahFlowSankey(request)
+        val response = distributionService.getSankeyDiagram(request)
 
-        logger.info("Returning Sankey response with ${response.nodes.size} nodes and ${response.links.size} links")
-
-        val nodeLabels = response.nodes.joinToString(", ") { "${it.id} (${it.label})" }
-        val linkDescriptions = response.links.joinToString(", ") {
-            "${it.source} → ${it.target}: ${it.value}"
-        }
-
-        logger.info("Nodes: $nodeLabels")
-        logger.info("Links: $linkDescriptions")
+        val durationMs = System.currentTimeMillis() - startedAt
+        logger.info("DISTRIBUTION - SANKEY-DIAGRAM: $durationMs ms")
 
         return response
     }
+    @PostMapping("/time-series")
+    fun getTimeSeries(
+        @RequestBody request: DistributionTimeSeriesRequest
+    ): DistributionTimeSeriesResponse {
+        val startedAt = System.currentTimeMillis()
 
-    @PostMapping("/graph/from-distributors")
-    fun getDistributorFlowGraph(
-        @RequestBody request: DistributionSankeyRequest
-    ): DistributionSankeyResponse {
-        logger.info(
-            "Distribution Sankey (distributor flow) — productIds=${request.medicinalProductIds.joinToString(",")}, " +
-                    "from=${request.dateFrom}, to=${request.dateTo}"
-        )
+        val response = distributionService.getTimeSeries(request)
 
-        val response = distributionService.buildDistributorFlowSankey(request)
-
-        logger.info("Returning Distributor Sankey with ${response.nodes.size} nodes and ${response.links.size} links")
-
-        val nodeLabels = response.nodes.joinToString(", ") { "${it.id} (${it.label})" }
-        val linkDescriptions = response.links.joinToString(", ") {
-            "${it.source} → ${it.target}: ${it.value}"
-        }
-
-        logger.info("Nodes: $nodeLabels")
-        logger.info("Links: $linkDescriptions")
-
-        return response
-    }
-
-    @PostMapping("/graph/combined")
-    fun getCombinedFlowGraph(
-        @RequestBody request: DistributionSankeyRequest
-    ): DistributionSankeyResponse {
-        logger.info(
-            "Distribution Sankey (combined flow) — productIds=${request.medicinalProductIds.joinToString(",")}, " +
-                    "from=${request.dateFrom}, to=${request.dateTo}"
-        )
-
-        val response = distributionService.buildFullDistributionSankey(request)
-
-        logger.info("Returning Combined Sankey with ${response.nodes.size} nodes and ${response.links.size} links")
-
-        val nodeLabels = response.nodes.joinToString(", ") { "${it.id} (${it.label})" }
-        val linkDescriptions = response.links.joinToString(", ") {
-            "${it.source} → ${it.target}: ${it.value}"
-        }
-
-        logger.info("Nodes: $nodeLabels")
-        logger.info("Links: $linkDescriptions")
+        val durationMs = System.currentTimeMillis() - startedAt
+        logger.info("DISTRIBUTION - TIME-SERIES: $durationMs ms")
 
         return response
     }

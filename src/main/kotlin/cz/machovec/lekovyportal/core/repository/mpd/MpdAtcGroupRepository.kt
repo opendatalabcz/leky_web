@@ -10,5 +10,7 @@ interface MpdAtcGroupRepository : JpaRepository<MpdAtcGroup, Long> {
 
     fun findAllByCodeIn(codes: Set<String>): List<MpdAtcGroup>
 
-    fun findAllByOrderByNameAsc(): List<MpdAtcGroup>
+    fun findByCodeIgnoreCase(code: String): MpdAtcGroup?
+
+    fun findByCodeContainingIgnoreCaseOrNameContainingIgnoreCaseOrderByNameAsc(code: String, name: String): List<MpdAtcGroup>
 }

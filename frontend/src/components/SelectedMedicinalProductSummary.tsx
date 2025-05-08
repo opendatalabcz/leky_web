@@ -8,7 +8,7 @@ import {
     Divider
 } from "@mui/material"
 import CloseIcon from "@mui/icons-material/Close"
-import { useUnifiedCart } from "./UnifiedCartContext"
+import { useDrugCart } from "./drug-select-modal/DrugCartContext"
 
 export const SelectedMedicinalProductSummary: React.FC = () => {
     const {
@@ -16,7 +16,7 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
         groupedDrugs,
         removeSuklId,
         removeRegistrationNumber
-    } = useUnifiedCart()
+    } = useDrugCart()
 
     const hasAny = drugs.length > 0 || groupedDrugs.length > 0
 
@@ -43,51 +43,6 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
                     </Typography>
                 ) : (
                     <Stack spacing={3}>
-                        <Box>
-                            <Typography variant="subtitle2" gutterBottom>
-                                Podle SÚKL kódu:
-                            </Typography>
-                            <Stack spacing={1}>
-                                {drugs.length === 0 ? (
-                                    <Typography variant="body2" color="text.secondary">
-                                        -
-                                    </Typography>
-                                ) : (
-                                    drugs.map((d) => (
-                                        <Box
-                                            key={d.id}
-                                            sx={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                                px: 1.5,
-                                                py: 1,
-                                                borderRadius: 1,
-                                                backgroundColor: "#f0f6fa",
-                                                transition: "background-color 0.2s",
-                                                "&:hover": {
-                                                    backgroundColor: "#d8e9f7"
-                                                }
-                                            }}
-                                        >
-                                            <Typography variant="body2">
-                                                {d.name} ({d.suklCode})
-                                            </Typography>
-                                            <IconButton
-                                                size="small"
-                                                color="error"
-                                                onClick={() => removeSuklId(Number(d.id))}
-                                            >
-                                                <CloseIcon fontSize="small" />
-                                            </IconButton>
-                                        </Box>
-                                    ))
-                                )}
-                            </Stack>
-                        </Box>
-
-                        <Divider />
-
                         <Box>
                             <Typography variant="subtitle2" gutterBottom>
                                 Podle registračního čísla:
@@ -122,6 +77,51 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
                                                 size="small"
                                                 color="error"
                                                 onClick={() => removeRegistrationNumber(g.registrationNumber)}
+                                            >
+                                                <CloseIcon fontSize="small" />
+                                            </IconButton>
+                                        </Box>
+                                    ))
+                                )}
+                            </Stack>
+                        </Box>
+
+                        <Divider />
+
+                        <Box>
+                            <Typography variant="subtitle2" gutterBottom>
+                                Podle SÚKL kódu:
+                            </Typography>
+                            <Stack spacing={1}>
+                                {drugs.length === 0 ? (
+                                    <Typography variant="body2" color="text.secondary">
+                                        -
+                                    </Typography>
+                                ) : (
+                                    drugs.map((d) => (
+                                        <Box
+                                            key={d.id}
+                                            sx={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                px: 1.5,
+                                                py: 1,
+                                                borderRadius: 1,
+                                                backgroundColor: "#f0f6fa",
+                                                transition: "background-color 0.2s",
+                                                "&:hover": {
+                                                    backgroundColor: "#d8e9f7"
+                                                }
+                                            }}
+                                        >
+                                            <Typography variant="body2">
+                                                {d.name} ({d.suklCode})
+                                            </Typography>
+                                            <IconButton
+                                                size="small"
+                                                color="error"
+                                                onClick={() => removeSuklId(Number(d.id))}
                                             >
                                                 <CloseIcon fontSize="small" />
                                             </IconButton>

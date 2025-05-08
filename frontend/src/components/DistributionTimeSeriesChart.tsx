@@ -11,22 +11,61 @@ import {
 } from "recharts"
 import { Box, Typography } from "@mui/material"
 import { DistributionTimeSeriesResponse } from "../services/distributionService"
+import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../types/MedicinalUnitMode"
 
 type Props = {
     data: DistributionTimeSeriesResponse | undefined
+    medicinalUnitMode: MedicinalUnitMode
 }
 
-export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
-    const chartData = useMemo(() => {
-        if (!data || data.series.length === 0) return []
+export const DistributionTimeSeriesChart: React.FC<Props> = ({ data, medicinalUnitMode }) => {
+    const { chartData, allFlowKeys } = useMemo(() => {
+        if (!data || data.series.length === 0) {
+            return { chartData: [], allFlowKeys: [] }
+        }
 
-        return data.series.map(entry => ({
-            name: entry.period,
-            "MAH → Distributor": entry.mahToDistributor,
-            "Distributor → Lékárna": entry.distributorToPharmacy,
-            "Lékárna → Pacient": entry.pharmacyToPatient
-        }))
+        const allFlowKeys = Array.from(
+            new Set(data.series.flatMap(entry =>
+                entry.flows.map(flow => `${flow.source} → ${flow.target}`)
+            ))
+        )
+
+        const chartData = data.series.map(entry => {
+            const flowMap = Object.fromEntries(
+                entry.flows.map(flow => [`${flow.source} → ${flow.target}`, flow.value])
+            )
+
+            const result: any = { name: entry.period }
+            allFlowKeys.forEach(key => {
+                result[key] = flowMap[key] || 0
+            })
+
+            return result
+        })
+
+        return { chartData, allFlowKeys }
     }, [data])
+
+    const colorPalette = [
+        "#1976d2",
+        "#2e7d32",
+        "#d32f2f",
+        "#f9a825",
+        "#6a1b9a",
+        "#00838f",
+        "#c2185b",
+        "#5d4037"
+    ]
+
+    if (!data || data.series.length === 0) {
+        return (
+            <Typography color="text.secondary">
+                Žádná data k zobrazení.
+            </Typography>
+        )
+    }
+
+    const unitLabel = MedicinalUnitModeUnits[medicinalUnitMode] || ""
 
     return (
         <Box mt={5}>
@@ -36,35 +75,22 @@ export const DistributionTimeSeriesChart: React.FC<Props> = ({ data }) => {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip
-                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} balení`]}
+                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
                         labelFormatter={(label) => `Období: ${label}`}
                     />
                     <Legend />
 
-                    <Line
-                        type="monotone"
-                        dataKey="MAH → Distributor"
-                        stroke="#1976d2"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
-                    <Line
-                        type="monotone"
-                        dataKey="Distributor → Lékárna"
-                        stroke="#2e7d32"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
-                    <Line
-                        type="monotone"
-                        dataKey="Lékárna → Pacient"
-                        stroke="#d32f2f"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
+                    {allFlowKeys.map((key, index) => (
+                        <Line
+                            key={key}
+                            type="monotone"
+                            dataKey={key}
+                            stroke={colorPalette[index % colorPalette.length]}
+                            strokeWidth={2}
+                            dot={{ r: 2 }}
+                            activeDot={{ r: 5 }}
+                        />
+                    ))}
                 </LineChart>
             </ResponsiveContainer>
         </Box>

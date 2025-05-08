@@ -12,4 +12,6 @@ interface MpdMedicinalProductRepository : JpaRepository<MpdMedicinalProduct, Lon
     fun findAllByIdIn(ids: List<Long>): List<MpdMedicinalProduct>
 
     fun findAllBySuklCodeIn(suklCodes: Set<String>): List<MpdMedicinalProduct>
+
+    fun findAllByRegistrationNumberIn(suklCodes: List<String>): List<MpdMedicinalProduct>
 }

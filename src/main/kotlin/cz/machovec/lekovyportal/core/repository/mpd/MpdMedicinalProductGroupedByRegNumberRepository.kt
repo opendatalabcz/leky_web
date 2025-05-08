@@ -1,6 +1,6 @@
 package cz.machovec.lekovyportal.core.repository.mpd
 
-import cz.machovec.lekovyportal.api.model.MpdMedicinalProductGroupedByRegNumberDto
+import cz.machovec.lekovyportal.api.model.mpd.MpdMedicinalProductGroupedByRegNumberDto
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 

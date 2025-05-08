@@ -58,7 +58,8 @@ class MpdMedicinalProductRepositoryImpl(
         val predicates = mutableListOf<Predicate>()
 
         if (atcGroupId != null) {
-            predicates += cb.equal(root.get<MpdAtcGroup>("atcGroup").get<Long>("id"), atcGroupId)
+            val atcGroupJoin = root.join<MpdMedicinalProduct, MpdAtcGroup>("atcGroup")
+            predicates += cb.equal(atcGroupJoin.get<Long>("id"), atcGroupId)
         }
 
         if (substanceId != null) {

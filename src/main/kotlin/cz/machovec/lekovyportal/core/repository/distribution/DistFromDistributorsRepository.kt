@@ -1,9 +1,8 @@
 package cz.machovec.lekovyportal.core.repository.distribution
 
-import cz.machovec.lekovyportal.core.dto.distribution.MonthlyMovementAggregate
 import cz.machovec.lekovyportal.core.domain.distribution.DistFromDistributors
-import cz.machovec.lekovyportal.core.domain.distribution.DistributorPurchaserType
-import cz.machovec.lekovyportal.core.domain.distribution.MovementType
+import cz.machovec.lekovyportal.core.dto.distribution.AggregateDistributorProductMovementCountDto
+import cz.machovec.lekovyportal.core.dto.distribution.MonthlyDistributorProductMovementCountDto
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -13,38 +12,33 @@ import org.springframework.stereotype.Repository
 interface DistFromDistributorsRepository : JpaRepository<DistFromDistributors, Long> {
 
     @Query("""
-        SELECT 
-            d.purchaserType AS purchaserType,
-            d.movementType AS movementType,
-            SUM(d.packageCount) AS totalCount
+        SELECT new cz.machovec.lekovyportal.core.dto.distribution.AggregateDistributorProductMovementCountDto(
+            d.medicinalProduct.id, d.purchaserType, d.movementType, SUM(d.packageCount)
+        )
         FROM DistFromDistributors d
         WHERE 
             d.medicinalProduct.id IN :productIds
             AND (d.year > :fromYear OR (d.year = :fromYear AND d.month >= :fromMonth))
             AND (d.year < :toYear OR (d.year = :toYear AND d.month <= :toMonth))
-        GROUP BY d.purchaserType, d.movementType
+        GROUP BY d.medicinalProduct.id, d.purchaserType, d.movementType
     """)
-    fun sumByPurchaser(
+    fun getAggregateDistributorProductMovementCounts(
         @Param("productIds") productIds: List<Long>,
         @Param("fromYear") fromYear: Int,
         @Param("fromMonth") fromMonth: Int,
         @Param("toYear") toYear: Int,
         @Param("toMonth") toMonth: Int
-    ): List<DistributorPurchaserAggregation>
+    ): List<AggregateDistributorProductMovementCountDto>
 
     @Query("""
-        SELECT new cz.machovec.lekovyportal.core.dto.distribution.MonthlyMovementAggregate(
-            d.year, d.month, d.purchaserType, d.movementType, SUM(d.packageCount)
+        SELECT new cz.machovec.lekovyportal.core.dto.distribution.MonthlyDistributorProductMovementCountDto(
+            d.year, d.month, d.medicinalProduct.id, d.purchaserType, d.movementType, SUM(d.packageCount)
         )
         FROM DistFromDistributors d
         WHERE d.medicinalProduct.id IN :productIds
-        GROUP BY d.year, d.month, d.purchaserType, d.movementType
+        GROUP BY d.year, d.month, d.medicinalProduct.id, d.purchaserType, d.movementType
     """)
-    fun findMonthlyAggregates(@Param("productIds") productIds: List<Long>): List<MonthlyMovementAggregate>
-}
-
-interface DistributorPurchaserAggregation {
-    val purchaserType: DistributorPurchaserType
-    val movementType: MovementType
-    val totalCount: Int
+    fun getMonthlyDistributorProductMovementCounts(
+        @Param("productIds") productIds: List<Long>
+    ): List<MonthlyDistributorProductMovementCountDto>
 }

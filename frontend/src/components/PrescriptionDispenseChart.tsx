@@ -19,16 +19,17 @@ import {
     Typography
 } from "@mui/material"
 import { format } from "date-fns"
-import { FullTimeSeriesResponse } from "../services/ereceptService"
+import { EreceptFullTimeSeriesResponse } from "../services/ereceptService"
 import { TimeGranularity, TimeGranularityLabels } from "../types/TimeGranularity"
+import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../types/MedicinalUnitMode"
 
 type Props = {
-    data: FullTimeSeriesResponse | undefined
+    data: EreceptFullTimeSeriesResponse | undefined
     selectedDistrict: string | null
     onDistrictChange: (value: string | null) => void
     districtNameMap: Record<string, string>
-    granularity: TimeGranularity
-    onGranularityChange: (value: TimeGranularity) => void
+    timeGranularity: TimeGranularity
+    onTimeGranularityChange: (value: TimeGranularity) => void
     dateFrom?: Date | null
     dateTo?: Date | null
 }
@@ -38,16 +39,15 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                                                selectedDistrict,
                                                                onDistrictChange,
                                                                districtNameMap,
-                                                               granularity,
-                                                               onGranularityChange,
+                                                               timeGranularity,
+                                                               onTimeGranularityChange,
                                                                dateFrom,
                                                                dateTo
                                                            }) => {
     const chartData = useMemo(() => {
         if (!data || data.series.length === 0) {
-            // Vrať 12 měsíců pro placeholder
             return Array.from({ length: 12 }).map((_, i) => ({
-                name: format(new Date(2023, i, 1), granularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM"),
+                name: format(new Date(2023, i, 1), timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM"),
                 Předepsané: 0,
                 Vydané: 0
             }))
@@ -58,21 +58,21 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
             Předepsané: item.prescribed,
             Vydané: item.dispensed
         }))
-    }, [data, granularity])
+    }, [data, timeGranularity])
 
     const highlightRange = useMemo(() => {
         if (!dateFrom || !dateTo) return null
-        const start = format(dateFrom, granularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
-        const end = format(dateTo, granularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
+        const start = format(dateFrom, timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
+        const end = format(dateTo, timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
         return { start, end }
-    }, [dateFrom, dateTo, granularity])
+    }, [dateFrom, dateTo, timeGranularity])
+
+    const unitLabel = data ? MedicinalUnitModeUnits[data.medicinalUnitMode as MedicinalUnitMode] : ""
 
     return (
         <Box mt={5}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">
-                    Vývoj předepsaných a vydaných léčiv v čase
-                </Typography>
+                <Typography variant="h6"></Typography>
 
                 <Box display="flex" gap={2}>
                     <FormControl size="small">
@@ -91,7 +91,7 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                 .sort(([codeA, nameA], [codeB, nameB]) => {
                                     if (nameA === "Hlavní město Praha") return -1
                                     if (nameB === "Hlavní město Praha") return 1
-                                    return nameA.localeCompare(nameB, "cs") // seřazení podle češtiny
+                                    return nameA.localeCompare(nameB, "cs")
                                 })
                                 .map(([code, name]) => (
                                     <MenuItem key={code} value={code}>
@@ -105,8 +105,8 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                         <InputLabel>Granularita</InputLabel>
                         <Select
                             label="Granularita"
-                            value={granularity}
-                            onChange={(e) => onGranularityChange(e.target.value as TimeGranularity)}
+                            value={timeGranularity}
+                            onChange={(e) => onTimeGranularityChange(e.target.value as TimeGranularity)}
                         >
                             {Object.entries(TimeGranularityLabels).map(([value, label]) => (
                                 <MenuItem key={value} value={value}>
@@ -123,7 +123,10 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                     <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip
+                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
+                        labelFormatter={(label) => `Období: ${label}`}
+                    />
                     <Legend />
 
                     {highlightRange && (

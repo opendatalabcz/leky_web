@@ -1,9 +1,16 @@
 // services/distributionService.ts
 
+import { TimeGranularity } from "../types/TimeGranularity"
+import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
+
+// ======= DTOs: Sankey Diagram =======
+
 export type DistributionSankeyRequest = {
     medicinalProductIds: number[]
+    registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
+    medicinalUnitMode: MedicinalUnitMode
 }
 
 export type SankeyNodeDto = {
@@ -18,83 +25,63 @@ export type SankeyLinkDto = {
 }
 
 export type DistributionSankeyResponse = {
-    nodes: SankeyNodeDto[]
-    links: SankeyLinkDto[]
     includedMedicineProducts: { id: number; suklCode: string }[]
     ignoredMedicineProducts: { id: number; suklCode: string }[]
+    dateFrom: string
+    dateTo: string
+    medicinalUnitMode: MedicinalUnitMode
+    nodes: SankeyNodeDto[]
+    links: SankeyLinkDto[]
 }
 
-export async function fetchDistributionSankey(
+export async function fetchDistributionSankeyDiagram(
     req: DistributionSankeyRequest
 ): Promise<DistributionSankeyResponse> {
-    const res = await fetch("/api/distribution/graph", {
+    const res = await fetch("/api/distribution/sankey-diagram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(req)
     })
 
     if (!res.ok) {
-        throw new Error("Nepodařilo se načíst distribuční tok")
+        throw new Error("Nepodařilo se načíst data pro Sankey diagram distribuce")
     }
 
     return res.json()
 }
 
-export async function fetchDistributionFromDistributorsSankey(
-    req: DistributionSankeyRequest
-): Promise<DistributionSankeyResponse> {
-    const res = await fetch("/api/distribution/graph/from-distributors", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req)
-    })
+// ======= DTOs: Time Series =======
 
-    if (!res.ok) {
-        throw new Error("Nepodařilo se načíst distribuční tok (distributoři → pacienti)")
-    }
-
-    return res.json()
-}
-
-export async function fetchCombinedDistributionSankey(
-    req: DistributionSankeyRequest
-): Promise<DistributionSankeyResponse> {
-    const res = await fetch("/api/distribution/graph/combined", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req)
-    })
-
-    if (!res.ok) {
-        throw new Error("Nepodařilo se načíst kombinovaný distribuční tok")
-    }
-
-    return res.json()
-}
-
-// types
 export type DistributionTimeSeriesRequest = {
     medicinalProductIds: number[]
+    registrationNumbers: string[]
     dateFrom: string // "yyyy-MM"
     dateTo: string // "yyyy-MM"
-    granularity: "MONTH" | "YEAR"
+    medicinalUnitMode: MedicinalUnitMode
+    timeGranularity: TimeGranularity
 }
 
-export type DistributionTimeSeriesEntry = {
+export type DistributionFlowEntry = {
+    source: string
+    target: string
+    value: number
+}
+
+export type DistributionTimeSeriesPeriodEntry = {
     period: string
-    mahToDistributor: number
-    distributorToPharmacy: number
-    pharmacyToPatient: number
+    flows: DistributionFlowEntry[]
 }
 
 export type DistributionTimeSeriesResponse = {
-    granularity: "MONTH" | "YEAR"
-    series: DistributionTimeSeriesEntry[]
     includedMedicineProducts: { id: number; suklCode: string }[]
     ignoredMedicineProducts: { id: number; suklCode: string }[]
+    dateFrom: string
+    dateTo: string
+    medicinalUnitMode: MedicinalUnitMode
+    timeGranularity: TimeGranularity
+    series: DistributionTimeSeriesPeriodEntry[]
 }
 
-// API volání
 export async function fetchDistributionTimeSeries(
     req: DistributionTimeSeriesRequest
 ): Promise<DistributionTimeSeriesResponse> {
@@ -105,7 +92,7 @@ export async function fetchDistributionTimeSeries(
     })
 
     if (!res.ok) {
-        throw new Error("Nepodařilo se načíst časovou řadu distribuce")
+        throw new Error("Nepodařilo se načíst data pro časovou řadu distribuce")
     }
 
     return res.json()

@@ -1,57 +1,58 @@
 package cz.machovec.lekovyportal.api.controller
 
-import cz.machovec.lekovyportal.api.model.MedicinalProductGroupedByRegNumberResponse
-import cz.machovec.lekovyportal.api.model.MedicinalProductResponse
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductGroupedByRegNumberResponse
+import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductResponse
 import cz.machovec.lekovyportal.api.model.PagedResponse
 import cz.machovec.lekovyportal.api.service.MedicinalProductService
-import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import mu.KotlinLogging
 
 @RestController
 @RequestMapping("/api/medicinal-products")
 class MedicinalProductController(
     private val medicinalProductService: MedicinalProductService
 ) {
-    private val logger = LoggerFactory.getLogger(MedicinalProductController::class.java)
+
+    private val logger = KotlinLogging.logger {}
 
     @GetMapping
-    fun searchMedicinalProducts(
+    fun search(
         @RequestParam(required = false) atcGroupId: Long?,
         @RequestParam(required = false) substanceId: Long?,
         @RequestParam(required = false) query: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductResponse> {
-        return medicinalProductService.searchMedicinalProducts(atcGroupId, substanceId, query, page, size)
+        logger.info { "Searching medicinal products with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, page=$page, size=$size" }
+
+        return medicinalProductService.search(atcGroupId, substanceId, query, page, size)
     }
 
     @GetMapping("/grouped-by-reg-number")
-    fun searchMedicinalProductsGroupedByRegNumber(
+    fun searchGroupedByRegNumber(
         @RequestParam(required = false) atcGroupId: Long?,
         @RequestParam(required = false) substanceId: Long?,
         @RequestParam(required = false) query: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductGroupedByRegNumberResponse> {
-        return medicinalProductService.searchMedicinalProductsGroupedByRegNumber(atcGroupId, substanceId, query, page, size)
+        return medicinalProductService.searchGroupedByRegNumber(atcGroupId, substanceId, query, page, size)
     }
 
     @GetMapping("/by-ids")
-    fun getMedicinalProductsByIds(
+    fun findByIds(
         @RequestParam ids: List<Long>
     ): List<MedicinalProductResponse> {
-        logger.info("CART - fetching medicinal products by IDs: ${ids.joinToString(", ")}")
         return medicinalProductService.findByIds(ids)
     }
 
     @GetMapping("/grouped-by-reg-numbers")
-    fun getGroupedMedicinalProductsByRegNumbers(
+    fun findGroupedByRegNumbers(
         @RequestParam regNumbers: List<String>
     ): List<MedicinalProductGroupedByRegNumberResponse> {
-        logger.info("CART - fetching grouped medicinal products by regNumbers: ${regNumbers.joinToString()}")
         return medicinalProductService.findGroupedByRegNumbers(regNumbers)
     }
 }

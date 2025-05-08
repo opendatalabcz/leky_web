@@ -6,18 +6,18 @@ import { PlayArrow, Pause } from "@mui/icons-material"
 import { format, addMonths, isBefore } from "date-fns"
 import { useFilters } from "../components/FilterContext"
 import { EReceptFiltersPanel } from "../components/EReceptFiltersPanel"
-import { MedicineSelectorModal } from "../components/MedicineSelectorModal"
+import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
 import DistrictMap from "../components/DistrictMap"
 import { FeatureCollection } from "geojson"
-import { useUnifiedCart } from "../components/UnifiedCartContext"
+import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
 import { SummaryTiles } from "../components/SummaryTiles"
-import { useDistrictAggregate } from "../hooks/useDistrictAggregate"
-import { useDistrictTimeSeries } from "../hooks/useDistrictTimeSeries"
-import { usePreparedDistrictData } from "../hooks/usePreparedDistrictData"
+import { useEreceptAggregateByDistrict } from "../hooks/useEreceptAggregateByDistrict"
+import { useEreceptTimeSeriesByDistrict } from "../hooks/useEreceptTimeSeriesByDistrict"
+import { useEreceptPrepareAnimationData } from "../hooks/useEreceptPrepareAnimationData"
 import { PrescriptionDispenseChart } from "../components/PrescriptionDispenseChart"
-import { useFullTimeSeries } from "../hooks/useFullTimeSeries"
+import { useEreceptFullTimeSeries } from "../hooks/useEreceptFullTimeSeries"
 import { TimeGranularity } from "../types/TimeGranularity"
 
 interface DistrictFeatureProperties {
@@ -31,10 +31,9 @@ interface DistrictFeature extends GeoJSON.Feature {
 
 type DistrictFeatureCollection = GeoJSON.FeatureCollection
 
-
 export function EReceptPage() {
     const { common, setCommon, prescriptionDispense, setPrescriptionDispense } = useFilters()
-    const { drugs } = useUnifiedCart()
+    const { drugs, registrationNumbers } = useDrugCart()
 
     const [geojsonData, setGeojsonData] = useState<FeatureCollection | null>(null)
     const [districtNamesMap, setDistrictNamesMap] = useState<Record<string, string>>({})
@@ -46,7 +45,7 @@ export function EReceptPage() {
     const [months, setMonths] = useState<string[]>([])
     const [monthIndex, setMonthIndex] = useState(0)
 
-    const [granularity, setGranularity] = useState<TimeGranularity>(TimeGranularity.MONTH)
+    const [timeGranularity, setTimeGranularity] = useState<TimeGranularity>(TimeGranularity.MONTH)
     const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null)
     const [availableDistrictCodes, setAvailableDistrictCodes] = useState<string[]>([])
 
@@ -81,25 +80,26 @@ export function EReceptPage() {
         setMonthIndex(0)
     }, [common.dateFrom, common.dateTo])
 
-    const hasDrugs = drugs.length > 0
-    const params = hasDrugs ? {
+    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0;
+    const params = hasSelection ? {
         dateFrom: format(common.dateFrom!, "yyyy-MM"),
         dateTo: format(common.dateTo!, "yyyy-MM"),
-        calculationMode: common.calculationMode,
+        medicinalUnitMode: common.medicinalUnitMode,
         aggregationType: prescriptionDispense.aggregationType,
         normalisationMode: prescriptionDispense.normalisationMode,
-        medicinalProductIds: drugs.map(d => Number(d.id))
+        medicinalProductIds: drugs.map(d => Number(d.id)),
+        registrationNumbers: registrationNumbers
     } : undefined
 
-    const aggregateQuery = useDistrictAggregate(params)
-    const seriesQuery = useDistrictTimeSeries(params, !!aggregateQuery.data)
+    const aggregateQuery = useEreceptAggregateByDistrict(params)
+    const seriesQuery = useEreceptTimeSeriesByDistrict(params)
 
     const {
         monthly,
         aggregated,
         monthlySummaries,
         aggregatedSummary
-    } = usePreparedDistrictData(seriesQuery.data?.series ?? [])
+    } = useEreceptPrepareAnimationData(seriesQuery.data?.series ?? [])
 
     const currentMonthStr = months[monthIndex]
     const monthValues = monthly.get(currentMonthStr) ?? {}
@@ -108,13 +108,13 @@ export function EReceptPage() {
     const summary = sliderActive ? monthSummary : aggregateQuery.data?.summary
 
     // Full time series for chart
-    const fullTimeSeriesQuery = useFullTimeSeries(
-        hasDrugs ? {
-            aggregationType: prescriptionDispense.aggregationType,
-            calculationMode: common.calculationMode,
+    const fullTimeSeriesQuery = useEreceptFullTimeSeries(
+        hasSelection ? {
+            medicinalUnitMode: common.medicinalUnitMode,
             normalisationMode: prescriptionDispense.normalisationMode,
             medicinalProductIds: drugs.map(d => Number(d.id)),
-            granularity: granularity,
+            registrationNumbers: registrationNumbers,
+            timeGranularity: timeGranularity,
             district: selectedDistrict
         } : undefined
     )
@@ -124,7 +124,7 @@ export function EReceptPage() {
         if (!seriesQuery.data?.series?.length) return
         const all = new Set<string>()
         seriesQuery.data.series.forEach(entry => {
-            Object.keys(entry.values).forEach(code => all.add(code))
+            Object.keys(entry.districtValues).forEach(code => all.add(code))
         })
         setAvailableDistrictCodes(Array.from(all).sort())
     }, [seriesQuery.data])
@@ -186,8 +186,8 @@ export function EReceptPage() {
                         dateTo={common.dateTo}
                         onChangeDateFrom={(date) => setCommon({ ...common, dateFrom: date })}
                         onChangeDateTo={(date) => setCommon({ ...common, dateTo: date })}
-                        calculationMode={common.calculationMode}
-                        onChangeCalculationMode={(mode) => setCommon({ ...common, calculationMode: mode })}
+                        medicinalUnitMode={common.medicinalUnitMode}
+                        onChangeMedicinalUnitMode={(mode) => setCommon({ ...common, medicinalUnitMode: mode })}
                         normalisationMode={prescriptionDispense.normalisationMode}
                         onChangeNormalisationMode={(nm) =>
                             setPrescriptionDispense({ ...prescriptionDispense, normalisationMode: nm })
@@ -221,17 +221,15 @@ export function EReceptPage() {
 
                     <Box mt={2}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
-                            {/* Nadpis + období */}
                             <Typography
                                 variant="h6"
                                 sx={{ color: "#1f2b3d", fontWeight: 600, mb: 3 }}
                             >
-                                Preskripce a výdej vybraných léčiv ({sliderActive
+                                Předepisování a výdej vybraných léčiv ({sliderActive
                                 ? months[monthIndex]
                                 : `${format(common.dateFrom!, "yyyy-MM")} až ${format(common.dateTo!, "yyyy-MM")}`})
                             </Typography>
 
-                            {/* Mapa a SummaryTiles */}
                             <Box display="flex" gap={2}>
                                 <Box flex={1} height={500}>
                                     {geojsonData && (
@@ -251,7 +249,7 @@ export function EReceptPage() {
                     <Box mt={6}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
                             <Typography variant="h6" fontWeight={600} mb={2}>
-                                Vývoj preskripce a výdeje v čase ({format(common.dateFrom!, "yyyy-MM")} až {format(common.dateTo!, "yyyy-MM")})
+                                Vývoj předepisování a výdeje v čase
                             </Typography>
 
                             {fullTimeSeriesQuery.isLoading ? (
@@ -262,8 +260,8 @@ export function EReceptPage() {
                                     selectedDistrict={selectedDistrict}
                                     onDistrictChange={setSelectedDistrict}
                                     districtNameMap={districtNamesMap}
-                                    granularity={granularity}
-                                    onGranularityChange={setGranularity}
+                                    timeGranularity={timeGranularity}
+                                    onTimeGranularityChange={setTimeGranularity}
                                     dateFrom={common.dateFrom}
                                     dateTo={common.dateTo}
                                 />
@@ -273,9 +271,9 @@ export function EReceptPage() {
                 </Box>
             </Box>
 
-            <DataStatusFooter />
+            <DataStatusFooter datasetTypes={["ERECEPT_PRESCRIPTIONS", "ERECEPT_DISPENSES"]} />
 
-            <MedicineSelectorModal
+            <DrugSelectorModal
                 open={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             />
