@@ -149,7 +149,7 @@ export function EReceptPage() {
             </Typography>
 
             <Typography variant="body1" color="text.secondary" mb={3}>
-                Zjistěte, kolik léčiv se v České republice předepisuje a vydává,
+                Sledujte, kolik léčiv se v České republice předepisuje a vydává,
                 a to na základě dat ze systému eRecept. Vyberte léčiva, která vás zajímají,
                 nastavte časové období a způsob zobrazení – výsledky se promítnou do mapy okresů.
             </Typography>
@@ -252,6 +252,7 @@ export function EReceptPage() {
                                             geojsonData={geojsonData}
                                             districtData={districtValues}
                                             filter={prescriptionDispense.aggregationType}
+                                            medicinalUnitMode={common.medicinalUnitMode}
                                         />
                                     )}
                                 </Box>

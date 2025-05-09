@@ -53,7 +53,7 @@ export function DistributionPage() {
             </Typography>
             <Typography variant="body1" color="text.secondary" mb={3}>
                 Sledujte distribuční tok léčiv od držitelů registrace přes distributory až k pacientům.
-                Vyberte si konkrétní léčiva, nastavte časové období a vizualizujte cestu léčiv napříč jednotlivými články distribučního řetězce.
+                Vyberte si léčiva, která vás zajímají, nastavte časové období a vizualizujte cestu léčiv napříč jednotlivými články distribučního řetězce.
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, '@media (min-width:1000px)': { flexDirection: 'row' } }}>

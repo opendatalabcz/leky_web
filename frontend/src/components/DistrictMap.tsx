@@ -1,17 +1,19 @@
 import React from "react"
-import { GeoJSON, GeoJSONProps, MapContainer } from "react-leaflet"
+import {GeoJSON, GeoJSONProps, MapContainer} from "react-leaflet"
 import "leaflet/dist/leaflet.css"
-import { Feature, FeatureCollection, Geometry } from "geojson"
-import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
-import { Box } from "@mui/material"
+import {Feature, FeatureCollection, Geometry} from "geojson"
+import {EReceptDataTypeAggregation} from "../types/EReceptDataTypeAggregation"
+import {Box} from "@mui/material"
+import {MedicinalUnitMode} from "../types/MedicinalUnitMode";
 
 interface Props {
     geojsonData: FeatureCollection
     districtData: Record<string, number>
     filter: EReceptDataTypeAggregation
+    medicinalUnitMode: MedicinalUnitMode;
 }
 
-export default function DistrictMap({ geojsonData, districtData, filter }: Props) {
+export default function DistrictMap({ geojsonData, districtData, filter, medicinalUnitMode }: Props) {
     const getColor = (value: number, filter: EReceptDataTypeAggregation): string => {
         const prescribedColors = ["#D3E5FF", "#A4C8FF", "#76ABFF", "#478EFF", "#176AFF", "#0044CC"]
         const dispensedColors = ["#FFD3D3", "#FFA4A4", "#FF7676", "#FF4747", "#FF1717", "#CC0000"]
@@ -73,11 +75,19 @@ export default function DistrictMap({ geojsonData, districtData, filter }: Props
         }
     }
 
+    const grades = [0, 10, 25, 50, 100, 1000]
+    const colors =
+        filter === EReceptDataTypeAggregation.PRESCRIBED
+            ? ["#D3E5FF", "#A4C8FF", "#76ABFF", "#478EFF", "#176AFF", "#0044CC"]
+            : filter === EReceptDataTypeAggregation.DISPENSED
+                ? ["#FFD3D3", "#FFA4A4", "#FF7676", "#FF4747", "#FF1717", "#CC0000"]
+                : []
+
     return (
         <Box sx={{ width: '100%', overflowX: 'auto' }}>
-            <Box sx={{ minWidth: '600px', height: '420px' }}>
+            <Box sx={{ minWidth: '800px', height: '420px', position: 'relative' }}>
                 <MapContainer
-                    center={[49.75, 15]}
+                    center={[49.75, 16]}
                     zoom={7}
                     style={{ width: '100%', height: '100%' }}
                     zoomControl={false}
@@ -92,6 +102,36 @@ export default function DistrictMap({ geojsonData, districtData, filter }: Props
                         onEachFeature={onEachFeature}
                     />
                 </MapContainer>
+
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        bottom: 16,
+                        right: 16,
+                        background: 'white',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        boxShadow: 3,
+                        fontSize: '12px',
+                        zIndex: 1000,
+                    }}
+                >
+                    <strong>Počet {medicinalUnitMode === MedicinalUnitMode.PACKAGES ? 'balení' : 'DDD'}</strong>
+                    {grades.map((grade, i) => (
+                        <Box key={i} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                            <Box
+                                sx={{
+                                    width: 18,
+                                    height: 18,
+                                    backgroundColor: colors[i],
+                                    border: '1px solid #999',
+                                    mr: 1,
+                                }}
+                            />
+                            {grade}{grades[i + 1] ? `–${grades[i + 1]}` : '+'}
+                        </Box>
+                    ))}
+                </Box>
             </Box>
         </Box>
     )
