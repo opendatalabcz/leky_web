@@ -59,8 +59,8 @@ class SankeyDiagramAssembler(
                 val returned  = g[MovementType.RETURN]?.sumOf {
                     converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
                 } ?: 0L
-                val targetId    = labelResolver.nodeIdForMahPurchaser(MahPurchaserType.DISTRIBUTOR)
-                val targetLabel = labelResolver.nodeLabelForMahPurchaser(MahPurchaserType.DISTRIBUTOR)
+                val targetId    = labelResolver.nodeIdForMahPurchaser(MahPurchaserType.AUTHORIZED_PERSON)
+                val targetLabel = labelResolver.nodeLabelForMahPurchaser(MahPurchaserType.AUTHORIZED_PERSON)
                 addLink("MAH", "Registrátor", targetId, targetLabel, delivered - returned)
             }
 
