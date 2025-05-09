@@ -114,7 +114,7 @@ data class MpdMedicinalProduct(
     val whoSource: String?,
 
     @Column(name = "substance_list")
-    val substanceList: String?, // TODO: Nahradit vazbou na `mpd_active_substance` nebo `mpd_substance`
+    val substanceList: String?,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dispense_type_id")
