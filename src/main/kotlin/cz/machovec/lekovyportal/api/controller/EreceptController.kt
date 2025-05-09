@@ -22,20 +22,8 @@ class EreceptController(
 
     @PostMapping("/time-aggregate/by-district")
     fun getAggregatedByDistrict(@RequestBody request: EreceptAggregateByDistrictRequest): EreceptAggregateByDistrictResponse {
-        logger.info(
-            "District map aggregation — aggregationType=${request.aggregationType}, " +
-                    "ids=${request.medicinalProductIds.joinToString(",")}, " +
-                    "regNumbers=${request.registrationNumbers.joinToString(",")}, " +
-                    "dateFrom=${request.dateFrom}, dateTo=${request.dateTo}, " +
-                    "medicinalUnitMode=${request.medicinalUnitMode}, " +
-                    "normalisationMode=${request.normalisationMode}"
-        )
-        val startedAt = System.currentTimeMillis()
 
         val response = ereceptService.getAggregatedByDistrict(request)
-
-        val durationMs = System.currentTimeMillis() - startedAt
-        logger.info("TIME-AGGREGATE BY DISTRICT: $durationMs ms")
 
         return response
     }
@@ -44,19 +32,8 @@ class EreceptController(
     fun getTimeSeriesByDistrict(
         @RequestBody request: EreceptTimeSeriesByDistrictRequest
     ): EreceptTimeSeriesByDistrictResponse {
-        logger.info(
-            "eRecept district time series — aggregationType=${request.aggregationType}, " +
-                    "ids=${request.medicinalProductIds.joinToString(",")}, " +
-                    "from=${request.dateFrom} to=${request.dateTo}, " +
-                    "medicinalUnitMode=${request.medicinalUnitMode}, normalisation=${request.normalisationMode}"
-        )
-
-        val startedAt = System.currentTimeMillis()
 
         val response = ereceptService.getTimeSeriesByDistrict(request)
-
-        val durationMs = System.currentTimeMillis() - startedAt
-        logger.info("TIME-SERIES BY DISTRICT: $durationMs ms")
 
         return response
     }
@@ -65,14 +42,8 @@ class EreceptController(
     fun getFullTimeSeries(
         @RequestBody request: EreceptFullTimeSeriesRequest
     ): EreceptFullTimeSeriesResponse {
-        println("hihi")
-
-        val startedAt = System.currentTimeMillis()
 
         val response = ereceptService.getFullTimeSeries(request)
-
-        val durationMs = System.currentTimeMillis() - startedAt
-        logger.info("TIME-SERIES: $durationMs ms")
 
         return response
     }

@@ -134,7 +134,7 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
                     </Typography>
                     {(filter === EReceptDataTypeAggregation.PRESCRIBED || filter === EReceptDataTypeAggregation.DIFFERENCE) && (
                         <Box>
-                            <Typography variant="caption" fontWeight={600}>Více předepsáno (modře)</Typography>
+                            <Typography variant="caption" fontWeight={600}>Předepsáno (modře)</Typography>
                             {grades.map((grade, i) => (
                                 <Box key={`pos-${i}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                                     <Box sx={{ width: 18, height: 18, backgroundColor: positiveColors[i], border: '1px solid #999', mr: 1 }} />
@@ -145,7 +145,7 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
                     )}
                     {(filter === EReceptDataTypeAggregation.DISPENSED || filter === EReceptDataTypeAggregation.DIFFERENCE) && (
                         <Box mt={1}>
-                            <Typography variant="caption" fontWeight={600}>Více vydáno (červeně)</Typography>
+                            <Typography variant="caption" fontWeight={600}>Vydáno (červeně)</Typography>
                             {grades.map((grade, i) => (
                                 <Box key={`neg-${i}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                                     <Box sx={{ width: 18, height: 18, backgroundColor: negativeColors[i], border: '1px solid #999', mr: 1 }} />
