@@ -1,11 +1,39 @@
-# leky_web
+# Lekovy Portal
 
-Database:
-1. Vytvoření docker kontejneru s postgres
-   * `docker run --name lekovy-portal-postgres -e POSTGRES_USER=lekovy_portal_user -e POSTGRES_PASSWORD=password -e POSTGRES_DB=lekovy_portal -p 5433:5432 -d postgres`
+Tento repozitář obsahuje frontendovou a backendovou část projektu Lekový Portal, připravenou k běhu v Dockeru.
 
-RabbitMQ:
-1. Vytvoření docker kontejneru s RabbitMQ
-   * `docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=lekovy_portal_user -e RABBITMQ_DEFAULT_PASS=password rabbitmq:management`
+## Jak spustit projekt
 
-Překlady mezi českými a anglickými názvy datasetů a atributů naleznete v `domain-vocabulary.md`
+### 1. Změň konfigurace, pokud je potřeba
+V souboru `docker-compose.yml` jsou přednastavené hodnoty pro:
+- přístup k databázi (Postgres),
+- přístup k RabbitMQ,
+- porty aplikací.
+
+Pokud potřebuješ jiné uživatelské jméno/heslo, uprav tyto části:
+
+```yaml
+environment:
+  DB_USER: lekovy_portal_user
+  DB_PASSWORD: password
+  RABBIT_USER: lekovy_portal_user
+  RABBIT_PASSWORD: password
+```
+
+### 2. Postav a spusť kontejnery
+```bash
+docker-compose up --build -d
+```
+
+### 3. Zkontroluj běžící služby
+```bash
+docker ps
+```
+
+- Frontend: http://localhost
+
+
+### Zastavení všech služeb
+```bash
+docker-compose down
+```
