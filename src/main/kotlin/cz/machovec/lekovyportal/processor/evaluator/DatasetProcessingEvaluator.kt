@@ -89,10 +89,16 @@ class DatasetProcessingEvaluator(
             return false
         }
 
-        // 2 – Year before first MPD period -> always process
+        // 2 – Year before first MPD period -> process if atleast one MPD dataset already processed
         if (year < FIRST_MPD_PERIOD.year) {
-            // TODO check, that atleast one MPD dataset was imported
-            logger.debug { "Year $year before first MPD period – processing allowed." }
+            val mpdAlreadyImported = processedDatasetRepository.existsByDatasetType(DatasetType.MEDICINAL_PRODUCT_DATABASE)
+
+            if (!mpdAlreadyImported) {
+                logger.debug { "No MPD datasets imported yet – cannot process yearly $datasetType ($year)." }
+                return false
+            }
+
+            logger.debug { "Year $year before first MPD period & MPD present – processing allowed." }
             return true
         }
 
