@@ -26,6 +26,7 @@ import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.nio.charset.Charset
 
 @Service
 class EreceptProcessor(
@@ -77,7 +78,8 @@ class EreceptProcessor(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
             EreceptRawDataRowMapper(),
-            ERECEPT_CSV_DATA_SEPARATOR
+            ERECEPT_CSV_DATA_SEPARATOR,
+            Charset.forName("UTF-8")
         )
         logImportSummary(datasetType, importResult)
 
@@ -91,7 +93,8 @@ class EreceptProcessor(
             csvBytes,
             EreceptCsvColumn.entries.map { it.toSpec() },
             EreceptRawDataRowMapper(),
-            ERECEPT_CSV_DATA_SEPARATOR
+            ERECEPT_CSV_DATA_SEPARATOR,
+            Charset.forName("UTF-8")
         )
         logImportSummary(datasetType, importResult)
 
