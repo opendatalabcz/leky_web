@@ -1,10 +1,9 @@
-import React, {useState} from "react";
+import React from "react";
 import { Sankey, sankeyCenter, SankeyNode, SankeyLink } from "@visx/sankey";
 import { Group } from "@visx/group";
-import { ParentSize } from "@visx/responsive";
 import { scaleOrdinal } from "d3-scale";
-import {MedicinalUnitMode, MedicinalUnitModeUnits} from "../../types/MedicinalUnitMode";
-import {Box} from "@mui/material";
+import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../../types/MedicinalUnitMode";
+import { Box, Typography } from "@mui/material";
 
 type NodeDatum = { id: string; label: string };
 type LinkDatum = { source: string; target: string; value: number };
@@ -22,6 +21,16 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                             medicinalUnitMode,
                                                             height = 300
                                                         }) => {
+    if (!nodes || nodes.length === 0 || !links || links.length === 0) {
+        return (
+            <Box sx={{ width: '100%', textAlign: 'center', p: 2 }}>
+                <Typography variant="body1" color="textSecondary">
+                    Žádná data k zobrazení.
+                </Typography>
+            </Box>
+        );
+    }
+
     const color = scaleOrdinal<string, string>()
         .domain(nodes.map(n => n.label))
         .range(["#34558a", "#4f6da2", "#6c88b8", "#8aa2cb", "#abc", "#ddd"]);

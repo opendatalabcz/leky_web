@@ -481,7 +481,9 @@ class MpdTablesProcessor(
             .groupBy { it.getUniqueKey() }
             .mapValues { (_, duplicates) ->
                 if (duplicates.size > 1) {
-                    logger.warn { "$datasetTypeName - Duplicate unique key '${duplicates.first().getUniqueKey()}' found ${duplicates.size}x. Keeping the first, ignoring others." }
+                    if (datasetTypeName != "MPD_MEDICINAL_PRODUCT_SUBSTANCE") {
+                        logger.warn { "$datasetTypeName - Duplicate unique key '${duplicates.first().getUniqueKey()}' found ${duplicates.size}x. Keeping the first, ignoring others." }
+                    }
                 }
                 duplicates.first()
             }

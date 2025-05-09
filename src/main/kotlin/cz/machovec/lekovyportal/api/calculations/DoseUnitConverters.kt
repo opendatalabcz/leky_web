@@ -3,6 +3,7 @@ package cz.machovec.lekovyportal.api.calculations
 import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 interface DoseUnitConverter {
     fun convert(productId: Long, packages: Long, dddPerProduct: Map<Long, BigDecimal>): Long
@@ -17,7 +18,8 @@ class PackagesConverter : DoseUnitConverter {
 class DailyDoseConverter : DoseUnitConverter {
     override fun convert(productId: Long, packages: Long, dddPerProduct: Map<Long, BigDecimal>): Long {
         val ddd = dddPerProduct[productId] ?: BigDecimal.ZERO
-        return (BigDecimal(packages) * ddd).longValueExact()
+        val result = BigDecimal(packages) * ddd
+        return result.setScale(0, RoundingMode.HALF_UP).longValueExact()
     }
 }
 
