@@ -56,8 +56,8 @@ export function DistributionPage() {
                 Vyberte si konkrétní léčiva, nastavte časové období a vizualizujte cestu léčiv napříč jednotlivými články distribučního řetězce.
             </Typography>
 
-            <Box display="flex" gap={4} alignItems="flex-start">
-                <Box width={300} flexShrink={0}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, '@media (min-width:1000px)': { flexDirection: 'row' } }}>
+                <Box width={{ xs: '100%', md: 300 }} flexShrink={0}>
                     <Paper variant="outlined" sx={{ p: 2 }}>
                         <Button
                             variant="contained"
@@ -98,18 +98,20 @@ export function DistributionPage() {
                         ) : sankeyQuery.data ? (
                             <>
                                 <Paper variant="outlined" sx={{ p: 2, mb: 4 }}>
-                                    <Box display="flex" justifyContent="space-between" alignItems="baseline" flexWrap="wrap" gap={1}>
-                                        <Typography variant="h6" fontWeight={600}>
-                                            Distribuční tok vybraných léčiv mezi aktéry ({format(common.dateFrom!, "yyyy-MM")} až {format(common.dateTo!, "yyyy-MM")})
-                                        </Typography>
-                                    </Box>
+                                    <Typography variant="h6" fontWeight={600} mb={2}>
+                                        Distribuční tok vybraných léčiv mezi aktéry ({format(common.dateFrom!, "yyyy-MM")} až {format(common.dateTo!, "yyyy-MM")})
+                                    </Typography>
 
-                                    <SankeyChart
-                                        nodes={sankeyQuery.data.nodes}
-                                        links={sankeyQuery.data.links}
-                                        medicinalUnitMode={sankeyQuery.data.medicinalUnitMode as MedicinalUnitMode}
-                                        height={300}
-                                    />
+                                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                                        <Box sx={{ minWidth: '600px' }}>
+                                            <SankeyChart
+                                                nodes={sankeyQuery.data.nodes}
+                                                links={sankeyQuery.data.links}
+                                                medicinalUnitMode={sankeyQuery.data.medicinalUnitMode as MedicinalUnitMode}
+                                                height={300}
+                                            />
+                                        </Box>
+                                    </Box>
                                 </Paper>
 
                                 <Paper variant="outlined" sx={{ p: 2 }}>
@@ -117,10 +119,14 @@ export function DistributionPage() {
                                         Časový vývoj distribučních pohybů
                                     </Typography>
 
-                                    <DistributionTimeSeriesChart
-                                        data={timeSeriesQuery.data}
-                                        medicinalUnitMode={timeSeriesQuery.data?.medicinalUnitMode as MedicinalUnitMode}
-                                    />
+                                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                                        <Box sx={{ minWidth: '600px' }}>
+                                            <DistributionTimeSeriesChart
+                                                data={timeSeriesQuery.data}
+                                                medicinalUnitMode={timeSeriesQuery.data?.medicinalUnitMode as MedicinalUnitMode}
+                                            />
+                                        </Box>
+                                    </Box>
                                 </Paper>
                             </>
                         ) : (

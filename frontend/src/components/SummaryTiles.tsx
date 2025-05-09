@@ -27,24 +27,31 @@ export const SummaryTiles: React.FC<Props> = ({ summary }) => {
     ]
 
     return (
-        <Box display="flex" flexDirection="column" gap={1}>
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                width: '100%',
+                boxSizing: 'border-box'
+            }}
+        >
             {tiles.map((item, idx) => (
                 <Box
-                    key={idx}
+                    key={`tile-${idx}`}
                     sx={{
-                        background: "#f8f9fb",
+                        width: '100%',
+                        background: '#f8f9fb',
                         borderRadius: 1.5,
-                        boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
+                        boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
                         px: 2,
                         py: 1.5,
-                        width: 160,
-                        border: "1px solid #dce3ec"
+                        border: '1px solid #dce3ec',
+                        textAlign: 'center',
+                        boxSizing: 'border-box'
                     }}
                 >
-                    <Typography
-                        variant="body2"
-                        sx={{ color: "#54657e", fontWeight: 500, mb: 0.5 }}
-                    >
+                    <Typography variant="body2" sx={{ color: '#54657e', fontWeight: 500, mb: 0.5 }}>
                         {item.label}
                     </Typography>
 
@@ -58,4 +65,3 @@ export const SummaryTiles: React.FC<Props> = ({ summary }) => {
         </Box>
     )
 }
-

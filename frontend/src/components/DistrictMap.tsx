@@ -3,6 +3,7 @@ import { GeoJSON, GeoJSONProps, MapContainer } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import { Feature, FeatureCollection, Geometry } from "geojson"
 import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
+import { Box } from "@mui/material"
 
 interface Props {
     geojsonData: FeatureCollection
@@ -73,21 +74,25 @@ export default function DistrictMap({ geojsonData, districtData, filter }: Props
     }
 
     return (
-        <MapContainer
-            center={[49.75, 15]}
-            zoom={7}
-            style={{ height: "420px", width: "100%" }}
-            zoomControl={false}
-            scrollWheelZoom={false}
-            doubleClickZoom={false}
-            dragging={false}
-        >
-            <GeoJSON
-                key={JSON.stringify({ districtData, filter })}
-                data={geojsonData}
-                style={geoJsonStyle}
-                onEachFeature={onEachFeature}
-            />
-        </MapContainer>
+        <Box sx={{ width: '100%', overflowX: 'auto' }}>
+            <Box sx={{ minWidth: '600px', height: '420px' }}>
+                <MapContainer
+                    center={[49.75, 15]}
+                    zoom={7}
+                    style={{ width: '100%', height: '100%' }}
+                    zoomControl={false}
+                    scrollWheelZoom={false}
+                    doubleClickZoom={false}
+                    dragging={false}
+                >
+                    <GeoJSON
+                        key={JSON.stringify({ districtData, filter })}
+                        data={geojsonData}
+                        style={geoJsonStyle}
+                        onEachFeature={onEachFeature}
+                    />
+                </MapContainer>
+            </Box>
+        </Box>
     )
 }

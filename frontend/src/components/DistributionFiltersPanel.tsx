@@ -31,48 +31,52 @@ export const DistributionFiltersPanel: React.FC<Props> = ({
     return (
         <Box
             display="flex"
-            gap={4}
             flexWrap="wrap"
-            alignItems="center"
+            gap={2}
             mt={2}
             mb={3}
+            maxWidth="800px" // nebo jiná hodnota, podle toho jak široké pole chceš
         >
-            <YearMonthPicker
-                label="Období od"
-                value={dateFrom}
-                onChange={onChangeDateFrom}
-                maxDate={dateTo ?? undefined}
-            />
+            <Box flex={1} minWidth={{ xs: '100%', sm: 180 }}>
+                <YearMonthPicker
+                    label="Období od"
+                    value={dateFrom}
+                    onChange={onChangeDateFrom}
+                    maxDate={dateTo ?? undefined}
+                />
+            </Box>
 
-            <YearMonthPicker
-                label="Období do"
-                value={dateTo}
-                onChange={onChangeDateTo}
-                minDate={dateFrom ?? undefined}
-            />
+            <Box flex={1} minWidth={{ xs: '100%', sm: 180 }}>
+                <YearMonthPicker
+                    label="Období do"
+                    value={dateTo}
+                    onChange={onChangeDateTo}
+                    minDate={dateFrom ?? undefined}
+                />
+            </Box>
 
-            <FormControl>
-                <InputLabel id="distribution-medicinal-unit-mode-select-label">
-                    Jednotka množství léčiv
-                </InputLabel>
-                <Select
-                    id="distribution-medicinal-unit-mode-select"
-                    labelId="distribution-medicinal-unit-mode-select-label"
-                    value={medicinalUnitMode}
-                    label="Jednotka množství léčiv"
-                    onChange={(e: SelectChangeEvent) =>
-                        onChangeMedicinalUnitMode(e.target.value as MedicinalUnitMode)
-                    }
-                    size="small"
-                    sx={{ minWidth: 200 }}
-                >
-                    {Object.values(MedicinalUnitMode).map((mode) => (
-                        <MenuItem key={mode} value={mode}>
-                            {MedicinalUnitModeLabels[mode]}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </FormControl>
+            <Box flex={1} minWidth={{ xs: '100%', sm: 200 }}>
+                <FormControl fullWidth size="small">
+                    <InputLabel id="distribution-medicinal-unit-mode-select-label">
+                        Jednotka množství léčiv
+                    </InputLabel>
+                    <Select
+                        id="distribution-medicinal-unit-mode-select"
+                        labelId="distribution-medicinal-unit-mode-select-label"
+                        value={medicinalUnitMode}
+                        label="Jednotka množství léčiv"
+                        onChange={(e: SelectChangeEvent) =>
+                            onChangeMedicinalUnitMode(e.target.value as MedicinalUnitMode)
+                        }
+                    >
+                        {Object.values(MedicinalUnitMode).map((mode) => (
+                            <MenuItem key={mode} value={mode}>
+                                {MedicinalUnitModeLabels[mode]}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Box>
         </Box>
     )
 }
