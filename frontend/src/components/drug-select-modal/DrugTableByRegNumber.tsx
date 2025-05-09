@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     DataGrid,
     GridColDef,
@@ -34,7 +34,6 @@ type Props = {
     filtersVersion: number;
     setTriggerSearch: (val: boolean) => void;
     onAddOne: (regNum: string) => void;
-    onAddSelected?: () => void;
     onSelectionUpdate?: (count: number, selectedIds: string[]) => void;
 };
 
@@ -45,7 +44,6 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
                                                           filtersVersion,
                                                           setTriggerSearch,
                                                           onAddOne,
-                                                          onAddSelected,
                                                           onSelectionUpdate,
                                                       }) => {
     const pageSize = 5;
@@ -88,39 +86,36 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
         };
 
         fetchData();
-    }, [triggerSearch, filters, currentPage]);
+    }, [triggerSearch, filters, currentPage, onSearchComplete]);
 
-    const handleAddSelected = () => {
-        const ids = selectionModel as string[];
-        ids.forEach(addRegistrationNumber);
-        onAddSelected?.();
-    };
-
-    useEffect(() => {
-        const ids = selectionModel as string[];
-        onSelectionUpdate?.(ids.length, ids);
-    }, [selectionModel, onSelectionUpdate]);
+    const handleSelectionChange = useCallback(
+        (model: GridRowSelectionModel) => {
+            setSelectionModel(model);
+            onSelectionUpdate?.(model.length, model as string[]);
+        },
+        [onSelectionUpdate]
+    );
 
     const columns: GridColDef<GroupedDrug>[] = [
-        { field: 'registrationNumber', headerName: 'Registrační číslo', flex: 1 },
+        { field: 'registrationNumber', headerName: 'Registrační číslo', minWidth: 180 },
         {
             field: 'names',
             headerName: 'Název',
-            flex: 2,
+            minWidth: 200,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
                 params.row.names.length > 0 ? params.row.names.join(', ') : '-',
         },
         {
             field: 'strengths',
             headerName: 'Síla',
-            flex: 1,
+            minWidth: 130,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
                 params.row.strengths.length > 0 ? params.row.strengths.join(', ') : '-',
         },
         {
             field: 'dosageForms',
             headerName: 'Léková forma',
-            flex: 1.5,
+            minWidth: 150,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
                 params.row.dosageForms.length > 0
                     ? params.row.dosageForms.map((d) => d.name ?? d.code).join(', ')
@@ -129,7 +124,7 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
         {
             field: 'administrationRoutes',
             headerName: 'Cesta podání',
-            flex: 1.5,
+            minWidth: 150,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
                 params.row.administrationRoutes.length > 0
                     ? params.row.administrationRoutes.map((r) => r.name ?? r.code).join(', ')
@@ -138,7 +133,7 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
         {
             field: 'atcGroups',
             headerName: 'ATC skupina',
-            flex: 2,
+            minWidth: 200,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) =>
                 params.row.atcGroups.length > 0
                     ? params.row.atcGroups.map((a) => `${a.name} (${a.code})`).join(', ')
@@ -146,14 +141,14 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
         },
         {
             field: 'suklCodes',
-            headerName: 'Počet kódů',
-            flex: 1,
+            headerName: 'Počet SÚKL kódů',
+            minWidth: 170,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) => params.row.suklCodes.length,
         },
         {
             field: 'action',
             headerName: 'Akce',
-            flex: 1,
+            minWidth: 120,
             renderCell: (params: GridRenderCellParams<GroupedDrug>) => (
                 <Button
                     variant="outlined"
@@ -178,7 +173,7 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
                 paginationMode="server"
                 checkboxSelection
                 disableRowSelectionOnClick
-                onRowSelectionModelChange={setSelectionModel}
+                onRowSelectionModelChange={handleSelectionChange}
                 loading={loading}
                 onPaginationModelChange={({ page }) => {
                     setCurrentPage(page);
@@ -187,14 +182,6 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
                 getRowId={(row) => row.registrationNumber}
                 disableColumnMenu
             />
-
-            {selectionModel.length > 0 && (
-                <Box mt={1}>
-                    <Button variant="contained" size="small" onClick={handleAddSelected}>
-                        Přidat vybrané ({selectionModel.length})
-                    </Button>
-                </Box>
-            )}
         </Box>
     );
 };

@@ -7,6 +7,7 @@ import {
     Button
 } from "@mui/material"
 import { DrugSearchSection } from "./DrugSearchSection"
+import { useMediaQuery, useTheme } from "@mui/material";
 
 interface Props {
     open: boolean
@@ -14,12 +15,12 @@ interface Props {
 }
 
 export const DrugSelectorModal: React.FC<Props> = ({ open, onClose }) => {
-    const [refreshToken, setRefreshToken] = useState(0)
+    const theme = useTheme();
+    const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));    const [refreshToken, setRefreshToken] = useState(0)
     const [selectedCount, setSelectedCount] = useState(0)
     const [addSelectedHandler, setAddSelectedHandler] = useState<() => void>(() => {})
 
     const handleDrugsAdded = () => {
-        // Trigger refresh and close modal after adding
         setRefreshToken(prev => prev + 1)
         onClose()
     }
@@ -36,10 +37,26 @@ export const DrugSelectorModal: React.FC<Props> = ({ open, onClose }) => {
     }
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl">
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullScreen={fullScreen}
+            fullWidth
+            maxWidth={fullScreen ? "xs" : "lg"}
+        >
             <DialogTitle>Výběr léčiv</DialogTitle>
 
-            <DialogContent dividers>
+            <DialogContent
+                dividers
+                sx={{
+                    width: '100%',
+                    maxWidth: '1200px',
+                    mx: 'auto',
+                    boxSizing: 'border-box',
+                    p: { xs: 1, sm: 2 },
+                    overflowX: 'auto'
+                }}
+            >
                 <DrugSearchSection
                     onAddSelected={handleDrugsAdded}
                     refreshToken={refreshToken}
@@ -49,11 +66,21 @@ export const DrugSelectorModal: React.FC<Props> = ({ open, onClose }) => {
             </DialogContent>
 
             {selectedCount > 0 && (
-                <DialogActions>
-                    <Button onClick={handleAddSelected} variant="contained" color="primary">
+                <DialogActions
+                    sx={{
+                        justifyContent: 'flex-end',
+                        pr: 4
+                    }}
+                >
+                    <Button
+                        onClick={handleAddSelected}
+                        variant="contained"
+                        color="primary"
+                    >
                         Přidat vybrané ({selectedCount})
                     </Button>
                 </DialogActions>
+
             )}
         </Dialog>
     )

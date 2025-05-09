@@ -15,22 +15,41 @@ export const DrugSearchModeSwitch: React.FC<Props> = ({ searchMode, onChange }) 
     }
 
     return (
-        <Box mb={2} display="flex" alignItems="center" gap={2}>
-            <Typography variant="subtitle2" sx={{ fontSize: "1rem", whiteSpace: "nowrap" }}>
+        <Box
+            mb={2}
+            display="flex"
+            flexDirection={{ xs: "column", sm: "row" }}
+            alignItems={{ xs: "stretch", sm: "center" }}
+            gap={2}
+            sx={{ width: '100%' }}
+        >
+            <Typography
+                variant="subtitle2"
+                sx={{
+                    fontSize: "1rem",
+                    whiteSpace: "nowrap"
+                }}
+            >
                 Zobrazit výsledky dle:
             </Typography>
+
             <ToggleButtonGroup
                 value={searchMode}
                 exclusive
                 onChange={handleChange}
                 sx={{
+                    width: { xs: "100%", sm: "auto" },
                     "& .MuiToggleButton-root": {
                         textTransform: "none",
                         fontWeight: 500,
                         fontSize: "0.95rem",
                         borderColor: "#ccc",
                         px: 2,
-                        py: 0.5
+                        py: 0.5,
+                        flex: { xs: 1, sm: "unset" },
+                        whiteSpace: "nowrap",
+                        height: 36,
+                        lineHeight: 1
                     },
                     "& .MuiToggleButton-root.Mui-selected": {
                         backgroundColor: "#34558a",
@@ -40,6 +59,7 @@ export const DrugSearchModeSwitch: React.FC<Props> = ({ searchMode, onChange }) 
                         }
                     }
                 }}
+                fullWidth // celé tlačítko fullWidth na xs
             >
                 <ToggleButton value={MedicinalProductSearchMode.REGISTRATION_NUMBER}>
                     Registračního čísla

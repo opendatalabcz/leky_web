@@ -1,5 +1,6 @@
 import React from "react"
 import AsyncSelect from "react-select/async"
+import { Box } from "@mui/material"
 
 export interface SubstanceOption {
     id: number
@@ -35,17 +36,25 @@ export function SubstanceSelect({ selectedSubstanceId, onChange }: Props) {
     }
 
     return (
-        <div>
-            <label>
-                <AsyncSelect
-                    cacheOptions
-                    loadOptions={loadOptions}
-                    defaultOptions={false}
-                    onChange={handleChange}
-                    placeholder="Začněte psát název látky..."
-                    isClearable
-                />
-            </label>
-        </div>
+        <Box sx={{ width: '100%' }}>
+            <AsyncSelect
+                cacheOptions
+                loadOptions={loadOptions}
+                defaultOptions={false}
+                onChange={handleChange}
+                placeholder="Začněte psát název látky..."
+                isClearable
+                styles={{
+                    container: (base) => ({
+                        ...base,
+                        width: '100%'
+                    }),
+                    control: (base) => ({
+                        ...base,
+                        minHeight: 40
+                    })
+                }}
+            />
+        </Box>
     )
 }
