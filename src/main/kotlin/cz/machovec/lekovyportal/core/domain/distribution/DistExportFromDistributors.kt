@@ -46,5 +46,5 @@ data class DistExportFromDistributors(
     val packageCount: Int,
 
     @Column(name = "subject", nullable = false)
-    val subject: String, // TODO: Find dataset to connect via FK. Maybe dlp_organisation?
+    val subject: String,
 )

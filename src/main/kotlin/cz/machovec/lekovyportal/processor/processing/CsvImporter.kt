@@ -13,9 +13,7 @@ import org.springframework.stereotype.Component
 import java.nio.charset.Charset
 
 @Component
-class CsvImporter(
-    private val charset: Charset = Charset.forName("Windows-1250"), // TODO refactor
-) {
+class CsvImporter {
 
     private val log = KotlinLogging.logger {}
 
@@ -37,10 +35,11 @@ class CsvImporter(
         csvBytes: ByteArray,
         specs: List<ColumnSpec<E>>,
         mapper: RowMapper<E, T>,
-        separator: Char = DEFAULT_SEPARATOR
+        separator: Char = DEFAULT_SEPARATOR,
+        charset: Charset = Charset.forName("Windows-1250")
     ): DataImportResult<T> where E : Enum<E> {
 
-        val (lines, idxMap) = parseCsv(csvBytes, specs, separator)
+        val (lines, idxMap) = parseCsv(csvBytes, specs, separator, charset)
 
         val successes = mutableListOf<T>()
         val failures = mutableListOf<RowFailure>()
@@ -77,7 +76,8 @@ class CsvImporter(
     private fun <E> parseCsv(
         csvBytes: ByteArray,
         specs: List<ColumnSpec<E>>,
-        separator: Char
+        separator: Char,
+        charset: Charset
     ): Pair<List<Array<String>>, Map<E, Int>> where E : Enum<E> {
 
         val reader = CSVReaderBuilder(csvBytes.inputStream().reader(charset))

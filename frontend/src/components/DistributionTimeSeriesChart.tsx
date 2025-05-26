@@ -68,31 +68,32 @@ export const DistributionTimeSeriesChart: React.FC<Props> = ({ data, medicinalUn
     const unitLabel = MedicinalUnitModeUnits[medicinalUnitMode] || ""
 
     return (
-        <Box mt={5}>
-            <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                    <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip
-                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
-                        labelFormatter={(label) => `Období: ${label}`}
-                    />
-                    <Legend />
-
-                    {allFlowKeys.map((key, index) => (
-                        <Line
-                            key={key}
-                            type="monotone"
-                            dataKey={key}
-                            stroke={colorPalette[index % colorPalette.length]}
-                            strokeWidth={2}
-                            dot={{ r: 2 }}
-                            activeDot={{ r: 5 }}
+        <Box mt={5} sx={{ width: '100%', overflowX: 'auto' }}>
+            <Box sx={{ minWidth: '800px' }}>
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={chartData}>
+                        <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip
+                            formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
+                            labelFormatter={(label) => `Období: ${label}`}
                         />
-                    ))}
-                </LineChart>
-            </ResponsiveContainer>
+                        <Legend />
+                        {allFlowKeys.map((key, index) => (
+                            <Line
+                                key={key}
+                                type="monotone"
+                                dataKey={key}
+                                stroke={colorPalette[index % colorPalette.length]}
+                                strokeWidth={2}
+                                dot={{ r: 2 }}
+                                activeDot={{ r: 5 }}
+                            />
+                        ))}
+                    </LineChart>
+                </ResponsiveContainer>
+            </Box>
         </Box>
     )
 }

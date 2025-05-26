@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import { MedicinalProductFilterValues } from "../../types/MedicinalProductFilterValues";
 import { SubstanceSelect } from "./SubstanceSelect";
-import {AtcGroupSelect} from "./AtcGroupSelect";
+import { AtcGroupSelect } from "./AtcGroupSelect";
 import React from "react";
 
 type Props = {
@@ -15,17 +15,16 @@ type Props = {
 };
 
 export const DrugFilters: React.FC<Props> = ({
-                                                             filters,
-                                                             onChange,
-                                                             onSearchClick
-                                                         }) => {
-    /* ------------ render ------------- */
+                                                 filters,
+                                                 onChange,
+                                                 onSearchClick
+                                             }) => {
     return (
         <Box
             component="form"
             onSubmit={(e) => {
-                e.preventDefault();
-                onSearchClick();
+                e.preventDefault()
+                onSearchClick()
             }}
             display="flex"
             flexWrap="wrap"
@@ -33,8 +32,8 @@ export const DrugFilters: React.FC<Props> = ({
             mt={2}
             mb={3}
         >
-            {/* --- full-text --- */}
-            <Box flex={1} minWidth={200}>
+        {/* --- full-text --- */}
+            <Box flex={{ xs: "1 1 100%", sm: "1 1 300px" }} minWidth={200} maxWidth={400}>
                 <TextField
                     label="Název / SÚKL / Registrační číslo"
                     value={filters.medicinalProductQuery}
@@ -48,7 +47,7 @@ export const DrugFilters: React.FC<Props> = ({
             </Box>
 
             {/* --- ATC Group --- */}
-            <Box flex={1} minWidth={200}>
+            <Box flex={{ xs: "1 1 100%", sm: "1 1 200px" }} minWidth={200} maxWidth={300}>
                 <AtcGroupSelect
                     selectedAtcGroupId={filters.atcGroupId}
                     onChange={(id) => onChange({ ...filters, atcGroupId: id })}
@@ -56,7 +55,7 @@ export const DrugFilters: React.FC<Props> = ({
             </Box>
 
             {/* --- Substance --- */}
-            <Box flex={1} minWidth={200}>
+            <Box flex={{ xs: "1 1 100%", sm: "1 1 200px" }} minWidth={200} maxWidth={300}>
                 <SubstanceSelect
                     selectedSubstanceId={filters.substanceId}
                     onChange={(id) => onChange({ ...filters, substanceId: id })}
@@ -64,8 +63,21 @@ export const DrugFilters: React.FC<Props> = ({
             </Box>
 
             {/* --- Search button --- */}
-            <Box display="flex" alignItems="center" minWidth={150}>
-                <Button variant="contained" color="primary" type="submit" sx={{ whiteSpace: "nowrap" }}>
+            <Box
+                display="flex"
+                alignItems="center"
+                flex={{ xs: "1 1 100%", sm: "0 0 auto" }}
+                minWidth={150}
+            >
+                <Button
+                    variant="contained"
+                    color="primary"
+                    type="submit"
+                    sx={{
+                        whiteSpace: "nowrap",
+                        width: { xs: "100%", sm: "auto" }
+                    }}
+                >
                     Vyhledat
                 </Button>
             </Box>

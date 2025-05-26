@@ -1,11 +1,7 @@
 package cz.machovec.lekovyportal.processor.processing.mpd
 
 import cz.machovec.lekovyportal.core.domain.mpd.BaseMpdEntity
-import cz.machovec.lekovyportal.core.domain.mpd.MpdAttributeChange
 import cz.machovec.lekovyportal.core.domain.mpd.MpdDatasetType
-import cz.machovec.lekovyportal.core.domain.mpd.MpdRecordTemporaryAbsence
-import cz.machovec.lekovyportal.core.repository.mpd.MpdAttributeChangeRepository
-import cz.machovec.lekovyportal.core.repository.mpd.MpdRecordTemporaryAbsenceRepository
 import mu.KotlinLogging
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Component
@@ -17,10 +13,7 @@ import java.time.LocalDate
  * and soft-deletes.
  */
 @Component
-class MpdEntitySynchronizer(
-    private val attrRepo: MpdAttributeChangeRepository,
-    private val absenceRepo: MpdRecordTemporaryAbsenceRepository
-) {
+class MpdEntitySynchronizer {
 
     private val log = KotlinLogging.logger {}
 
@@ -33,92 +26,53 @@ class MpdEntitySynchronizer(
     fun <T> sync(
         validFrom: LocalDate,
         dataset: MpdDatasetType,
-        records:   List<T>,
-        repo:      JpaRepository<T, Long>
+        records: List<T>,
+        repo: JpaRepository<T, Long>
     ) where T : BaseMpdEntity<T> {
 
-        val existing         = repo.findAll()
-        val existingByKey    = existing.associateBy { it.getUniqueKey() }
-        val incomingKeys     = records.map { it.getUniqueKey() }.toSet()
+        val existing = repo.findAll()
+        val existingByKey = existing.associateBy { it.getUniqueKey() }
+        val incomingKeys = records.map { it.getUniqueKey() }.toSet()
 
-        val entitiesToSave         = mutableListOf<T>()
-        val attributeChangesToSave = mutableListOf<MpdAttributeChange>()
-        val reactivationsToSave    = mutableListOf<MpdRecordTemporaryAbsence>()
+        val entitiesToSave = mutableListOf<T>()
+
+        var insertCount = 0
+        var updateCount = 0
 
         records.forEach { incoming ->
 
             val current = existingByKey[incoming.getUniqueKey()]
 
-            /* ---------- [1] New record ---------- */
+            // [1] New record
             if (current == null) {
                 entitiesToSave += incoming
+                insertCount++
                 return@forEach
             }
 
             val changes = current.getBusinessAttributeChanges(incoming)
 
-            /* ---------- [2] Reactivated record ---------- */
-            if (current.missingSince != null) {
+            // [2] Reactivated or updated record — we no longer track absence separately
+            if (current.missingSince != null || changes.isNotEmpty()) {
                 entitiesToSave += incoming.copyPreservingIdAndFirstSeen(current)
-
-                // reactivation history
-                reactivationsToSave += MpdRecordTemporaryAbsence(
-                    datasetType = dataset,
-                    recordId    = current.id!!,
-                    missingFrom = current.missingSince!!,
-                    missingTo   = validFrom.minusDays(1)
-                )
-
-                // attribute-change history (if anything really changed)
-                if (changes.isNotEmpty()) {
-                    attributeChangesToSave += changes.map {
-                        MpdAttributeChange(
-                            datasetType            = dataset,
-                            recordId               = current.id!!,
-                            attribute              = it.attribute,
-                            oldValue               = it.oldValue?.toString(),
-                            newValue               = it.newValue?.toString(),
-                            seenInDatasetValidFrom = validFrom
-                        )
-                    }
-                }
-                return@forEach
+                updateCount++
             }
-
-            /* ---------- [3] Attribute changes ---------- */
-            if (changes.isNotEmpty()) {
-                entitiesToSave += incoming.copyPreservingIdAndFirstSeen(current)
-
-                attributeChangesToSave += changes.map {
-                    MpdAttributeChange(
-                        datasetType            = dataset,
-                        recordId               = current.id!!,
-                        attribute              = it.attribute,
-                        oldValue               = it.oldValue?.toString(),
-                        newValue               = it.newValue?.toString(),
-                        seenInDatasetValidFrom = validFrom
-                    )
-                }
-            }
-            /* else: no changes – skip */
+            // else: no changes – skip
         }
 
-        /* ---------- [4] Newly missing ---------- */
+        // [3] Newly missing
         val newlyMissing = existing
             .filter { it.missingSince == null && it.getUniqueKey() !in incomingKeys }
             .map { it.markMissing(validFrom) }
 
-        /* ---------- persist ---------- */
+        // persist
         repo.saveAll(entitiesToSave + newlyMissing)
-        attrRepo.saveAll(attributeChangesToSave)
-        absenceRepo.saveAll(reactivationsToSave)
 
-        /* ---------- summary ---------- */
+        // summary log
         log.info {
             "Synchronizer [$dataset]: " +
-                    "insert=${entitiesToSave.size - attributeChangesToSave.size - reactivationsToSave.size}, " +
-                    "update=${attributeChangesToSave.size}, " +
-                    "reactivated=${reactivationsToSave.size}, " +
+                    "insert=$insertCount, " +
+                    "update=$updateCount, " +
                     "missing=${newlyMissing.size}"
         }
     }

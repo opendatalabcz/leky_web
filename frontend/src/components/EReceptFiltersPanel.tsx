@@ -50,8 +50,9 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
             gap={2}
             mt={2}
             mb={3}
+            flexDirection={{ xs: 'column', sm: 'row' }}
         >
-            <Box flex={1} minWidth={180}>
+            <Box flex={1} minWidth={{ xs: '100%', sm: 180 }} maxWidth={{ sm: 240 }}>
                 <FormControl fullWidth size="small">
                     <InputLabel id="aggregation-type-select-label">Typ eReceptů</InputLabel>
                     <Select
@@ -70,7 +71,7 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
                 </FormControl>
             </Box>
 
-            <Box flex={1} minWidth={140}>
+            <Box flex={1} minWidth={{ xs: '100%', sm: 140 }} maxWidth={{ sm: 240 }}>
                 <YearMonthPicker
                     label="Období od"
                     value={dateFrom}
@@ -79,7 +80,7 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
                 />
             </Box>
 
-            <Box flex={1} minWidth={140}>
+            <Box flex={1} minWidth={{ xs: '100%', sm: 140 }} maxWidth={{ sm: 240 }}>
                 <YearMonthPicker
                     label="Období do"
                     value={dateTo}
@@ -88,7 +89,7 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
                 />
             </Box>
 
-            <Box flex={1} minWidth={200}>
+            <Box flex={1} minWidth={{ xs: '100%', sm: 200 }} maxWidth={{ sm: 240 }}>
                 <FormControl fullWidth size="small">
                     <InputLabel id="medicinal-unit-mode-select-label">Jednotka množství léčiv</InputLabel>
                     <Select
@@ -109,7 +110,7 @@ export const EReceptFiltersPanel: React.FC<Props> = ({
                 </FormControl>
             </Box>
 
-            <Box flex={1} minWidth={200}>
+            <Box flex={1} minWidth={{ xs: '100%', sm: 200 }} maxWidth={{ sm: 240 }}>
                 <FormControl fullWidth size="small">
                     <InputLabel id="population-normalisation-mode-select-label">Způsob normalizace</InputLabel>
                     <Select

@@ -1,15 +1,15 @@
 export enum MedicinalUnitMode {
-    PACKAGES = "PACKAGES",
-    DAILY_DOSES = "DAILY_DOSES"
+    DAILY_DOSES = "DAILY_DOSES",
+    PACKAGES = "PACKAGES"
 }
 
 export const MedicinalUnitModeLabels: Record<MedicinalUnitMode, string> = {
-    [MedicinalUnitMode.PACKAGES]: "Počet balení",
-    [MedicinalUnitMode.DAILY_DOSES]: "Počet doporučených denních dávek"
+    [MedicinalUnitMode.DAILY_DOSES]: "Počet doporučených denních dávek",
+    [MedicinalUnitMode.PACKAGES]: "Počet balení"
 };
 
 export const MedicinalUnitModeUnits: Record<MedicinalUnitMode, string> = {
-    [MedicinalUnitMode.PACKAGES]: "balení",
-    [MedicinalUnitMode.DAILY_DOSES]: "denních dávek"
+    [MedicinalUnitMode.DAILY_DOSES]: "denních dávek",
+    [MedicinalUnitMode.PACKAGES]: "balení"
 };
 

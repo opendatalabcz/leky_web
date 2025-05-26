@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     DataGrid,
     GridColDef,
@@ -33,7 +33,6 @@ type Props = {
     filtersVersion: number;
     setTriggerSearch: (val: boolean) => void;
     onAddOne: (id: number) => void;
-    onAddSelected?: () => void;
     onSelectionUpdate?: (count: number, selectedIds: number[]) => void;
 };
 
@@ -44,7 +43,6 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
                                                          filtersVersion,
                                                          setTriggerSearch,
                                                          onAddOne,
-                                                         onAddSelected,
                                                          onSelectionUpdate,
                                                      }) => {
     const pageSize = 5;
@@ -57,16 +55,13 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
 
     const { addSuklId } = useDrugCart();
 
-    /* reset page after filter change */
     useEffect(() => setCurrentPage(0), [filtersVersion]);
 
-    /* fetch */
     useEffect(() => {
         if (!triggerSearch) return;
 
         const fetchData = async () => {
             setLoading(true);
-
             try {
                 const params = new URLSearchParams();
                 if (filters.atcGroupId) params.append('atcGroupId', filters.atcGroupId.toString());
@@ -91,41 +86,37 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
         };
 
         fetchData();
-    }, [triggerSearch, filters, currentPage]);
+    }, [triggerSearch, filters, currentPage, onSearchComplete]);
 
-    const handleAddSelected = () => {
-        const ids = selectionModel as number[];
-        ids.forEach(addSuklId);
-        onAddSelected?.();
-    };
+    const handleSelectionChange = useCallback(
+        (model: GridRowSelectionModel) => {
+            setSelectionModel(model);
+            onSelectionUpdate?.(model.length, model as number[]);
+        },
+        [onSelectionUpdate]
+    );
 
-    useEffect(() => {
-        const ids = selectionModel as number[];
-        onSelectionUpdate?.(ids.length, ids);
-    }, [selectionModel, onSelectionUpdate]);
-
-    /* ---------- Columns ---------- */
     const columns: GridColDef<Drug>[] = [
-        { field: 'suklCode', headerName: 'SÚKL kód', flex: 1 },
-        { field: 'name', headerName: 'Název', flex: 2 },
+        { field: 'suklCode', headerName: 'SÚKL kód', minWidth: 150,},
+        { field: 'name', headerName: 'Název', minWidth: 200,},
         {
             field: 'supplementaryInformation',
             headerName: 'Doplněk',
-            flex: 2,
+            minWidth: 200,
             renderCell: (params: GridRenderCellParams<Drug>) =>
                 params.row.supplementaryInformation ?? '-',
         },
         {
             field: 'registrationNumber',
             headerName: 'Registrační číslo',
-            flex: 1,
+            minWidth: 180,
             renderCell: (params: GridRenderCellParams<Drug>) =>
                 params.row.registrationNumber ?? '-',
         },
         {
             field: 'atcGroup',
             headerName: 'ATC skupina',
-            flex: 2,
+            minWidth: 200,
             renderCell: (params: GridRenderCellParams<Drug>) => {
                 const atc = params.row.atcGroup;
                 return atc ? `${atc.name} (${atc.code})` : '-';
@@ -134,7 +125,7 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
         {
             field: 'action',
             headerName: 'Akce',
-            flex: 1,
+            minWidth: 120,
             renderCell: (params: GridRenderCellParams<Drug>) => (
                 <Button variant="outlined" size="small" onClick={() => onAddOne(params.row.id)}>
                     Přidat
@@ -143,28 +134,25 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
         },
     ];
 
-    /* ---------- render ---------- */
     return (
-        <Box>
-            <DataGrid
-                autoHeight
-                rows={data}
-                columns={columns}
-                rowCount={totalElements}
-                pageSizeOptions={[pageSize]}
-                paginationModel={{ page: currentPage, pageSize }}
-                paginationMode="server"
-                checkboxSelection
-                disableRowSelectionOnClick
-                onRowSelectionModelChange={setSelectionModel}
-                loading={loading}
-                onPaginationModelChange={({ page }) => {
-                    setCurrentPage(page);
-                    setTriggerSearch(true);
-                }}
-                getRowId={(row) => row.id}
-                disableColumnMenu
-            />
-        </Box>
+        <DataGrid
+            autoHeight
+            rows={data}
+            columns={columns}
+            rowCount={totalElements}
+            pageSizeOptions={[pageSize]}
+            paginationModel={{ page: currentPage, pageSize }}
+            paginationMode="server"
+            checkboxSelection
+            disableRowSelectionOnClick
+            onRowSelectionModelChange={handleSelectionChange}
+            loading={loading}
+            onPaginationModelChange={({ page }) => {
+                setCurrentPage(page);
+                setTriggerSearch(true);
+            }}
+            getRowId={(row) => row.id}
+            disableColumnMenu
+        />
     );
 };

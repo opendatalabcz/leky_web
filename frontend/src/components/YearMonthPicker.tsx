@@ -32,7 +32,11 @@ export function YearMonthPicker({
                 slotProps={{
                     textField: {
                         size: "small",
-                        style: { minWidth: "160px" }
+                        fullWidth: true,
+                        sx: {
+                            minWidth: { xs: "100%", sm: "160px" },
+                            maxWidth: { sm: "240px" }
+                        }
                     }
                 }}
             />

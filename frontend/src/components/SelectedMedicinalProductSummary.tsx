@@ -5,7 +5,8 @@ import {
     Stack,
     Paper,
     IconButton,
-    Divider
+    Divider,
+    Tooltip
 } from "@mui/material"
 import CloseIcon from "@mui/icons-material/Close"
 import { useDrugCart } from "./drug-select-modal/DrugCartContext"
@@ -60,19 +61,33 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
                                                 display: "flex",
                                                 justifyContent: "space-between",
                                                 alignItems: "center",
+                                                flexWrap: "nowrap",
                                                 px: 1.5,
                                                 py: 1,
                                                 borderRadius: 1,
                                                 backgroundColor: "#f0f6fa",
                                                 transition: "background-color 0.2s",
+                                                overflow: "hidden",
                                                 "&:hover": {
                                                     backgroundColor: "#d8e9f7"
                                                 }
                                             }}
                                         >
-                                            <Typography variant="body2">
-                                                {g.names.join(", ")} ({g.registrationNumber})
-                                            </Typography>
+                                            <Tooltip title={`${g.names.join(", ")} (${g.registrationNumber})`}>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                        whiteSpace: "nowrap",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        mr: 1,
+                                                        flexGrow: 1,
+                                                        minWidth: 0
+                                                    }}
+                                                >
+                                                    {g.names.join(", ")} ({g.registrationNumber})
+                                                </Typography>
+                                            </Tooltip>
                                             <IconButton
                                                 size="small"
                                                 color="error"
@@ -105,19 +120,33 @@ export const SelectedMedicinalProductSummary: React.FC = () => {
                                                 display: "flex",
                                                 justifyContent: "space-between",
                                                 alignItems: "center",
+                                                flexWrap: "nowrap",
                                                 px: 1.5,
                                                 py: 1,
                                                 borderRadius: 1,
                                                 backgroundColor: "#f0f6fa",
                                                 transition: "background-color 0.2s",
+                                                overflow: "hidden",
                                                 "&:hover": {
                                                     backgroundColor: "#d8e9f7"
                                                 }
                                             }}
                                         >
-                                            <Typography variant="body2">
-                                                {d.name} ({d.suklCode})
-                                            </Typography>
+                                            <Tooltip title={`${d.name} (${d.suklCode})`}>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                        whiteSpace: "nowrap",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        mr: 1,
+                                                        flexGrow: 1,
+                                                        minWidth: 0
+                                                    }}
+                                                >
+                                                    {d.name} ({d.suklCode})
+                                                </Typography>
+                                            </Tooltip>
                                             <IconButton
                                                 size="small"
                                                 color="error"

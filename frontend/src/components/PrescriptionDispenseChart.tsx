@@ -71,11 +71,33 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
 
     return (
         <Box mt={5}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Box
+                display="flex"
+                flexDirection={{ xs: 'column', sm: 'row' }}
+                justifyContent="space-between"
+                alignItems={{ xs: 'stretch', sm: 'center' }}
+                mb={2}
+                gap={2}
+            >
                 <Typography variant="h6"></Typography>
 
-                <Box display="flex" gap={2}>
-                    <FormControl size="small">
+                <Box
+                    display="flex"
+                    flexWrap="wrap"
+                    gap={2}
+                    sx={{
+                        width: { xs: '100%', sm: 'auto' },
+                        maxWidth: { sm: '500px' }, // max šířka pro filtry na velkých obrazovkách
+                        justifyContent: { sm: 'flex-end' }
+                    }}
+                >
+                    <FormControl
+                        size="small"
+                        sx={{
+                            flex: 1,
+                            minWidth: { xs: '100%', sm: 160 }
+                        }}
+                    >
                         <InputLabel>Okres</InputLabel>
                         <Select
                             label="Okres"
@@ -83,10 +105,8 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                             onChange={(e) =>
                                 onDistrictChange(e.target.value === "" ? null : e.target.value)
                             }
-                            sx={{ minWidth: 160 }}
                         >
                             <MenuItem value="">Celá ČR</MenuItem>
-
                             {Object.entries(districtNameMap)
                                 .sort(([codeA, nameA], [codeB, nameB]) => {
                                     if (nameA === "Hlavní město Praha") return -1
@@ -101,7 +121,13 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                         </Select>
                     </FormControl>
 
-                    <FormControl size="small">
+                    <FormControl
+                        size="small"
+                        sx={{
+                            flex: 1,
+                            minWidth: { xs: '100%', sm: 160 }
+                        }}
+                    >
                         <InputLabel>Granularita</InputLabel>
                         <Select
                             label="Granularita"
@@ -118,45 +144,47 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                 </Box>
             </Box>
 
-            <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                    <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip
-                        formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
-                        labelFormatter={(label) => `Období: ${label}`}
-                    />
-                    <Legend />
-
-                    {highlightRange && (
-                        <ReferenceArea
-                            x1={highlightRange.start}
-                            x2={highlightRange.end}
-                            strokeOpacity={0}
-                            fill="#1976d2"
-                            fillOpacity={0.1}
-                        />
-                    )}
-
-                    <Line
-                        type="monotone"
-                        dataKey="Předepsané"
-                        stroke="#1976d2"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
-                    <Line
-                        type="monotone"
-                        dataKey="Vydané"
-                        stroke="#2e7d32"
-                        strokeWidth={2}
-                        dot={{ r: 2 }}
-                        activeDot={{ r: 5 }}
-                    />
-                </LineChart>
-            </ResponsiveContainer>
+            <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                <Box sx={{ minWidth: '600px' }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={chartData}>
+                            <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip
+                                formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
+                                labelFormatter={(label) => `Období: ${label}`}
+                            />
+                            <Legend />
+                            {highlightRange && (
+                                <ReferenceArea
+                                    x1={highlightRange.start}
+                                    x2={highlightRange.end}
+                                    strokeOpacity={0}
+                                    fill="#1976d2"
+                                    fillOpacity={0.1}
+                                />
+                            )}
+                            <Line
+                                type="monotone"
+                                dataKey="Předepsané"
+                                stroke="#1976d2"
+                                strokeWidth={2}
+                                dot={{ r: 2 }}
+                                activeDot={{ r: 5 }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="Vydané"
+                                stroke="#2e7d32"
+                                strokeWidth={2}
+                                dot={{ r: 2 }}
+                                activeDot={{ r: 5 }}
+                            />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </Box>
+            </Box>
         </Box>
     )
 }

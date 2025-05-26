@@ -17,18 +17,12 @@ class DistributionController(
     private val distributionService: DistributionService,
 ) {
 
-    private val logger = KotlinLogging.logger {}
-
     @PostMapping("/sankey-diagram")
     fun getSankeyDiagram(
         @RequestBody request: DistributionSankeyRequest
     ): DistributionSankeyResponse {
-        val startedAt = System.currentTimeMillis()
 
         val response = distributionService.getSankeyDiagram(request)
-
-        val durationMs = System.currentTimeMillis() - startedAt
-        logger.info("DISTRIBUTION - SANKEY-DIAGRAM: $durationMs ms")
 
         return response
     }
@@ -36,12 +30,8 @@ class DistributionController(
     fun getTimeSeries(
         @RequestBody request: DistributionTimeSeriesRequest
     ): DistributionTimeSeriesResponse {
-        val startedAt = System.currentTimeMillis()
 
         val response = distributionService.getTimeSeries(request)
-
-        val durationMs = System.currentTimeMillis() - startedAt
-        logger.info("DISTRIBUTION - TIME-SERIES: $durationMs ms")
 
         return response
     }

@@ -107,7 +107,6 @@ export function EReceptPage() {
     const districtValues = sliderActive ? monthValues : (aggregateQuery.data?.districtValues ?? {})
     const summary = sliderActive ? monthSummary : aggregateQuery.data?.summary
 
-    // Full time series for chart
     const fullTimeSeriesQuery = useEreceptFullTimeSeries(
         hasSelection ? {
             medicinalUnitMode: common.medicinalUnitMode,
@@ -119,7 +118,6 @@ export function EReceptPage() {
         } : undefined
     )
 
-    // Collect all district codes from series for dropdown
     useEffect(() => {
         if (!seriesQuery.data?.series?.length) return
         const all = new Set<string>()
@@ -151,13 +149,21 @@ export function EReceptPage() {
             </Typography>
 
             <Typography variant="body1" color="text.secondary" mb={3}>
-                Zjistěte, kolik léčiv se v České republice předepisuje a vydává,
+                Sledujte, kolik léčiv se v České republice předepisuje a vydává,
                 a to na základě dat ze systému eRecept. Vyberte léčiva, která vás zajímají,
                 nastavte časové období a způsob zobrazení – výsledky se promítnou do mapy okresů.
             </Typography>
-
-            <Box display="flex" gap={2} alignItems="flex-start">
-                <Box width={300} flexShrink={0}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                    '@media (min-width:1000px)': {
+                        flexDirection: 'row'
+                    }
+                }}
+            >
+                <Box width={{ xs: '100%', md: 300 }} flexShrink={0}>
                     <Paper variant="outlined" sx={{ p: 2 }}>
                         <Button
                             variant="contained"
@@ -180,6 +186,7 @@ export function EReceptPage() {
                     </Paper>
                 </Box>
 
+                {/* Pravý blok s filtry a mapkou, který se na xs zlomí pod levý blok */}
                 <Box flex={1} minWidth={0}>
                     <EReceptFiltersPanel
                         dateFrom={common.dateFrom}
@@ -199,7 +206,7 @@ export function EReceptPage() {
                     />
 
                     {months.length > 1 && (
-                        <Box mt={3} display="flex" alignItems="center" gap={2}>
+                        <Box mt={3} display="flex" alignItems="center" gap={2} flexDirection={{ xs: 'column', sm: 'row' }}>
                             <IconButton onClick={() => { setIsPlaying(p => !p); setSliderActive(true) }}>
                                 {isPlaying ? <Pause /> : <PlayArrow />}
                             </IconButton>
@@ -213,7 +220,7 @@ export function EReceptPage() {
                                 }}
                                 valueLabelDisplay="on"
                                 valueLabelFormat={(i) => months[i]}
-                                sx={{ flex: 1 }}
+                                sx={{ flex: 1, width: '100%' }}
                             />
                             <Button size="small" onClick={() => setSliderActive(false)}>↺ Celé období</Button>
                         </Box>
@@ -230,19 +237,37 @@ export function EReceptPage() {
                                 : `${format(common.dateFrom!, "yyyy-MM")} až ${format(common.dateTo!, "yyyy-MM")}`})
                             </Typography>
 
-                            <Box display="flex" gap={2}>
-                                <Box flex={1} height={500}>
+                            <Box display="flex" flexWrap="wrap" gap={2}>
+                                <Box
+                                    sx={{
+                                        flex: '1 1 700px',
+                                        minWidth: 300,
+                                        maxWidth: '100%',
+                                        height: { xs: 300, sm: 420 },
+                                        boxSizing: 'border-box'
+                                    }}
+                                >
                                     {geojsonData && (
                                         <DistrictMap
                                             geojsonData={geojsonData}
                                             districtData={districtValues}
                                             filter={prescriptionDispense.aggregationType}
+                                            medicinalUnitMode={common.medicinalUnitMode}
                                         />
                                     )}
                                 </Box>
 
-                                <SummaryTiles summary={summary} />
+                                <Box
+                                    sx={{
+                                        flex: { xs: '1 1 100%', md: '0 0 300px' },
+                                        width: { xs: '100%', md: '300px' },
+                                        boxSizing: 'border-box'
+                                    }}
+                                >
+                                    <SummaryTiles summary={summary} />
+                                </Box>
                             </Box>
+
                         </Paper>
                     </Box>
 

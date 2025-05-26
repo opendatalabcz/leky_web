@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: leky-db
+    image: postgres:15
+    environment:
+      POSTGRES_USER: lekovy_portal_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: lekovy_portal
+    ports:
+      - "5433:5432"
+    networks:
+      - app-network
+
+  rabbitmq:
+    container_name: leky-rabbitmq
+    image: rabbitmq:management
+    environment:
+      RABBITMQ_DEFAULT_USER: lekovy_portal_user
+      RABBITMQ_DEFAULT_PASS: password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
+
+  backend:
+    container_name: leky-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: leky-backend:latest
+    environment:
+      DB_URL: jdbc:postgresql://leky-db:5432/lekovy_portal
+      DB_USER: lekovy_portal_user
+      DB_PASSWORD: password
+      RABBIT_HOST: leky-rabbitmq
+      RABBIT_PORT: 5672
+      RABBIT_USER: lekovy_portal_user
+      RABBIT_PASSWORD: password
+    depends_on:
+      - db
+      - rabbitmq
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  frontend:
+    container_name: leky-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: leky-frontend:latest
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

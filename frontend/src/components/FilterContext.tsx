@@ -15,7 +15,7 @@ interface PrescriptionDispenseFilters {
 }
 
 interface DistributionFlowFilters {
-    movementType: string // TODO
+    movementType: string
 }
 
 interface FilterContextValue {
@@ -32,8 +32,8 @@ interface FilterContextValue {
 const FilterContext = createContext<FilterContextValue | undefined>(undefined)
 
 const today = new Date()
-const defaultDateTo = new Date(today.getFullYear(), today.getMonth() - 4, 1)
-const defaultDateFrom = new Date(today.getFullYear() - 1, today.getMonth() - 3, 1)
+const defaultDateTo = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+const defaultDateFrom = new Date(today.getFullYear() - 1, today.getMonth() - 1, 1)
 
 const defaultCommon: CommonFilters = {
     dateFrom: defaultDateFrom,
@@ -43,7 +43,7 @@ const defaultCommon: CommonFilters = {
 
 const defaultPrescriptionDispense: PrescriptionDispenseFilters = {
     aggregationType: EReceptDataTypeAggregation.PRESCRIBED,
-    normalisationMode: PopulationNormalisationMode.ABSOLUTE,
+    normalisationMode: PopulationNormalisationMode.PER_100000_CAPITA,
 }
 
 const defaultDistributionFlow: DistributionFlowFilters = {
