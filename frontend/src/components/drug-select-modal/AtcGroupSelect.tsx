@@ -1,12 +1,8 @@
 import React from "react"
 import AsyncSelect from "react-select/async"
 import { Box } from "@mui/material"
-
-export interface AtcGroupOption {
-    id: number
-    name: string
-    code: string
-}
+import {fetchAtcGroups} from "../../services/atcGroupService";
+import {AtcGroup} from "../../types/AtcGroup";
 
 interface Option {
     label: string
@@ -22,17 +18,16 @@ export function AtcGroupSelect({ selectedAtcGroupId, onChange }: Props) {
     const loadOptions = async (inputValue: string): Promise<Option[]> => {
         if (!inputValue) return []
 
-        const response = await fetch(`/api/atc-groups?query=${encodeURIComponent(inputValue)}`)
-        if (!response.ok) {
-            console.error("Failed to fetch ATC groups")
+        try {
+            const data: AtcGroup[] = await fetchAtcGroups(inputValue)
+            return data.map((group) => ({
+                label: `${group.name} (${group.code})`,
+                value: group.id
+            }))
+        } catch (error) {
+            console.error("Error loading ATC groups:", error)
             return []
         }
-
-        const data: AtcGroupOption[] = await response.json()
-        return data.map((group) => ({
-            label: `${group.name} (${group.code})`,
-            value: group.id
-        }))
     }
 
     const handleChange = (selectedOption: Option | null) => {
@@ -58,6 +53,11 @@ export function AtcGroupSelect({ selectedAtcGroupId, onChange }: Props) {
                         minHeight: 40
                     })
                 }}
+                value={
+                    selectedAtcGroupId
+                        ? { label: "Loading...", value: selectedAtcGroupId }
+                        : null
+                }
             />
         </Box>
     )
