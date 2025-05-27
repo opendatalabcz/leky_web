@@ -19,6 +19,7 @@ import { useEreceptPrepareAnimationData } from "../hooks/useEreceptPrepareAnimat
 import { PrescriptionDispenseChart } from "../components/PrescriptionDispenseChart"
 import { useEreceptFullTimeSeries } from "../hooks/useEreceptFullTimeSeries"
 import { TimeGranularity } from "../types/TimeGranularity"
+import { ERECEPT_DATASETS } from "../types/DatasetType"
 
 interface DistrictFeatureProperties {
     nationalCode: string
@@ -296,7 +297,7 @@ export function EReceptPage() {
                 </Box>
             </Box>
 
-            <DataStatusFooter datasetTypes={["ERECEPT_PRESCRIPTIONS", "ERECEPT_DISPENSES"]} />
+            <DataStatusFooter datasetTypes={ERECEPT_DATASETS} />
 
             <DrugSelectorModal
                 open={isModalOpen}

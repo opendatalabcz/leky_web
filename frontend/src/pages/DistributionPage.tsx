@@ -1,18 +1,19 @@
-import React, {useState} from "react"
-import {Box, Button, Paper, Typography} from "@mui/material"
-import {useFilters} from "../components/FilterContext"
-import {DistributionFiltersPanel} from "../components/DistributionFiltersPanel"
-import {DrugSelectorModal} from "../components/drug-select-modal/DrugSelectorModal"
-import {SelectedMedicinalProductSummary} from "../components/SelectedMedicinalProductSummary"
-import {DataStatusFooter} from "../components/DataStatusFooter"
-import {SankeyChart} from "../components/distribution/SankeyChart"
-import {useDrugCart} from "../components/drug-select-modal/DrugCartContext"
-import {format} from "date-fns"
-import {useDistributionTimeSeries} from "../hooks/useDistributionTimeSeries"
-import {useDistributionSankeyDiagram} from "../hooks/useDistributionSankeyDiagram"
-import {MedicinalUnitMode} from "../types/MedicinalUnitMode"
-import {TimeGranularity} from "../types/TimeGranularity";
-import {DistributionTimeSeriesChart} from "../components/DistributionTimeSeriesChart";
+import React, { useState } from "react"
+import { Box, Button, Paper, Typography } from "@mui/material"
+import { useFilters } from "../components/FilterContext"
+import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel"
+import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
+import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
+import { DataStatusFooter } from "../components/DataStatusFooter"
+import { SankeyChart } from "../components/distribution/SankeyChart"
+import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
+import { format } from "date-fns"
+import { useDistributionTimeSeries } from "../hooks/useDistributionTimeSeries"
+import { useDistributionSankeyDiagram } from "../hooks/useDistributionSankeyDiagram"
+import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
+import { TimeGranularity } from "../types/TimeGranularity"
+import { DistributionTimeSeriesChart } from "../components/DistributionTimeSeriesChart"
+import { DISTRIBUTION_DATASETS } from "../types/DatasetType"
 
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
@@ -138,11 +139,7 @@ export function DistributionPage() {
                 </Box>
             </Box>
 
-            <DataStatusFooter datasetTypes={[
-                "DISTRIBUTIONS_FROM_MAHS",
-                "DISTRIBUTIONS_FROM_DISTRIBUTORS",
-                "DISTRIBUTIONS_FROM_PHARMACIES"
-            ]} />
+            <DataStatusFooter datasetTypes={DISTRIBUTION_DATASETS} />
 
             <DrugSelectorModal
                 open={isModalOpen}
