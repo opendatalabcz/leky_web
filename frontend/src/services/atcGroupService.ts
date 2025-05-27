@@ -1,4 +1,6 @@
-import { AtcGroup } from "../types"
+// services/atcGroupService.ts
+
+import { AtcGroup } from "../types/AtcGroup"
 
 export async function fetchAtcGroups(): Promise<AtcGroup[]> {
     const response = await fetch("/api/atc-groups")
