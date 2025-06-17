@@ -1,9 +1,21 @@
+// services/ereceptService.ts
+
 import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
 import { PopulationNormalisationMode } from "../types/PopulationNormalisationMode"
 import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
 import { TimeGranularity } from "../types/TimeGranularity"
+import {MedicineProductInfo} from "../types/MedicineProductInfo";
 
-// ======= DTOs: Erecept Aggregate by District =======
+// ======= Shared Types =======
+
+export type SummaryValues = {
+    prescribed: number
+    dispensed: number
+    difference: number
+    percentageDifference: number
+}
+
+// ======= DTOs: Aggregate by District =======
 
 export type EreceptAggregateByDistrictRequest = {
     medicinalProductIds: number[]
@@ -13,18 +25,6 @@ export type EreceptAggregateByDistrictRequest = {
     aggregationType: EReceptDataTypeAggregation
     medicinalUnitMode: MedicinalUnitMode
     normalisationMode: PopulationNormalisationMode
-}
-
-export type MedicineProductInfo = {
-    id: number
-    suklCode: string
-}
-
-export type SummaryValues = {
-    prescribed: number
-    dispensed: number
-    difference: number
-    percentageDifference: number
 }
 
 export type EreceptAggregateByDistrictResponse = {
@@ -40,22 +40,22 @@ export type EreceptAggregateByDistrictResponse = {
 }
 
 export async function fetchEreceptAggregateByDistrict(
-    req: EreceptAggregateByDistrictRequest
+    request: EreceptAggregateByDistrictRequest
 ): Promise<EreceptAggregateByDistrictResponse> {
-    const res = await fetch("/api/erecept/prescription-dispense/time-aggregate/by-district", {
+    const response = await fetch("/api/erecept/prescription-dispense/time-aggregate/by-district", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req)
+        body: JSON.stringify(request)
     })
 
-    if (!res.ok) {
-        throw new Error("Nepodařilo se načíst agregovaná data podle okresů")
+    if (!response.ok) {
+        throw new Error("Failed to fetch aggregated data by district")
     }
 
-    return res.json()
+    return response.json()
 }
 
-// ======= DTOs: Erecept Time Series by District =======
+// ======= DTOs: Time Series by District =======
 
 export type EreceptTimeSeriesByDistrictRequest = EreceptAggregateByDistrictRequest
 
@@ -77,22 +77,22 @@ export type EreceptTimeSeriesByDistrictResponse = {
 }
 
 export async function fetchEreceptTimeSeriesByDistrict(
-    req: EreceptTimeSeriesByDistrictRequest
+    request: EreceptTimeSeriesByDistrictRequest
 ): Promise<EreceptTimeSeriesByDistrictResponse> {
-    const res = await fetch("/api/erecept/prescription-dispense/time-series/by-district", {
+    const response = await fetch("/api/erecept/prescription-dispense/time-series/by-district", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req)
+        body: JSON.stringify(request)
     })
 
-    if (!res.ok) {
-        throw new Error("Nepodařilo se načíst časovou řadu podle okresů")
+    if (!response.ok) {
+        throw new Error("Failed to fetch time series by district")
     }
 
-    return res.json()
+    return response.json()
 }
 
-// ======= DTOs: Erecept Full Time Series =======
+// ======= DTOs: Full Time Series =======
 
 export type EreceptFullTimeSeriesRequest = {
     medicinalProductIds: number[]
@@ -121,17 +121,17 @@ export type EreceptFullTimeSeriesResponse = {
 }
 
 export async function fetchEreceptFullTimeSeries(
-    req: EreceptFullTimeSeriesRequest
+    request: EreceptFullTimeSeriesRequest
 ): Promise<EreceptFullTimeSeriesResponse> {
-    const res = await fetch("/api/erecept/prescription-dispense/time-series", {
+    const response = await fetch("/api/erecept/prescription-dispense/time-series", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req)
+        body: JSON.stringify(request)
     })
 
-    if (!res.ok) {
-        throw new Error("Nepodařilo se načíst úplnou časovou řadu")
+    if (!response.ok) {
+        throw new Error("Failed to fetch full time series")
     }
 
-    return res.json()
+    return response.json()
 }

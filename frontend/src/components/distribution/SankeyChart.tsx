@@ -39,16 +39,19 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
 
     const graph = { nodes, links };
 
+    // Dynamically increase height based on number of nodes to avoid compression
+    const dynamicHeight = Math.max(height, nodes.length * 40);
+
     return (
         <Box sx={{ width: '100%', overflowX: 'auto' }}>
             <Box sx={{ minWidth: '1000px' }}>
-                <svg width="1000" height={height}>
+                <svg width="1000" height={dynamicHeight}>
                     <Sankey<NodeDatum, LinkDatum>
                         root={graph}
-                        size={[1000 - 80, height - 48]} // 1000px šířka mínus marginy
+                        size={[1000 - 80, dynamicHeight - 48]}
                         nodeAlign={sankeyCenter}
                         nodeWidth={20}
-                        nodePadding={64}
+                        nodePadding={40}
                         nodeId={(d) => d.id}
                     >
                         {({ graph, createPath }) => (
@@ -67,7 +70,9 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                     const pathD = createPath(link);
                                     if (!pathD) return null;
 
-                                    const linkWidth = link.width ?? 1;
+                                    const rawWidth = link.width ?? 1;
+                                    const MIN_WIDTH = 3;
+                                    const strokeWidth = Math.max(MIN_WIDTH, rawWidth);
 
                                     const sourceX = (link.source as SankeyNode<NodeDatum, LinkDatum>).x1 ?? 0;
                                     const sourceY = (link.y0 ?? 0) + ((link.y1 ?? 0) - (link.y0 ?? 0)) / 2;
@@ -83,13 +88,13 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                 d={pathD}
                                                 fill="none"
                                                 stroke={color(targetLabel)}
-                                                strokeWidth={Math.max(1, linkWidth)}
+                                                strokeWidth={strokeWidth}
                                                 strokeOpacity={0.35}
                                             >
                                                 <title>{`${sourceLabel} → ${targetLabel}: ${link.value} ${unitWord}`}</title>
                                             </path>
 
-                                            {link.width && link.width > 64 && (
+                                            {strokeWidth > 64 && (
                                                 <text
                                                     x={midX}
                                                     y={midY}

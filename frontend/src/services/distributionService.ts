@@ -2,6 +2,7 @@
 
 import { TimeGranularity } from "../types/TimeGranularity"
 import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
+import {MedicineProductInfo} from "../types/MedicineProductInfo";
 
 // ======= DTOs: Sankey Diagram =======
 
@@ -25,8 +26,8 @@ export type SankeyLinkDto = {
 }
 
 export type DistributionSankeyResponse = {
-    includedMedicineProducts: { id: number; suklCode: string }[]
-    ignoredMedicineProducts: { id: number; suklCode: string }[]
+    includedMedicineProducts: MedicineProductInfo[]
+    ignoredMedicineProducts: MedicineProductInfo[]
     dateFrom: string
     dateTo: string
     medicinalUnitMode: MedicinalUnitMode
@@ -35,19 +36,19 @@ export type DistributionSankeyResponse = {
 }
 
 export async function fetchDistributionSankeyDiagram(
-    req: DistributionSankeyRequest
+    request: DistributionSankeyRequest
 ): Promise<DistributionSankeyResponse> {
-    const res = await fetch("/api/distribution/sankey-diagram", {
+    const response = await fetch("/api/distribution/sankey-diagram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req)
+        body: JSON.stringify(request)
     })
 
-    if (!res.ok) {
-        throw new Error("Nepodařilo se načíst data pro Sankey diagram distribuce")
+    if (!response.ok) {
+        throw new Error("Failed to fetch data for distribution Sankey diagram")
     }
 
-    return res.json()
+    return response.json()
 }
 
 // ======= DTOs: Time Series =======
@@ -73,8 +74,8 @@ export type DistributionTimeSeriesPeriodEntry = {
 }
 
 export type DistributionTimeSeriesResponse = {
-    includedMedicineProducts: { id: number; suklCode: string }[]
-    ignoredMedicineProducts: { id: number; suklCode: string }[]
+    includedMedicineProducts: MedicineProductInfo[]
+    ignoredMedicineProducts: MedicineProductInfo[]
     dateFrom: string
     dateTo: string
     medicinalUnitMode: MedicinalUnitMode
@@ -83,17 +84,17 @@ export type DistributionTimeSeriesResponse = {
 }
 
 export async function fetchDistributionTimeSeries(
-    req: DistributionTimeSeriesRequest
+    request: DistributionTimeSeriesRequest
 ): Promise<DistributionTimeSeriesResponse> {
-    const res = await fetch("/api/distribution/time-series", {
+    const response = await fetch("/api/distribution/time-series", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req)
+        body: JSON.stringify(request)
     })
 
-    if (!res.ok) {
-        throw new Error("Nepodařilo se načíst data pro časovou řadu distribuce")
+    if (!response.ok) {
+        throw new Error("Failed to fetch data for distribution time series")
     }
 
-    return res.json()
+    return response.json()
 }
