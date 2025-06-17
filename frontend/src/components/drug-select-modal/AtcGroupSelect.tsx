@@ -53,11 +53,6 @@ export function AtcGroupSelect({ selectedAtcGroupId, onChange }: Props) {
                         minHeight: 40
                     })
                 }}
-                value={
-                    selectedAtcGroupId
-                        ? { label: "Loading...", value: selectedAtcGroupId }
-                        : null
-                }
             />
         </Box>
     )
