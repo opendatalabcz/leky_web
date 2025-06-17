@@ -6,6 +6,7 @@ import cz.machovec.lekovyportal.core.dto.erecept.EreceptTimeSeriesDistrictDto
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import org.springframework.stereotype.Repository
+import java.math.BigDecimal
 import java.time.YearMonth
 
 @Repository
@@ -76,8 +77,8 @@ class EreceptRepositoryImpl : EreceptRepository {
             EreceptAggregatedDistrictDto(
                 districtCode = row[0] as String,
                 medicinalProductId = (row[1] as Number).toLong(),
-                prescribed = (row[2] as Number).toInt(),
-                dispensed = (row[3] as Number).toInt(),
+                prescribed = row[2] as BigDecimal,
+                dispensed = row[3] as BigDecimal,
                 population = (row[4] as Number).toInt()
             )
         }
@@ -135,8 +136,8 @@ class EreceptRepositoryImpl : EreceptRepository {
                 month = (r[1] as Number).toInt(),
                 districtCode = r[2] as String,
                 medicinalProductId = (r[3] as Number).toLong(),
-                prescribed = (r[4] as Number).toInt(),
-                dispensed = (r[5] as Number).toInt(),
+                prescribed = r[4] as BigDecimal,
+                dispensed = r[5] as BigDecimal,
                 population = (r[6] as Number).toInt()
             )
         }
@@ -181,8 +182,8 @@ class EreceptRepositoryImpl : EreceptRepository {
                 month = (row[1] as Number).toInt(),
                 districtCode = row[2] as String,
                 medicinalProductId = (row[3] as Number).toLong(),
-                prescribed = (row[4] as Number).toInt(),
-                dispensed = (row[5] as Number).toInt()
+                prescribed = row[4] as BigDecimal,
+                dispensed = row[5] as BigDecimal
             )
         }
     }

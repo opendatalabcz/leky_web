@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS erecept_prescription (
     year                 INT NOT NULL,
     month                INT NOT NULL,
     medicinal_product_id BIGINT NOT NULL REFERENCES mpd_medicinal_product(id),
-    quantity             INT NOT NULL
+    quantity             NUMERIC(10,3) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS erecept_dispense (
@@ -109,6 +109,6 @@ CREATE TABLE IF NOT EXISTS erecept_dispense (
     year                 INT NOT NULL,
     month                INT NOT NULL,
     medicinal_product_id BIGINT NOT NULL REFERENCES mpd_medicinal_product(id),
-    quantity             INT NOT NULL
+    quantity             NUMERIC(10,3) NOT NULL
 );
 

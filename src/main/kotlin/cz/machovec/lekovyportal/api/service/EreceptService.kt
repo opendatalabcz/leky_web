@@ -148,9 +148,9 @@ class EreceptService(
 
         // Step 3: Convert package counts to requested unit mode
         val monthly = raw.map {
-            val prescribed = districtAggregator.convertValue(it.medicinalProductId, it.prescribed.toLong(), request.medicinalUnitMode, dddPerProduct)
-            val dispensed  = districtAggregator.convertValue(it.medicinalProductId, it.dispensed.toLong(), request.medicinalUnitMode, dddPerProduct)
-            it.copy(prescribed = prescribed.toInt(), dispensed = dispensed.toInt())
+            val prescribed = districtAggregator.convertValue(it.medicinalProductId, it.prescribed, request.medicinalUnitMode, dddPerProduct)
+            val dispensed  = districtAggregator.convertValue(it.medicinalProductId, it.dispensed, request.medicinalUnitMode, dddPerProduct)
+            it.copy(prescribed = prescribed, dispensed = dispensed)
         }
 
         // Step 4: Group data by requested time granularity
@@ -160,8 +160,8 @@ class EreceptService(
         }
 
         val series = grouped.toSortedMap().map { (period, rows) ->
-            val prescribed = rows.sumOf { it.prescribed }
-            val dispensed = rows.sumOf { it.dispensed }
+            val prescribed = rows.sumOf { it.prescribed }.toInt()
+            val dispensed  = rows.sumOf { it.dispensed }.toInt()
             EreceptFullTimeSeriesEntry(
                 period = period,
                 prescribed = prescribed,

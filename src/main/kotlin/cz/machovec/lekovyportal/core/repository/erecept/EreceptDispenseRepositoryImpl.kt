@@ -23,7 +23,7 @@ class EreceptDispenseRepositoryImpl(
             ps.setInt(2, record.year)
             ps.setInt(3, record.month)
             ps.setLong(4, record.medicinalProduct.id!!)
-            ps.setInt(5, record.quantity)
+            ps.setBigDecimal(5, record.quantity)
         }
     }
 }

@@ -10,7 +10,7 @@ class ScraperScheduler(
     private val datasetDiscoveryService: DatasetDiscoveryService,
     private val messagePublisher: MessagePublisher
 ) {
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "0 15 14 * * ?")
     fun doScraping() {
         datasetDiscoveryService.discoverDatasetsToProcess().forEach(messagePublisher::publish)
     }

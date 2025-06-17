@@ -8,6 +8,7 @@ import cz.machovec.lekovyportal.core.dto.distribution.AggregateDistributorProduc
 import cz.machovec.lekovyportal.core.dto.distribution.AggregateMahProductMovementCountDto
 import cz.machovec.lekovyportal.core.dto.distribution.AggregatePharmacyProductDispenseCountDto
 import org.springframework.stereotype.Component
+import java.math.BigDecimal
 
 @Component
 class SankeyDiagramAssembler(
@@ -19,7 +20,7 @@ class SankeyDiagramAssembler(
         dist: List<AggregateDistributorProductMovementCountDto>,
         pharm: List<AggregatePharmacyProductDispenseCountDto>,
         converter: DoseUnitConverter,
-        dddPerProduct: Map<Long, java.math.BigDecimal>
+        dddPerProduct: Map<Long, BigDecimal>
     ): Pair<List<SankeyNodeDto>, List<SankeyLinkDto>> {
 
         val nodes = mutableSetOf<SankeyNodeDto>()
@@ -39,14 +40,14 @@ class SankeyDiagramAssembler(
             .let { g ->
                 val delivered = g[MovementType.DELIVERY]?.sumOf {
                     converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
-                } ?: 0L
+                } ?: BigDecimal.ZERO
                 val returned  = g[MovementType.RETURN]?.sumOf {
                     converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
-                } ?: 0L
+                } ?: BigDecimal.ZERO
                 addLink(
                     "MAH", "Registrátor",
                     "Distributor", "Distributor",
-                    delivered - returned
+                    (delivered - returned).toLong()
                 )
             }
 
@@ -55,13 +56,13 @@ class SankeyDiagramAssembler(
             .let { g ->
                 val delivered = g[MovementType.DELIVERY]?.sumOf {
                     converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
-                } ?: 0L
+                } ?: BigDecimal.ZERO
                 val returned  = g[MovementType.RETURN]?.sumOf {
-                    converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
-                } ?: 0L
+                    converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
+                } ?: BigDecimal.ZERO
                 val targetId    = labelResolver.nodeIdForMahPurchaser(MahPurchaserType.AUTHORIZED_PERSON)
                 val targetLabel = labelResolver.nodeLabelForMahPurchaser(MahPurchaserType.AUTHORIZED_PERSON)
-                addLink("MAH", "Registrátor", targetId, targetLabel, delivered - returned)
+                addLink("MAH", "Registrátor", targetId, targetLabel, (delivered - returned).toLong())
             }
 
 
@@ -73,22 +74,22 @@ class SankeyDiagramAssembler(
                 converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
             }
             val net = delivered - returned
-            if (net <= 0 || purchType == DistributorPurchaserType.DISTRIBUTOR_CR) return@forEach
+            if (net <= BigDecimal.ZERO || purchType == DistributorPurchaserType.DISTRIBUTOR_CR) return@forEach
 
             val targetId    = labelResolver.nodeIdForDistributorPurchaser(purchType)
             val targetLabel = labelResolver.nodeLabelForDistributorPurchaser(purchType)
-            addLink("Distributor", "Distributor", targetId, targetLabel, net)
+            addLink("Distributor", "Distributor", targetId, targetLabel, net.toLong())
         }
 
 
         pharm.groupBy { it.dispenseType }.forEach { (dispType, list) ->
             val total = list.sumOf {
-                converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
+                converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
             }
-            if (total > 0) {
+            if (total > BigDecimal.ZERO) {
                 val id    = labelResolver.nodeIdForDispenseType(dispType)
                 val label = labelResolver.nodeLabelForDispenseType(dispType)
-                addLink("Pharmacy", "Lékárna", id, label, total)
+                addLink("Pharmacy", "Lékárna", id, label, total.toLong())
             }
         }
 

@@ -29,10 +29,10 @@ class DistrictAggregator(
             .mapValues { (_, districtRows) ->
 
                 val prescribed = districtRows.sumOf {
-                    converter.convert(it.medicinalProductId, it.prescribed.toLong(), dddPerProduct)
+                    converter.convert(it.medicinalProductId, it.prescribed, dddPerProduct)
                 }
                 val dispensed  = districtRows.sumOf {
-                    converter.convert(it.medicinalProductId, it.dispensed.toLong(), dddPerProduct)
+                    converter.convert(it.medicinalProductId, it.dispensed, dddPerProduct)
                 }
                 val population = districtRows.first().population
 
@@ -67,10 +67,10 @@ class DistrictAggregator(
 
     fun convertValue(
         productId: Long,
-        rawPackages: Long,
+        rawPackages: BigDecimal,
         unitMode: MedicinalUnitMode,
         dddPerProduct: Map<Long, BigDecimal>
-    ): Long {
+    ): BigDecimal {
         val converter = converterFactory.of(unitMode)
         return converter.convert(productId, rawPackages, dddPerProduct)
     }
