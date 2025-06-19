@@ -5,9 +5,9 @@ services:
     container_name: leky-db
     image: postgres:15
     environment:
-      POSTGRES_USER: lekovy_portal_user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: lekovy_portal
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5433:5432"
     networks:
@@ -17,8 +17,8 @@ services:
     container_name: leky-rabbitmq
     image: rabbitmq:management
     environment:
-      RABBITMQ_DEFAULT_USER: lekovy_portal_user
-      RABBITMQ_DEFAULT_PASS: password
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -32,13 +32,13 @@ services:
       dockerfile: Dockerfile
     image: leky-backend:latest
     environment:
-      DB_URL: jdbc:postgresql://leky-db:5432/lekovy_portal
-      DB_USER: lekovy_portal_user
-      DB_PASSWORD: password
-      RABBIT_HOST: leky-rabbitmq
-      RABBIT_PORT: 5672
-      RABBIT_USER: lekovy_portal_user
-      RABBIT_PASSWORD: password
+      DB_URL: ${DB_URL}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      RABBIT_HOST: ${RABBIT_HOST}
+      RABBIT_PORT: ${RABBIT_PORT}
+      RABBIT_USER: ${RABBIT_USER}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD}
     depends_on:
       - db
       - rabbitmq
