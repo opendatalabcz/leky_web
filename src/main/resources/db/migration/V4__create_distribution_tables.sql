@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS dist_from_mahs (
     movement_type        VARCHAR(20) NOT NULL CHECK (
                             movement_type IN ('DELIVERY', 'RETURN')
     ),
-    package_count        INT NOT NULL
+    package_count        NUMERIC(10,3) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS dist_from_distributors (
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS dist_from_distributors (
     movement_type        VARCHAR(20) NOT NULL CHECK (
                             movement_type IN ('DELIVERY', 'RETURN')
     ),
-    package_count        INT NOT NULL
+    package_count        NUMERIC(10,3) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS dist_export_from_distributors (
@@ -57,8 +57,8 @@ CREATE TABLE IF NOT EXISTS dist_export_from_distributors (
     movement_type        VARCHAR(20) NOT NULL CHECK (
                             movement_type IN ('DELIVERY', 'RETURN')
     ),
-    package_count        INT NOT NULL,
-    subject              VARCHAR(50) NOT NULL
+    package_count        NUMERIC(10,3) NOT NULL,
+    subject              VARCHAR(200) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS dist_from_pharmacies (

@@ -9,6 +9,7 @@ import cz.machovec.lekovyportal.core.dto.distribution.MonthlyDistributorProductM
 import cz.machovec.lekovyportal.core.dto.distribution.MonthlyMahProductMovementCountDto
 import cz.machovec.lekovyportal.core.dto.distribution.MonthlyPharmacyProductDispenseCountDto
 import org.springframework.stereotype.Component
+import java.math.BigDecimal
 
 @Component
 class TimeSeriesAssembler(
@@ -21,7 +22,7 @@ class TimeSeriesAssembler(
         pharm: List<MonthlyPharmacyProductDispenseCountDto>,
         granularity: TimeGranularity,
         converter: DoseUnitConverter,
-        dddPerProduct: Map<Long, java.math.BigDecimal>
+        dddPerProduct: Map<Long, BigDecimal>
     ): List<DistributionTimeSeriesPeriodEntry> {
 
         fun periodKey(y: Int, m: Int): String =
@@ -45,13 +46,13 @@ class TimeSeriesAssembler(
                 .groupBy { it.movementType }
                 .let { g ->
                     val deliv = g[MovementType.DELIVERY]?.sumOf {
-                        converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
-                    } ?: 0L
+                        converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
+                    } ?: BigDecimal.ZERO
                     val ret = g[MovementType.RETURN]?.sumOf {
-                        converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
-                    } ?: 0L
+                        converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
+                    } ?: BigDecimal.ZERO
                     val net = deliv - ret
-                    if (net > 0) flows += DistributionFlowEntry(sourceMahLabel, sourceDistributorLabel, net.toInt())
+                    if (net > BigDecimal.ZERO) flows += DistributionFlowEntry(sourceMahLabel, sourceDistributorLabel, net.toInt())
                 }
 
             // ---------- MAH → OOV ----------
@@ -59,13 +60,13 @@ class TimeSeriesAssembler(
                 .groupBy { it.movementType }
                 .let { g ->
                     val deliv = g[MovementType.DELIVERY]?.sumOf {
-                        converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
-                    } ?: 0L
+                        converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
+                    } ?: BigDecimal.ZERO
                     val ret = g[MovementType.RETURN]?.sumOf {
-                        converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
-                    } ?: 0L
+                        converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
+                    } ?: BigDecimal.ZERO
                     val net = deliv - ret
-                    if (net > 0) {
+                    if (net > BigDecimal.ZERO) {
                         val target = labelResolver.nodeLabelForMahPurchaser(MahPurchaserType.AUTHORIZED_PERSON)
                         if (sourceMahLabel != target) flows += DistributionFlowEntry(sourceMahLabel, target, net.toInt())
                     }
@@ -76,13 +77,13 @@ class TimeSeriesAssembler(
                 .groupBy { it.purchaserType }
                 .forEach { (purch, list) ->
                     val deliv = list.filter { it.movementType == MovementType.DELIVERY }.sumOf {
-                        converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
+                        converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
                     }
                     val ret = list.filter { it.movementType == MovementType.RETURN }.sumOf {
-                        converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
+                        converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
                     }
                     val net = deliv - ret
-                    if (net <= 0) return@forEach
+                    if (net <= BigDecimal.ZERO) return@forEach
 
                     val target = labelResolver.nodeLabelForDistributorPurchaser(purch)
                     if (sourceDistributorLabel != target) flows += DistributionFlowEntry(sourceDistributorLabel, target, net.toInt())
@@ -93,9 +94,9 @@ class TimeSeriesAssembler(
                 .groupBy { it.dispenseType }
                 .forEach { (disp, list) ->
                     val total = list.sumOf {
-                        converter.convert(it.medicinalProductId, it.packageCount.toLong(), dddPerProduct)
+                        converter.convert(it.medicinalProductId, it.packageCount, dddPerProduct)
                     }
-                    if (total > 0) {
+                    if (total > BigDecimal.ZERO) {
                         val target = labelResolver.nodeLabelForDispenseType(disp)
                         if (sourcePharmacyLabel != target) flows += DistributionFlowEntry(sourcePharmacyLabel, target, total.toInt())
                     }

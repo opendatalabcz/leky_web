@@ -57,8 +57,7 @@ class DistExportFromDistributorsRowMapper(
 
         val packageCount = row[DistDistributorExportCsvColumn.PACKAGE_COUNT]
             ?.replace(",", ".")
-            ?.toDoubleOrNull()
-            ?.toInt()
+            ?.toBigDecimalOrNull()
             ?: return RowMappingResult.Failure(RowFailure(FailureReason.PARSE_ERROR, DistDistributorExportCsvColumn.PACKAGE_COUNT.name, rawLine))
 
         val subject = row[DistDistributorExportCsvColumn.SUBJECT]

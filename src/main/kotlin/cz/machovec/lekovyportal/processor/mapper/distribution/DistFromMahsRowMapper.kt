@@ -55,8 +55,7 @@ class DistFromMahsRowMapper(
 
         val packageCount = row[DistMahCsvColumn.PACKAGE_COUNT]
             ?.replace(",", ".")
-            ?.toDoubleOrNull()
-            ?.toInt()
+            ?.toBigDecimalOrNull()
             ?: return RowMappingResult.Failure(RowFailure(FailureReason.PARSE_ERROR, DistMahCsvColumn.PACKAGE_COUNT.name, rawLine))
 
         /* ---------- entity construction ---------- */

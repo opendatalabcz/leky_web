@@ -10,6 +10,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 
 @Entity
@@ -37,5 +38,5 @@ data class EreceptDispense(
     val medicinalProduct: MpdMedicinalProduct,
 
     @Column(name = "quantity", nullable = false)
-    val quantity: Int
+    val quantity: BigDecimal
 )

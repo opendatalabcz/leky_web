@@ -4,13 +4,14 @@ import cz.machovec.lekovyportal.core.domain.erecept.District
 import cz.machovec.lekovyportal.core.domain.erecept.EreceptDispense
 import cz.machovec.lekovyportal.core.domain.erecept.EreceptPrescription
 import cz.machovec.lekovyportal.processor.processing.mpd.MpdReferenceDataProvider
+import java.math.BigDecimal
 
 data class EreceptRawData(
     val districtCode: String,
     val year: Int,
     val month: Int,
     val suklCode: String,
-    val quantity: Int
+    val quantity: BigDecimal
 )
 
 fun EreceptRawData.toDispenseEntity(

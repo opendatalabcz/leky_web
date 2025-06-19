@@ -12,6 +12,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 
 @Entity
@@ -43,7 +44,7 @@ data class DistExportFromDistributors(
     val movementType: MovementType,
 
     @Column(name = "package_count", nullable = false)
-    val packageCount: Int,
+    val packageCount: BigDecimal,
 
     @Column(name = "subject", nullable = false)
     val subject: String,

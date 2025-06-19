@@ -35,7 +35,7 @@ class EreceptRawDataRowMapper : BaseSimpleRowMapper<EreceptCsvColumn, EreceptRaw
         val suklCode = row[EreceptCsvColumn.SUKL_CODE].safeTrim()
             ?: return RowMappingResult.Failure(RowFailure(FailureReason.MISSING_ATTRIBUTE, EreceptCsvColumn.SUKL_CODE.name, rawLine))
 
-        val quantity = row[EreceptCsvColumn.QUANTITY]?.toIntOrNull()
+        val quantity = row[EreceptCsvColumn.QUANTITY]?.toBigDecimalOrNull()
             ?: return RowMappingResult.Failure(RowFailure(FailureReason.PARSE_ERROR, EreceptCsvColumn.QUANTITY.name, rawLine))
 
         /* ---------- data object construction ---------- */
