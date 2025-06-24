@@ -25,9 +25,6 @@ class DatasetProcessingEvaluator(
     fun canProcessMonth(datasetType: DatasetType, year: Int, month: Int): Boolean {
         val currentPeriod = YearMonth.of(year, month)
 
-        if (year >= 2022) {
-            return false
-        }
         // 1 – Already processed -> false
         if (processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(datasetType, year, month)) {
             logger.debug { "Dataset $datasetType for $year-$month already processed – skipping." }
