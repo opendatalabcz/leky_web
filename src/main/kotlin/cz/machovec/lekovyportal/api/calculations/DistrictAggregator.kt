@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.core.dto.erecept.EreceptAggregatedDistrictDto
 import cz.machovec.lekovyportal.core.dto.erecept.EreceptTimeSeriesDistrictDto
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 @Component
 class DistrictAggregator(
@@ -42,7 +43,9 @@ class DistrictAggregator(
                     EreceptType.DIFFERENCE -> prescribed - dispensed
                 }
 
-                normaliser.normalise(raw, population).toInt()
+                normaliser.normalise(raw, population)
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .toInt()
             }
     }
 
