@@ -59,15 +59,24 @@ class DatasetProcessingEvaluator(
             DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS,
             DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS,
             DatasetType.DISTRIBUTIONS_FROM_PHARMACIES -> {
-                val mpdExists = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-                    DatasetType.MEDICINAL_PRODUCT_DATABASE,
-                    year,
-                    month
-                )
-                if (!mpdExists) {
-                    logger.debug { "MPD data missing for $year-$month – cannot process $datasetType." }
+                return if (year < FIRST_MPD_PERIOD.year) {
+                    // Allow processing for historical months if any MPD exists
+                    val mpdExists = processedDatasetRepository.existsByDatasetType(DatasetType.MEDICINAL_PRODUCT_DATABASE)
+                    if (!mpdExists) {
+                        logger.debug { "No MPD datasets imported yet – cannot process historical $datasetType ($year-$month)." }
+                    }
+                    mpdExists
+                } else {
+                    val mpdExists = processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
+                        DatasetType.MEDICINAL_PRODUCT_DATABASE,
+                        year,
+                        month
+                    )
+                    if (!mpdExists) {
+                        logger.debug { "MPD data missing for $year-$month – cannot process $datasetType." }
+                    }
+                    mpdExists
                 }
-                mpdExists
             }
         }
     }
