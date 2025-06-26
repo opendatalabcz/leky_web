@@ -6,6 +6,7 @@ import { DistributionPage } from "./pages/DistributionPage"
 import { EReceptPage } from "./pages/EReceptPage"
 import { FilterProvider } from "./components/FilterContext"
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+import {SiteFooter} from "./components/SiteFooter";
 
 const queryClient = new QueryClient()
 
@@ -24,6 +25,7 @@ export default function App() {
                                 <Route path="*" element={<Navigate to="/predepisovani-a-vydej" replace />} />
                             </Routes>
                         </main>
+                        <SiteFooter />
                     </BrowserRouter>
                 </FilterProvider>
             </DrugCartProvider>
