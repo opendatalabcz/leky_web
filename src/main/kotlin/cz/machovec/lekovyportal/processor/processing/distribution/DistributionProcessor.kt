@@ -157,28 +157,28 @@ class DistributionProcessor(
     private fun persistMahs(sequence: Sequence<DistFromMahs>) {
         persistBatched(
             sequence,
-            mahRepo::saveAll
+            mahRepo::batchInsert
         )
     }
 
     private fun persistDistributors(sequence: Sequence<DistFromDistributors>) {
         persistBatched(
             sequence,
-            distRepo::saveAll
+            distRepo::batchInsert
         )
     }
 
     private fun persistExports(sequence: Sequence<DistExportFromDistributors>) {
         persistBatched(
             sequence,
-            exportRepo::saveAll
+            exportRepo::batchInsert
         )
     }
 
     private fun persistPharmacies(sequence: Sequence<DistFromPharmacies>) {
         persistBatched(
             sequence,
-            pharmacyRepo::saveAll
+            pharmacyRepo::batchInsert
         )
     }
 

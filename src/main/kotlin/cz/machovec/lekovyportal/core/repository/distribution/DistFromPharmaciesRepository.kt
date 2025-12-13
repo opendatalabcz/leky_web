@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
-interface DistFromPharmaciesRepository : JpaRepository<DistFromPharmacies, Long> {
+interface DistFromPharmaciesRepository : JpaRepository<DistFromPharmacies, Long>, DistFromPharmaciesRepositoryCustom {
 
     @Query("""
         SELECT new cz.machovec.lekovyportal.core.dto.distribution.AggregatePharmacyProductDispenseCountDto(
