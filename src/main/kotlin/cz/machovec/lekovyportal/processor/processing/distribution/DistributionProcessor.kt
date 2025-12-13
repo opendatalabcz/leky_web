@@ -1,6 +1,7 @@
 package cz.machovec.lekovyportal.processor.processing.distribution
 
 import cz.machovec.lekovyportal.core.domain.dataset.DatasetType
+import cz.machovec.lekovyportal.core.domain.dataset.FileType
 import cz.machovec.lekovyportal.core.domain.dataset.ProcessedDataset
 import cz.machovec.lekovyportal.core.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.core.repository.distribution.DistExportFromDistributorsRepository
@@ -26,8 +27,14 @@ import cz.machovec.lekovyportal.processor.util.RemoteFileDownloader
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.io.BufferedReader
+import java.io.ByteArrayInputStream
+import java.io.FilterReader
+import java.io.InputStreamReader
+import java.io.Reader
 import java.net.URI
 import java.nio.charset.Charset
+import java.util.zip.ZipInputStream
 
 @Service
 class DistributionProcessor(
@@ -36,7 +43,6 @@ class DistributionProcessor(
     private val exportRepo: DistExportFromDistributorsRepository,
     private val pharmacyRepo: DistFromPharmaciesRepository,
     private val processedRepo: ProcessedDatasetRepository,
-    private val distCsvExtractor: DistCsvExtractor,
     private val downloader: RemoteFileDownloader,
     private val refData: MpdReferenceDataProvider,
     private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
@@ -49,6 +55,8 @@ class DistributionProcessor(
         private val CHARSET = Charset.forName("Windows-1250")
         private const val CSV_DATA_SEPARATOR = ';'
         private const val BATCH_SIZE = 5_000
+        private val PHARMACY_CSV_FILENAME_MONTH_REGEX = Regex("""LEK13_\d{4}(\d{2})v\d+\.csv""")
+        private val ZIP_SUPPORTED_DATASETS = setOf(DatasetType.DISTRIBUTIONS_FROM_PHARMACIES)
     }
 
     @Transactional
@@ -58,90 +66,147 @@ class DistributionProcessor(
         val fileBytes = downloader.downloadFile(URI(msg.fileUrl))
             ?: return logger.error { "Download failed: ${msg.fileUrl}" }
 
-        // Step 2 – Extract CSV files (per month)
-        val csvByMonth = distCsvExtractor.extractCsvFilesByMonth(fileBytes, msg.month, msg.fileType, msg.datasetType)
-
-        // Step 3 – Parse & persist per month
-        for ((month, csvBytes) in csvByMonth) {
-            if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) {
-                continue
+        // Step 2 – Decide according to file type
+        if (msg.fileType == FileType.CSV) {
+            if (msg.month == null) {
+                logger.error { "CSV dataset requires a specific month provided in the message." }
+                return
             }
 
-            if (msg.datasetType !in setOf(
-                    DatasetType.DISTRIBUTIONS_FROM_MAHS,
-                    DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS,
-                    DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS,
-                    DatasetType.DISTRIBUTIONS_FROM_PHARMACIES
-                )
-            ) {
-                logger.error { "Unsupported dataset type ${msg.datasetType}" }
-                continue
-            }
-
-            val importStats = MutableImportStats()
-
-            csvBytes.inputStream().reader(CHARSET).use { reader ->
-                when (msg.datasetType) {
-                    DatasetType.DISTRIBUTIONS_FROM_MAHS -> {
-                        val sequence = importer.importStream(
-                            reader,
-                            DistMahCsvColumn.entries.map { it.toSpec() },
-                            DistFromMahsRowMapper(refData),
-                            CSV_DATA_SEPARATOR,
-                            importStats
-                        )
-                        persistBatched(sequence, mahRepo::batchInsert)
-                    }
-
-                    DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS -> {
-                        val sequence = importer.importStream(
-                            reader,
-                            DistDistributorCsvColumn.entries.map { it.toSpec() },
-                            DistFromDistributorsRowMapper(refData),
-                            CSV_DATA_SEPARATOR,
-                            importStats
-                        )
-                        persistBatched(sequence, distRepo::batchInsert)
-                    }
-
-                    DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS -> {
-                        val sequence = importer.importStream(
-                            reader,
-                            DistDistributorExportCsvColumn.entries.map { it.toSpec() },
-                            DistExportFromDistributorsRowMapper(refData),
-                            CSV_DATA_SEPARATOR,
-                            importStats
-                        )
-                        persistBatched(sequence, exportRepo::batchInsert)
-                    }
-
-                    DatasetType.DISTRIBUTIONS_FROM_PHARMACIES -> {
-                        val sequence = importer.importStream(
-                            reader,
-                            DistPharmacyCsvColumn.entries.map { it.toSpec() },
-                            DistFromPharmaciesRowMapper(refData),
-                            CSV_DATA_SEPARATOR,
-                            importStats
-                        )
-                        persistBatched(sequence, pharmacyRepo::batchInsert)
-                    }
-
-                    else -> error("Unsupported dataset type in DistributionProcessor: ${msg.datasetType}")
+            // Step 3 - Stream CSV file
+            ByteArrayInputStream(fileBytes).use { inputStream ->
+                inputStream.reader(CHARSET).use { reader ->
+                    processSingleStream(reader, msg.datasetType, msg.year, msg.month)
                 }
             }
 
-            processedRepo.save(
-                ProcessedDataset(
-                    datasetType = msg.datasetType,
-                    year = msg.year,
-                    month = month
-                )
-            )
+        } else if (msg.fileType == FileType.ZIP) {
+            if (msg.datasetType !in ZIP_SUPPORTED_DATASETS) {
+                logger.error { "DatasetType ${msg.datasetType} does not support ZIP processing." }
+                return
+            }
 
-            logDistributionImport(msg.datasetType, msg.year, month, importStats)
+            // Step 3 - Stream ZIP file
+            ByteArrayInputStream(fileBytes).use { byteStream ->
+                ZipInputStream(byteStream).use { zipStream ->
+
+                    var entry = zipStream.nextEntry
+                    while (entry != null) {
+                        if (!entry.isDirectory) {
+                            val month = getMonthFromFileName(entry.name)
+
+                            if (month != null) {
+                                val noCloseReader = object : FilterReader(InputStreamReader(zipStream, CHARSET)) {
+                                    override fun close() {
+                                        // Do nothing - keep ZipInputStream open
+                                    }
+                                }
+                                val bufferedReader = BufferedReader(noCloseReader)
+                                // IMPORTANT: processSingleStream MUST fully consume the reader,
+                                // otherwise ZipInputStream.nextEntry() will break.
+                                processSingleStream(bufferedReader, msg.datasetType, msg.year, month)
+                            }
+                        }
+                        entry = zipStream.nextEntry
+                    }
+                }
+            }
+        }
+    }
+
+    private fun processSingleStream(
+        reader: Reader,
+        datasetType: DatasetType,
+        year: Int,
+        month: Int
+    ) {
+        if (!datasetProcessingEvaluator.canProcessMonth(datasetType, year, month)) {
+            return
         }
 
-        logger.info { "Dataset ${msg.datasetType} ${msg.year} - processFile COMPLETED" }
+        if (datasetType !in setOf(
+                DatasetType.DISTRIBUTIONS_FROM_MAHS,
+                DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS,
+                DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS,
+                DatasetType.DISTRIBUTIONS_FROM_PHARMACIES
+            )
+        ) {
+            logger.error { "Unsupported dataset type $datasetType" }
+            return
+        }
+
+        logger.info { "Processing stream for $datasetType $year-$month" }
+
+        val importStats = MutableImportStats()
+
+        when (datasetType) {
+            DatasetType.DISTRIBUTIONS_FROM_MAHS -> {
+                val sequence = importer.importStream(
+                    reader,
+                    DistMahCsvColumn.entries.map { it.toSpec() },
+                    DistFromMahsRowMapper(refData),
+                    CSV_DATA_SEPARATOR,
+                    importStats
+                )
+                persistBatched(sequence, mahRepo::batchInsert)
+            }
+
+            DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS -> {
+                val sequence = importer.importStream(
+                    reader,
+                    DistDistributorCsvColumn.entries.map { it.toSpec() },
+                    DistFromDistributorsRowMapper(refData),
+                    CSV_DATA_SEPARATOR,
+                    importStats
+                )
+                persistBatched(sequence, distRepo::batchInsert)
+            }
+
+            DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS -> {
+                val sequence = importer.importStream(
+                    reader,
+                    DistDistributorExportCsvColumn.entries.map { it.toSpec() },
+                    DistExportFromDistributorsRowMapper(refData),
+                    CSV_DATA_SEPARATOR,
+                    importStats
+                )
+                persistBatched(sequence, exportRepo::batchInsert)
+            }
+
+            DatasetType.DISTRIBUTIONS_FROM_PHARMACIES -> {
+                val sequence = importer.importStream(
+                    reader,
+                    DistPharmacyCsvColumn.entries.map { it.toSpec() },
+                    DistFromPharmaciesRowMapper(refData),
+                    CSV_DATA_SEPARATOR,
+                    importStats
+                )
+                persistBatched(sequence, pharmacyRepo::batchInsert)
+            }
+
+            else -> error("Unsupported dataset type: $datasetType")
+        }
+
+        if (importStats.successCount == 0L) {
+            logger.warn { "No successful rows for $datasetType $year-$month, dataset NOT marked as processed." }
+            logDistributionImport(datasetType, year, month, importStats)
+            return
+        }
+
+        processedRepo.save(
+            ProcessedDataset(
+                datasetType = datasetType,
+                year = year,
+                month = month
+            )
+        )
+
+        logDistributionImport(datasetType, year, month, importStats)
+    }
+
+    private fun getMonthFromFileName(fileName: String): Int? {
+        return PHARMACY_CSV_FILENAME_MONTH_REGEX.matchEntire(fileName)
+            ?.groups?.get(1)?.value?.toIntOrNull()
     }
 
     /** PERSIST HELPER **/
