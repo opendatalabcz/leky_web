@@ -1,32 +1,35 @@
 package cz.machovec.lekovyportal.processor.processing.erecept
 
 import cz.machovec.lekovyportal.core.domain.dataset.DatasetType
-import cz.machovec.lekovyportal.core.domain.erecept.District
 import cz.machovec.lekovyportal.core.domain.dataset.FileType
 import cz.machovec.lekovyportal.core.domain.dataset.ProcessedDataset
+import cz.machovec.lekovyportal.core.domain.erecept.District
+import cz.machovec.lekovyportal.core.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.core.repository.erecept.EreceptDispenseRepository
 import cz.machovec.lekovyportal.core.repository.erecept.EreceptPrescriptionRepository
-import cz.machovec.lekovyportal.core.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.processor.processing.CsvImporter
-import cz.machovec.lekovyportal.processor.util.RemoteFileDownloader
-import cz.machovec.lekovyportal.processor.mapper.DataImportResult
+import cz.machovec.lekovyportal.messaging.dto.DatasetToProcessMessage
+import cz.machovec.lekovyportal.processor.evaluator.DatasetProcessingEvaluator
+import cz.machovec.lekovyportal.processor.mapper.MutableImportStats
 import cz.machovec.lekovyportal.processor.mapper.erecept.EreceptCsvColumn
 import cz.machovec.lekovyportal.processor.mapper.erecept.EreceptRawData
 import cz.machovec.lekovyportal.processor.mapper.erecept.EreceptRawDataRowMapper
 import cz.machovec.lekovyportal.processor.mapper.erecept.toDispenseEntity
 import cz.machovec.lekovyportal.processor.mapper.erecept.toPrescriptionEntity
 import cz.machovec.lekovyportal.processor.mapper.toSpec
-import cz.machovec.lekovyportal.processor.evaluator.DatasetProcessingEvaluator
+import cz.machovec.lekovyportal.processor.processing.CsvImporter
+import cz.machovec.lekovyportal.processor.processing.DatasetProcessor
 import cz.machovec.lekovyportal.processor.processing.distribution.DistrictReferenceDataProvider
 import cz.machovec.lekovyportal.processor.processing.mpd.MpdReferenceDataProvider
-import cz.machovec.lekovyportal.messaging.dto.DatasetToProcessMessage
-import cz.machovec.lekovyportal.processor.processing.DatasetProcessor
-import cz.machovec.lekovyportal.core.util.ZipFileUtils
+import cz.machovec.lekovyportal.processor.util.RemoteFileDownloader
 import mu.KotlinLogging
+import org.apache.commons.io.input.BOMInputStream;
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.io.BufferedReader
+import java.io.ByteArrayInputStream
+import java.io.InputStreamReader
 import java.net.URI
-import java.nio.charset.Charset
+import java.util.zip.ZipInputStream
 
 @Service
 class EreceptProcessor(
@@ -43,7 +46,10 @@ class EreceptProcessor(
     private val logger = KotlinLogging.logger {}
 
     companion object {
-        private const val ERECEPT_CSV_DATA_SEPARATOR: Char = ','
+        private val CHARSET = Charsets.UTF_8
+        private const val CSV_DATA_SEPARATOR: Char = ','
+        private const val NON_PRAGUE_BATCH_SIZE: Int = 10_000
+        private const val PRAGUE_CODE: String = "3100"
     }
 
     @Transactional
@@ -53,78 +59,191 @@ class EreceptProcessor(
             return
         }
 
+        // Step 1 - Check if the dataset can be processed
+        if (!canProcessDataset(msg)) {
+            return
+        }
+
         // Step 2 – Download the ZIP file from the remote source
         val zipBytes = downloader.downloadFile(URI(msg.fileUrl))
             ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
-        // Step 3 – Extract CSV file (1 file contains all data even for yearly dataset)
-        val rawCsvBytes = ZipFileUtils.extractSingleFileByType(zipBytes, FileType.CSV)
-        val csvBytes = rawCsvBytes?.let { removeBomIfPresent(it) } ?: return
-
         val districtMap = districtReferenceDataProvider.getDistrictMap()
 
-        // Step 4 - Process csv file
-        if (msg.month != null) {
-            if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, msg.month)) return
-            processMonth(msg.datasetType, msg.year, msg.month, csvBytes, districtMap)
-        } else {
-            if (!datasetProcessingEvaluator.canProcessYear(msg.datasetType, msg.year)) return
-            processYear(msg.datasetType, msg.year, csvBytes, districtMap)
-        }
-    }
+        // Step 3 - Stream ZIP file
+        ByteArrayInputStream(zipBytes).use { byteStream ->
+            ZipInputStream(byteStream).use { zipStream ->
 
-    private fun processMonth(datasetType: DatasetType, year: Int, month: Int, csvBytes: ByteArray, districtMap: Map<String, District>) {
-        val importResult = importer.import(
-            csvBytes,
-            EreceptCsvColumn.entries.map { it.toSpec() },
-            EreceptRawDataRowMapper(),
-            ERECEPT_CSV_DATA_SEPARATOR,
-            Charset.forName("UTF-8")
-        )
-        logImportSummary(datasetType, importResult)
+                // Step 4 - Find CSV file
+                generateSequence { zipStream.nextEntry }
+                    .firstOrNull { it.name.endsWith(".csv", ignoreCase = true) }
+                    ?: run {
+                        logger.error { "No CSV file found in ZIP for ${msg.fileUrl}" }
+                        return
+                    }
 
-        val finalDataRows = aggregatePrague(importResult.successes, ::aggregationKey)
+                // Step 5  Remove BOM
+                val bomInputStream = BOMInputStream.builder()
+                    .setInputStream(zipStream)
+                    .setInclude(false)
+                    .get()
+                val reader = BufferedReader(InputStreamReader(bomInputStream, CHARSET))
 
-        persist(finalDataRows, datasetType, year, month, districtMap)
-    }
+                val importStats = MutableImportStats()
 
-    private fun processYear(datasetType: DatasetType, year: Int, csvBytes: ByteArray, districtMap: Map<String, District>) {
-        val importResult = importer.import(
-            csvBytes,
-            EreceptCsvColumn.entries.map { it.toSpec() },
-            EreceptRawDataRowMapper(),
-            ERECEPT_CSV_DATA_SEPARATOR,
-            Charset.forName("UTF-8")
-        )
-        logImportSummary(datasetType, importResult)
+                val dataSequence = importer.importStream(
+                    reader,
+                    EreceptCsvColumn.entries.map { it.toSpec() },
+                    EreceptRawDataRowMapper(),
+                    CSV_DATA_SEPARATOR,
+                    importStats
+                )
 
-        val groupedByMonth = importResult.successes.groupBy { it.month }
+                val processedMonths = processStream(dataSequence, msg, districtMap)
 
-        for ((month, rowsForMonth) in groupedByMonth) {
-            val finalDataRows = aggregatePrague(rowsForMonth, ::aggregationKey)
-            persist(finalDataRows, datasetType, year, month, districtMap)
-        }
-    }
-
-    private fun aggregatePrague(rows: List<EreceptRawData>, keyExtractor: (EreceptRawData) -> String): List<EreceptRawData> {
-        val PRAGUE_CODE = "3100"
-        val pragueMap = mutableMapOf<String, EreceptRawData>()
-        val others = mutableListOf<EreceptRawData>()
-
-        for (row in rows) {
-            if (row.districtCode == PRAGUE_CODE) {
-                val key = keyExtractor(row)
-                val existing = pragueMap[key]
-                if (existing != null) {
-                    pragueMap[key] = existing.copy(quantity = existing.quantity + row.quantity)
-                } else {
-                    pragueMap[key] = row
-                }
-            } else {
-                others += row
+                logEreceptImport(msg.datasetType, msg.year, processedMonths, importStats)
             }
         }
-        return others + pragueMap.values
+    }
+
+    private fun processStream(
+        sequence: Sequence<EreceptRawData>,
+        msg: DatasetToProcessMessage,
+        districtMap: Map<String, District>
+    ): Set<Int> {
+        val pragueAggregate = mutableMapOf<String, EreceptRawData>()
+        val nonPragueBuffer = mutableListOf<EreceptRawData>()
+        val processedMonths = mutableSetOf<Int>()
+
+        val filterMonth = msg.month
+        val datasetType = msg.datasetType
+        val year = msg.year
+
+        sequence.forEach { row ->
+            // Monthly dataset -> process only specific month
+            if (filterMonth != null && row.month != filterMonth) {
+                return@forEach
+            }
+
+            if (row.districtCode == PRAGUE_CODE) {
+                val key = aggregationKey(row)
+                val existing = pragueAggregate[key]
+                if (existing != null) {
+                    pragueAggregate[key] = existing.copy(quantity = existing.quantity + row.quantity)
+                } else {
+                    pragueAggregate[key] = row
+                }
+            } else {
+                nonPragueBuffer.add(row)
+                if (nonPragueBuffer.size >= NON_PRAGUE_BATCH_SIZE) {
+                    flushNonPrague(
+                        buffer = nonPragueBuffer,
+                        datasetType = datasetType,
+                        year = year,
+                        filterMonth = filterMonth,
+                        districtMap = districtMap,
+                        processedMonths = processedMonths
+                    )
+                    nonPragueBuffer.clear()
+                }
+            }
+        }
+
+        if (nonPragueBuffer.isNotEmpty()) {
+            flushNonPrague(
+                buffer = nonPragueBuffer,
+                datasetType = datasetType,
+                year = year,
+                filterMonth = filterMonth,
+                districtMap = districtMap,
+                processedMonths = processedMonths
+            )
+            nonPragueBuffer.clear()
+        }
+
+        if (pragueAggregate.isNotEmpty()) {
+            flushPrague(
+                pragueAggregate = pragueAggregate,
+                datasetType = datasetType,
+                year = year,
+                filterMonth = filterMonth,
+                districtMap = districtMap,
+                processedMonths = processedMonths
+            )
+        }
+
+        saveProcessedDatasets(
+            datasetType = datasetType,
+            year = year,
+            months = processedMonths
+        )
+
+        return processedMonths
+    }
+
+    private fun flushNonPrague(
+        buffer: List<EreceptRawData>,
+        datasetType: DatasetType,
+        year: Int,
+        filterMonth: Int?,
+        districtMap: Map<String, District>,
+        processedMonths: MutableSet<Int>
+    ) {
+        if (buffer.isEmpty()) return
+
+        val grouped = if (filterMonth != null) {
+            buffer.filter { it.month == filterMonth }.groupBy { it.month }
+        } else {
+            buffer.groupBy { it.month }
+        }
+
+        for ((month, rowsForMonth) in grouped) {
+            if (rowsForMonth.isEmpty()) continue
+            persist(rowsForMonth, datasetType, year, month, districtMap)
+            processedMonths += month
+        }
+    }
+
+    private fun flushPrague(
+        pragueAggregate: Map<String, EreceptRawData>,
+        datasetType: DatasetType,
+        year: Int,
+        filterMonth: Int?,
+        districtMap: Map<String, District>,
+        processedMonths: MutableSet<Int>
+    ) {
+        val values = pragueAggregate.values
+        if (values.isEmpty()) return
+
+        val grouped = values.groupBy { it.month }
+
+        for ((month, rowsForMonth) in grouped) {
+            if (filterMonth != null && month != filterMonth) continue
+            persist(rowsForMonth, datasetType, year, month, districtMap)
+            processedMonths += month
+        }
+    }
+
+    private fun saveProcessedDatasets(
+        datasetType: DatasetType,
+        year: Int,
+        months: Set<Int>
+    ) {
+        months.forEach { month ->
+            processedDatasetRepository.save(
+                ProcessedDataset(
+                    datasetType = datasetType,
+                    year = year,
+                    month = month
+                )
+            )
+        }
+    }
+
+    private fun canProcessDataset(msg: DatasetToProcessMessage): Boolean {
+        return msg.month?.let {
+            datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, it)
+        } ?: datasetProcessingEvaluator.canProcessYear(msg.datasetType, msg.year)
     }
 
     private fun persist(records: List<EreceptRawData>, datasetType: DatasetType, year: Int, month: Int, districtMap: Map<String, District>) {
@@ -144,54 +263,70 @@ class EreceptProcessor(
             }
             else -> logger.warn { "Unsupported datasetType: $datasetType" }
         }
-
-        processedDatasetRepository.save(
-            ProcessedDataset(
-                datasetType = datasetType,
-                year = year,
-                month = month
-            )
-        )
     }
 
     private fun aggregationKey(row: EreceptRawData): String =
         "${row.districtCode}-${row.year}-${row.month}-${row.suklCode}"
 
-    private fun <T> logImportSummary(datasetType: DatasetType, result: DataImportResult<T>) {
-        if (result.failures.isEmpty()) {
-            logger.info { "Import of $datasetType completed successfully (${result.successes.size}/${result.totalRows} rows)." }
+    /** LOGGING **/
+
+    private fun logEreceptImport(
+        datasetType: DatasetType,
+        year: Int,
+        processedMonths: Set<Int>,
+        stats: MutableImportStats
+    ) {
+        val scope = formatScope(year, processedMonths)
+
+        if (stats.totalFailures == 0L) {
+            logger.info {
+                "IMPORT OK | $datasetType | $scope | " +
+                        "success=${stats.successCount}/${stats.totalRows} | " +
+                        "rate=${stats.successRatePercent()}%"
+            }
             return
         }
 
         logger.warn {
-            val reasonSummary = result.failuresByReason()
-                .entries
-                .joinToString { "${it.key}: ${it.value}" }
+            "IMPORT WARN | $datasetType | $scope | " +
+                    "success=${stats.successCount}/${stats.totalRows} | " +
+                    "rate=${stats.successRatePercent()}%"
+        }
 
-            val detailedSummary = result.failuresByReasonAndColumn()
-                .entries
-                .joinToString { (reasonAndColumn, count) ->
-                    val (reason, column) = reasonAndColumn
-                    "$reason in column '$column': $count"
+        stats.failuresByReason()
+            .takeIf { it.isNotEmpty() }
+            ?.let {
+                logger.warn {
+                    "IMPORT WARN | failures by reason: " +
+                            it.entries.joinToString { e -> "${e.key}=${e.value}" }
                 }
+            }
 
-            """
-        Import of $datasetType completed with errors:
-          - Success: ${result.successes.size}/${result.totalRows}
-          - Failures by reason: $reasonSummary
-          - Failures by reason and column:
-            $detailedSummary
-        """.trimIndent()
-        }
+        stats.failuresByReasonAndColumn()
+            .takeIf { it.isNotEmpty() }
+            ?.let {
+                logger.warn {
+                    "IMPORT WARN | failures by column: " +
+                            it.entries.joinToString { e ->
+                                val (_, column) = e.key
+                                "${column ?: "?"}=${e.value}"
+                            }
+                }
+            }
     }
 
-    private fun removeBomIfPresent(bytes: ByteArray): ByteArray {
-        if (bytes.size >= 3 &&
-            bytes[0] == 0xEF.toByte() &&
-            bytes[1] == 0xBB.toByte() &&
-            bytes[2] == 0xBF.toByte()) {
-            return bytes.drop(3).toByteArray() // remove BOM
+    private fun formatScope(year: Int, months: Set<Int>): String =
+        when {
+            months.isEmpty() ->
+                "$year (no data)"
+
+            months.size == 1 ->
+                "$year-${months.first()}"
+
+            months.size == 12 ->
+                "$year (all months)"
+
+            else ->
+                "$year months=${months.sorted().joinToString(",")}"
         }
-        return bytes
-    }
 }

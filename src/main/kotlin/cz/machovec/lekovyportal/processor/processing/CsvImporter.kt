@@ -5,11 +5,13 @@ import com.opencsv.CSVReaderBuilder
 import cz.machovec.lekovyportal.processor.mapper.ColumnSpec
 import cz.machovec.lekovyportal.processor.mapper.CsvRow
 import cz.machovec.lekovyportal.processor.mapper.DataImportResult
+import cz.machovec.lekovyportal.processor.mapper.MutableImportStats
 import cz.machovec.lekovyportal.processor.mapper.RowFailure
 import cz.machovec.lekovyportal.processor.mapper.RowMapper
 import cz.machovec.lekovyportal.processor.mapper.RowMappingResult
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
+import java.io.Reader
 import java.nio.charset.Charset
 
 @Component
@@ -19,6 +21,7 @@ class CsvImporter {
 
     companion object {
         private const val DEFAULT_SEPARATOR: Char = ';'
+        private val DEFAULT_CHARSET: Charset = Charset.forName("Windows-1250")
     }
 
     /**
@@ -36,19 +39,19 @@ class CsvImporter {
         specs: List<ColumnSpec<E>>,
         mapper: RowMapper<E, T>,
         separator: Char = DEFAULT_SEPARATOR,
-        charset: Charset = Charset.forName("Windows-1250")
+        charset: Charset = DEFAULT_CHARSET
     ): DataImportResult<T> where E : Enum<E> {
 
-        val (lines, idxMap) = parseCsv(csvBytes, specs, separator, charset)
+        val (dataRows, columnIndexMap) = parseCsv(csvBytes, specs, separator, charset)
 
         val successes = mutableListOf<T>()
         val failures = mutableListOf<RowFailure>()
 
-        lines.forEach { lineArr ->
-            val rawLine = lineArr.joinToString(separator.toString())
+        dataRows.forEach { dataRow ->
+            val rawLine = dataRow.joinToString(separator.toString())
 
-            val logicalRow: CsvRow<E> = idxMap.mapValues { (_, idx) ->
-                lineArr.getOrNull(idx)?.trim()
+            val logicalRow: CsvRow<E> = columnIndexMap.mapValues { (_, idx) ->
+                dataRow.getOrNull(idx)?.trim()
             }
 
             when (val result = mapper.map(logicalRow, rawLine)) {
@@ -58,14 +61,75 @@ class CsvImporter {
         }
 
         if (failures.isNotEmpty()) {
-            log.info { "CSV import completed – skipped ${failures.size}/${lines.size} rows due to errors." }
+            log.info { "CSV import completed – skipped ${failures.size}/${dataRows.size} rows due to errors." }
         }
 
         return DataImportResult(
             successes = successes,
             failures = failures,
-            totalRows = lines.size
+            totalRows = dataRows.size
         )
+    }
+
+    /**
+     * Streams a CSV file and maps each data row to a domain entity.
+     *
+     * @param reader character reader providing the CSV content
+     * @param specs column specifications (aliases + required flag)
+     * @param mapper row mapper that converts a CsvRow into a domain object
+     * @param separator optional separator character (default is ';')
+     * @param importStats mutable statistics collector for processed rows
+     *
+     * @return lazy [Sequence] of successfully mapped domain entities
+     */
+    fun <E, T> importStream(
+        reader: Reader,
+        specs: List<ColumnSpec<E>>,
+        mapper: RowMapper<E, T>,
+        separator: Char = DEFAULT_SEPARATOR,
+        importStats: MutableImportStats
+    ): Sequence<T> where E : Enum<E> {
+
+        val csvReader = CSVReaderBuilder(reader)
+            .withCSVParser(CSVParserBuilder().withSeparator(separator).build())
+            .build()
+
+        val headerRow = csvReader.readNext()
+            ?: return emptySequence()
+
+        val headerColumns = headerRow.map { it.trim() }
+        validateColumns(headerColumns, specs)
+
+        val columnIndexMap = buildIndexMap(headerColumns, specs)
+
+        val resultSequence = sequence {
+            csvReader.use { csvReader ->
+                var rowNumber = 1
+
+                for (dataRow in csvReader) {
+                    rowNumber++
+
+                    val logicalRow: CsvRow<E> = columnIndexMap.mapValues { (_, columnIndex) ->
+                        dataRow.getOrNull(columnIndex)?.trim()
+                    }
+
+                    val rawLine = dataRow.joinToString(separator.toString())
+
+                    when (val result = mapper.map(logicalRow, rawLine)) {
+                        is RowMappingResult.Success -> {
+                            importStats.recordSuccess()
+                            yield(result.entity)
+                        }
+
+                        is RowMappingResult.Failure -> {
+                            importStats.recordFailure(result.failure)
+                        }
+                    }
+                }
+            }
+        }
+
+        return resultSequence
     }
 
     /**
@@ -75,44 +139,68 @@ class CsvImporter {
      */
     private fun <E> parseCsv(
         csvBytes: ByteArray,
-        specs: List<ColumnSpec<E>>,
+        columnSpecs: List<ColumnSpec<E>>,
         separator: Char,
         charset: Charset
     ): Pair<List<Array<String>>, Map<E, Int>> where E : Enum<E> {
 
-        val reader = CSVReaderBuilder(csvBytes.inputStream().reader(charset))
+        val csvReader = CSVReaderBuilder(csvBytes.inputStream().reader(charset))
             .withCSVParser(CSVParserBuilder().withSeparator(separator).build())
             .build()
 
-        val allLines = reader.readAll()
-        if (allLines.isEmpty()) {
-            return Pair(emptyList(), emptyMap())
+        val allRows = csvReader.readAll()
+        if (allRows.isEmpty()) {
+            return emptyList<Array<String>>() to emptyMap()
         }
 
-        val header = allLines.first().map { it.trim() }
-        val lines = allLines.drop(1)
+        val headerRow = allRows.first()
+        val headerColumns = headerRow.map { it.trim() }
 
-        // Validate presence of required columns
-        specs.filter { it.required }.forEach { spec ->
-            val found = spec.aliases.any { alias ->
-                header.any { it.equals(alias, ignoreCase = true) }
-            }
-            if (!found) {
-                throw MissingColumnException("Missing required column: ${spec.key}")
-            }
-        }
+        val dataRows = allRows.drop(1)
 
-        // Build index map for available columns
-        val idxMap = specs.mapNotNull { spec ->
-            val idx = spec.aliases
-                .firstNotNullOfOrNull { alias ->
-                    header.indexOfFirst { it.equals(alias, ignoreCase = true) }
-                        .takeIf { it >= 0 }
+        validateColumns(headerColumns, columnSpecs)
+        val columnIndexMap = buildIndexMap(headerColumns, columnSpecs)
+
+        return Pair(dataRows, columnIndexMap)
+    }
+
+    private fun <E> validateColumns(
+        headerColumns: List<String>,
+        columnSpecs: List<ColumnSpec<E>>
+    ) where E : Enum<E> {
+        columnSpecs
+            .filter { it.required }
+            .forEach { spec ->
+                val isPresent = spec.aliases.any { alias ->
+                    headerColumns.any { it.equals(alias, ignoreCase = true) }
                 }
-            idx?.let { spec.key to it }
-        }.toMap()
 
-        return Pair(lines, idxMap)
+                if (!isPresent) {
+                    throw MissingColumnException(
+                        "Missing required column: ${spec.key}"
+                    )
+                }
+            }
+    }
+
+    private fun <E> buildIndexMap(
+        headerColumns: List<String>,
+        columnSpecs: List<ColumnSpec<E>>
+    ): Map<E, Int> where E : Enum<E> {
+        val columnIndexMap = columnSpecs
+            .mapNotNull { spec ->
+                val columnIndex = spec.aliases
+                    .firstNotNullOfOrNull { alias ->
+                        headerColumns
+                            .indexOfFirst { it.equals(alias, ignoreCase = true) }
+                            .takeIf { it >= 0 }
+                    }
+
+                columnIndex?.let { spec.key to it }
+            }
+            .toMap()
+
+        return columnIndexMap
     }
 }
 
