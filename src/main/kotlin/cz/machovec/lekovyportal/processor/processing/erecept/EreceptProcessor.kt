@@ -48,7 +48,7 @@ class EreceptProcessor(
     companion object {
         private val CHARSET = Charsets.UTF_8
         private const val CSV_DATA_SEPARATOR: Char = ','
-        private const val NON_PRAGUE_BATCH_SIZE: Int = 10_000
+        private const val BATCH_SIZE: Int = 5_000
         private const val PRAGUE_CODE: String = "3100"
     }
 
@@ -82,7 +82,7 @@ class EreceptProcessor(
                         return
                     }
 
-                // Step 5  Remove BOM
+                // Step 5 - Remove BOM
                 val bomInputStream = BOMInputStream.builder()
                     .setInputStream(zipStream)
                     .setInclude(false)
@@ -115,128 +115,63 @@ class EreceptProcessor(
         val nonPragueBuffer = mutableListOf<EreceptRawData>()
         val processedMonths = mutableSetOf<Int>()
 
-        val filterMonth = msg.month
-        val datasetType = msg.datasetType
-        val year = msg.year
-
         sequence.forEach { row ->
             // Monthly dataset -> process only specific month
-            if (filterMonth != null && row.month != filterMonth) {
+            if (msg.month != null && row.month != msg.month) {
                 return@forEach
             }
 
             if (row.districtCode == PRAGUE_CODE) {
                 val key = aggregationKey(row)
-                val existing = pragueAggregate[key]
-                if (existing != null) {
-                    pragueAggregate[key] = existing.copy(quantity = existing.quantity + row.quantity)
-                } else {
-                    pragueAggregate[key] = row
+                pragueAggregate.merge(key, row) { oldVal, newVal ->
+                    oldVal.copy(quantity = oldVal.quantity + newVal.quantity)
                 }
             } else {
                 nonPragueBuffer.add(row)
-                if (nonPragueBuffer.size >= NON_PRAGUE_BATCH_SIZE) {
-                    flushNonPrague(
-                        buffer = nonPragueBuffer,
-                        datasetType = datasetType,
-                        year = year,
-                        filterMonth = filterMonth,
-                        districtMap = districtMap,
-                        processedMonths = processedMonths
-                    )
+                if (nonPragueBuffer.size >= BATCH_SIZE) {
+                    flushBuffer(nonPragueBuffer, msg.datasetType, msg.year, districtMap, processedMonths)
                     nonPragueBuffer.clear()
                 }
             }
         }
 
         if (nonPragueBuffer.isNotEmpty()) {
-            flushNonPrague(
-                buffer = nonPragueBuffer,
-                datasetType = datasetType,
-                year = year,
-                filterMonth = filterMonth,
-                districtMap = districtMap,
-                processedMonths = processedMonths
-            )
-            nonPragueBuffer.clear()
+            flushBuffer(nonPragueBuffer, msg.datasetType, msg.year, districtMap, processedMonths)
         }
 
         if (pragueAggregate.isNotEmpty()) {
-            flushPrague(
-                pragueAggregate = pragueAggregate,
-                datasetType = datasetType,
-                year = year,
-                filterMonth = filterMonth,
-                districtMap = districtMap,
-                processedMonths = processedMonths
-            )
+            pragueAggregate.values.chunked(BATCH_SIZE).forEach { batch ->
+                flushBuffer(batch, msg.datasetType, msg.year, districtMap, processedMonths)
+            }
         }
 
-        saveProcessedDatasets(
-            datasetType = datasetType,
-            year = year,
-            months = processedMonths
-        )
+        processedMonths.forEach { month ->
+            processedDatasetRepository.save(
+                ProcessedDataset(
+                    datasetType = msg.datasetType,
+                    year = msg.year,
+                    month = month
+                )
+            )
+        }
 
         return processedMonths
     }
 
-    private fun flushNonPrague(
-        buffer: List<EreceptRawData>,
+    private fun flushBuffer(
+        buffer: Collection<EreceptRawData>,
         datasetType: DatasetType,
         year: Int,
-        filterMonth: Int?,
         districtMap: Map<String, District>,
         processedMonths: MutableSet<Int>
     ) {
         if (buffer.isEmpty()) return
 
-        val grouped = if (filterMonth != null) {
-            buffer.filter { it.month == filterMonth }.groupBy { it.month }
-        } else {
-            buffer.groupBy { it.month }
-        }
+        val grouped = buffer.groupBy { it.month }
 
         for ((month, rowsForMonth) in grouped) {
-            if (rowsForMonth.isEmpty()) continue
             persist(rowsForMonth, datasetType, year, month, districtMap)
-            processedMonths += month
-        }
-    }
-
-    private fun flushPrague(
-        pragueAggregate: Map<String, EreceptRawData>,
-        datasetType: DatasetType,
-        year: Int,
-        filterMonth: Int?,
-        districtMap: Map<String, District>,
-        processedMonths: MutableSet<Int>
-    ) {
-        val values = pragueAggregate.values
-        if (values.isEmpty()) return
-
-        val grouped = values.groupBy { it.month }
-
-        for ((month, rowsForMonth) in grouped) {
-            if (filterMonth != null && month != filterMonth) continue
-            persist(rowsForMonth, datasetType, year, month, districtMap)
-            processedMonths += month
-        }
-    }
-
-    private fun saveProcessedDatasets(
-        datasetType: DatasetType,
-        year: Int,
-        months: Set<Int>
-    ) {
-        months.forEach { month ->
-            processedDatasetRepository.save(
-                ProcessedDataset(
-                    datasetType = datasetType,
-                    year = year,
-                    month = month
-                )
-            )
+            processedMonths.add(month)
         }
     }
 

@@ -2,17 +2,14 @@ package cz.machovec.lekovyportal.processor.processing.distribution
 
 import cz.machovec.lekovyportal.core.domain.dataset.DatasetType
 import cz.machovec.lekovyportal.core.domain.dataset.ProcessedDataset
-import cz.machovec.lekovyportal.core.domain.distribution.DistExportFromDistributors
-import cz.machovec.lekovyportal.core.domain.distribution.DistFromDistributors
-import cz.machovec.lekovyportal.core.domain.distribution.DistFromMahs
-import cz.machovec.lekovyportal.core.domain.distribution.DistFromPharmacies
 import cz.machovec.lekovyportal.core.repository.ProcessedDatasetRepository
 import cz.machovec.lekovyportal.core.repository.distribution.DistExportFromDistributorsRepository
 import cz.machovec.lekovyportal.core.repository.distribution.DistFromDistributorsRepository
 import cz.machovec.lekovyportal.core.repository.distribution.DistFromMahsRepository
 import cz.machovec.lekovyportal.core.repository.distribution.DistFromPharmaciesRepository
-import cz.machovec.lekovyportal.processor.processing.CsvImporter
-import cz.machovec.lekovyportal.processor.util.RemoteFileDownloader
+import cz.machovec.lekovyportal.messaging.dto.DatasetToProcessMessage
+import cz.machovec.lekovyportal.processor.evaluator.DatasetProcessingEvaluator
+import cz.machovec.lekovyportal.processor.mapper.MutableImportStats
 import cz.machovec.lekovyportal.processor.mapper.distribution.DistDistributorCsvColumn
 import cz.machovec.lekovyportal.processor.mapper.distribution.DistDistributorExportCsvColumn
 import cz.machovec.lekovyportal.processor.mapper.distribution.DistExportFromDistributorsRowMapper
@@ -22,11 +19,10 @@ import cz.machovec.lekovyportal.processor.mapper.distribution.DistFromPharmacies
 import cz.machovec.lekovyportal.processor.mapper.distribution.DistMahCsvColumn
 import cz.machovec.lekovyportal.processor.mapper.distribution.DistPharmacyCsvColumn
 import cz.machovec.lekovyportal.processor.mapper.toSpec
-import cz.machovec.lekovyportal.processor.evaluator.DatasetProcessingEvaluator
-import cz.machovec.lekovyportal.messaging.dto.DatasetToProcessMessage
-import cz.machovec.lekovyportal.processor.mapper.MutableImportStats
+import cz.machovec.lekovyportal.processor.processing.CsvImporter
 import cz.machovec.lekovyportal.processor.processing.DatasetProcessor
 import cz.machovec.lekovyportal.processor.processing.mpd.MpdReferenceDataProvider
+import cz.machovec.lekovyportal.processor.util.RemoteFileDownloader
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -94,7 +90,7 @@ class DistributionProcessor(
                             CSV_DATA_SEPARATOR,
                             importStats
                         )
-                        persistMahs(sequence)
+                        persistBatched(sequence, mahRepo::batchInsert)
                     }
 
                     DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS -> {
@@ -105,7 +101,7 @@ class DistributionProcessor(
                             CSV_DATA_SEPARATOR,
                             importStats
                         )
-                        persistDistributors(sequence)
+                        persistBatched(sequence, distRepo::batchInsert)
                     }
 
                     DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS -> {
@@ -116,7 +112,7 @@ class DistributionProcessor(
                             CSV_DATA_SEPARATOR,
                             importStats
                         )
-                        persistExports(sequence)
+                        persistBatched(sequence, exportRepo::batchInsert)
                     }
 
                     DatasetType.DISTRIBUTIONS_FROM_PHARMACIES -> {
@@ -127,14 +123,12 @@ class DistributionProcessor(
                             CSV_DATA_SEPARATOR,
                             importStats
                         )
-                        persistPharmacies(sequence)
+                        persistBatched(sequence, pharmacyRepo::batchInsert)
                     }
 
                     else -> error("Unsupported dataset type in DistributionProcessor: ${msg.datasetType}")
                 }
             }
-
-            logDistributionImport(msg.datasetType, msg.year, month, importStats)
 
             processedRepo.save(
                 ProcessedDataset(
@@ -144,60 +138,29 @@ class DistributionProcessor(
                 )
             )
 
-            logger.info {
-                "Dataset ${msg.datasetType} for ${msg.year}-$month marked as processed."
-            }
+            logDistributionImport(msg.datasetType, msg.year, month, importStats)
         }
 
         logger.info { "Dataset ${msg.datasetType} ${msg.year} - processFile COMPLETED" }
     }
 
-    /** PERSIST HELPERS **/
-
-    private fun persistMahs(sequence: Sequence<DistFromMahs>) {
-        persistBatched(
-            sequence,
-            mahRepo::batchInsert
-        )
-    }
-
-    private fun persistDistributors(sequence: Sequence<DistFromDistributors>) {
-        persistBatched(
-            sequence,
-            distRepo::batchInsert
-        )
-    }
-
-    private fun persistExports(sequence: Sequence<DistExportFromDistributors>) {
-        persistBatched(
-            sequence,
-            exportRepo::batchInsert
-        )
-    }
-
-    private fun persistPharmacies(sequence: Sequence<DistFromPharmacies>) {
-        persistBatched(
-            sequence,
-            pharmacyRepo::batchInsert
-        )
-    }
-
+    /** PERSIST HELPER **/
     private fun <T> persistBatched(
         sequence: Sequence<T>,
-        save: (List<T>) -> Unit
+        saveAction: (List<T>) -> Unit
     ) {
-        val buffer = mutableListOf<T>()
+        val buffer = ArrayList<T>(BATCH_SIZE)
 
         for (item in sequence) {
-            buffer += item
+            buffer.add(item)
             if (buffer.size >= BATCH_SIZE) {
-                save(buffer)
+                saveAction(buffer)
                 buffer.clear()
             }
         }
 
         if (buffer.isNotEmpty()) {
-            save(buffer)
+            saveAction(buffer)
         }
     }
 
