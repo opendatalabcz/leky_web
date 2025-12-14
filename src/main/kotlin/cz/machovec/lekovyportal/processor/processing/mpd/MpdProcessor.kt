@@ -1,94 +1,120 @@
 package cz.machovec.lekovyportal.processor.processing.mpd
 
-import cz.machovec.lekovyportal.core.util.mpd.MpdValidityReader
-import cz.machovec.lekovyportal.core.domain.dataset.DatasetType
 import cz.machovec.lekovyportal.core.domain.dataset.FileType
-import cz.machovec.lekovyportal.core.domain.dataset.ProcessedDataset
-import cz.machovec.lekovyportal.core.domain.mpd.MpdDatasetType
-import cz.machovec.lekovyportal.core.repository.ProcessedDatasetRepository
-import cz.machovec.lekovyportal.processor.util.RemoteFileDownloader
-import cz.machovec.lekovyportal.processor.evaluator.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.messaging.dto.DatasetToProcessMessage
+import cz.machovec.lekovyportal.processor.evaluator.DatasetProcessingEvaluator
 import cz.machovec.lekovyportal.processor.processing.DatasetProcessor
+import cz.machovec.lekovyportal.processor.util.RemoteFileDownloader
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.time.LocalDate
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.time.YearMonth
+import java.util.zip.ZipFile
 
 @Service
 class MpdProcessor(
-    private val processedDatasetRepository: ProcessedDatasetRepository,
-    private val tablesProcessor: MpdTablesProcessor,
-    private val csvExtractor: MpdCsvExtractor,
     private val downloader: RemoteFileDownloader,
-    private val validityReader: MpdValidityReader,
-    private val datasetProcessingEvaluator: DatasetProcessingEvaluator,
-    private val referenceDataProvider: MpdReferenceDataProvider
+    private val csvExtractor: MpdCsvExtractor,
+    private val monthProcessor: MpdMonthProcessor,
+    private val datasetProcessingEvaluator: DatasetProcessingEvaluator
 ) : DatasetProcessor {
 
     private val logger = KotlinLogging.logger {}
 
-    companion object {
-        private val DATASET_TYPE = DatasetType.MEDICINAL_PRODUCT_DATABASE
-        private val VALIDITY_REQUIRED_SINCE = YearMonth.of(2023, 4)
-    }
-
-    @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
-        // Step 1 – Validate that the file type is ZIP before proceeding
         if (msg.fileType != FileType.ZIP) {
-            logger.warn { "Skipping non-ZIP file type: ${msg.fileType} for dataset ${msg.datasetType}" }
+            logger.warn { "Skipping non-ZIP file type: ${msg.fileType}" }
             return
         }
 
-        // Step 2 – Download the ZIP file from the remote source
-        val zipBytes = downloader.downloadFile(URI(msg.fileUrl))
-            ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
-
-        // Step 3 – Extract and group CSV files by month (handles both annual and monthly ZIPs)
-        val csvFilesByMonth = csvExtractor.extractMonthlyCsvFilesFromZip(zipBytes, msg.month)
-
-        // Step 4 - Process each CSV file
-        for ((month, csvMap) in csvFilesByMonth) {
-            if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) continue
-
-            val period = YearMonth.of(msg.year, month)
-            processMonth(period, csvMap)
+        try {
+            if (msg.month != null) {
+                processSingleMonth(msg)
+            } else {
+                processAnnualZip(msg)
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Critical error processing file: ${msg.fileUrl}" }
         }
     }
 
-    private fun processMonth(monthToProcess: YearMonth, csvMap: Map<MpdDatasetType, ByteArray>) {
-        val validFrom = getValidFrom(monthToProcess, csvMap)
+    private fun processSingleMonth(msg: DatasetToProcessMessage) {
+        val month = msg.month!!
+        if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) {
+            return
+        }
 
-        tablesProcessor.processTables(
-            csvMap = csvMap,
-            validFrom = validFrom,
+        val zipBytes = downloader.downloadFile(URI(msg.fileUrl))
+            ?: return logger.error { "Failed to download ZIP ${msg.fileUrl}" }
+
+        val csvMap = csvExtractor.extractMpdCsvFiles(zipBytes)
+
+        monthProcessor.processMonth(
+            YearMonth.of(msg.year, month),
+            csvMap
         )
-
-        processedDatasetRepository.save(
-            ProcessedDataset(
-                datasetType = DATASET_TYPE,
-                year = monthToProcess.year,
-                month = monthToProcess.monthValue
-            )
-        )
-
-        referenceDataProvider.clearCache()
     }
 
-    private fun getValidFrom(monthToProcess: YearMonth, csvMap: Map<MpdDatasetType, ByteArray>): LocalDate {
-        return if (monthToProcess < VALIDITY_REQUIRED_SINCE) {
-            monthToProcess.atDay(1)
-        } else {
-            val validityCsv = csvMap[MpdDatasetType.MPD_VALIDITY]
-                ?: throw IllegalStateException("Validity CSV (dlp_platnost.csv) is missing for $monthToProcess")
+    private fun processAnnualZip(msg: DatasetToProcessMessage) {
+        val tempZip = Files.createTempFile("mpd-", ".zip")
+        logger.info { "Downloading MPD annual ZIP to temp file: $tempZip" }
 
-            val validity = validityReader.getValidityFromCsv(validityCsv)
-                ?: throw IllegalStateException("Unable to parse validFrom from dlp_platnost.csv for $monthToProcess")
+        try {
+            // 1) Stáhneme ZIP jednou na disk
+            downloader.openStream(URI(msg.fileUrl)).use { input ->
+                Files.copy(input, tempZip, StandardCopyOption.REPLACE_EXISTING)
+            }
 
-            validity.validFrom
+            // 2) Otevřeme ZIP s random access
+            ZipFile(tempZip.toFile()).use { zip ->
+
+                // 3) Najdeme všechny měsíce v ZIPu
+                val monthToEntry = zip.entries().asSequence()
+                    .filter { !it.isDirectory && it.name.endsWith(".zip", ignoreCase = true) }
+                    .mapNotNull { entry ->
+                        val month = MpdCsvExtractor.extractMonthFromZipName(entry.name)
+                        month?.let { it to entry }
+                    }
+                    .toMap()
+
+                // 4) Seřadíme měsíce vzestupně
+                val months = monthToEntry.keys.sorted()
+
+                logger.info { "MPD annual ZIP contains months: $months" }
+
+                // 5) Zpracujeme měsíc po měsíci
+                for (month in months) {
+                    if (!datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, month)) {
+                        logger.info { "Skipping MPD ${msg.year}-$month due to evaluator" }
+                        continue
+                    }
+
+                    val entry = monthToEntry[month]
+                        ?: continue
+
+                    logger.info { "Processing MPD ${msg.year}-$month from ${entry.name}" }
+
+                    zip.getInputStream(entry).use { monthZipStream ->
+                        val monthZipBytes = monthZipStream.readBytes()
+                        val csvMap = csvExtractor.extractMpdCsvFiles(monthZipBytes)
+
+                        monthProcessor.processMonth(
+                            YearMonth.of(msg.year, month),
+                            csvMap
+                        )
+                    }
+                }
+            }
+        } finally {
+            // 6) Úklid
+            runCatching {
+                Files.deleteIfExists(tempZip)
+                logger.info { "Deleted temp file $tempZip" }
+            }.onFailure {
+                logger.warn(it) { "Failed to delete temp file $tempZip" }
+            }
         }
     }
 }
