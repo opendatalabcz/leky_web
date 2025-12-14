@@ -12,6 +12,10 @@ services:
       - "5433:5432"
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 800M
 
   rabbitmq:
     container_name: leky-rabbitmq
@@ -24,6 +28,10 @@ services:
       - "15672:15672"
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
   backend:
     container_name: leky-backend
@@ -39,12 +47,16 @@ services:
       RABBIT_PORT: ${RABBIT_PORT}
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASSWORD: ${RABBIT_PASSWORD}
-      JAVA_TOOL_OPTIONS: "-Xmx1536M"
+      JAVA_TOOL_OPTIONS: "-Xmx1200M -XX:+UseG1GC -XX:+UseStringDeduplication"
     depends_on:
       - db
       - rabbitmq
     networks:
       - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 1900M
 
   frontend:
     container_name: leky-frontend
@@ -58,6 +70,10 @@ services:
       - app-network
     depends_on:
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 100M
 
 networks:
   app-network:
