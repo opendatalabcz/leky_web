@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react"
 import {
-    Box, Button, Typography, Paper, IconButton, Slider
+    Box,
+    Button,
+    Typography,
+    Paper,
+    IconButton,
+    Slider,
+    Alert
 } from "@mui/material"
 import { PlayArrow, Pause } from "@mui/icons-material"
 import { format, addMonths, isBefore } from "date-fns"
@@ -24,10 +30,6 @@ import { ERECEPT_DATASETS } from "../types/DatasetType"
 interface DistrictFeatureProperties {
     nationalCode: string
     name: string
-}
-
-interface DistrictFeature extends GeoJSON.Feature {
-    properties: DistrictFeatureProperties
 }
 
 type DistrictFeatureCollection = GeoJSON.FeatureCollection
@@ -81,7 +83,7 @@ export function EReceptPage() {
         setMonthIndex(0)
     }, [common.dateFrom, common.dateTo])
 
-    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0;
+    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0
     const params = hasSelection ? {
         dateFrom: format(common.dateFrom!, "yyyy-MM"),
         dateTo: format(common.dateTo!, "yyyy-MM"),
@@ -95,12 +97,7 @@ export function EReceptPage() {
     const aggregateQuery = useEreceptAggregateByDistrict(params)
     const seriesQuery = useEreceptTimeSeriesByDistrict(params)
 
-    const {
-        monthly,
-        aggregated,
-        monthlySummaries,
-        aggregatedSummary
-    } = useEreceptPrepareAnimationData(seriesQuery.data?.series ?? [])
+    const {monthly, monthlySummaries} = useEreceptPrepareAnimationData(seriesQuery.data?.series ?? [])
 
     const currentMonthStr = months[monthIndex]
     const monthValues = monthly.get(currentMonthStr) ?? {}
@@ -154,6 +151,7 @@ export function EReceptPage() {
                 a to na základě dat ze systému eRecept. Vyberte léčiva, která vás zajímají,
                 nastavte časové období a způsob zobrazení – výsledky se promítnou do mapy okresů.
             </Typography>
+
             <Box
                 sx={{
                     display: 'flex',
@@ -175,9 +173,7 @@ export function EReceptPage() {
                                 backgroundColor: "#34558a",
                                 textTransform: "none",
                                 fontWeight: 600,
-                                "&:hover": {
-                                    backgroundColor: "#2c4773"
-                                }
+                                "&:hover": { backgroundColor: "#2c4773" }
                             }}
                         >
                             Vybrat léčiva
@@ -187,7 +183,6 @@ export function EReceptPage() {
                     </Paper>
                 </Box>
 
-                {/* Pravý blok s filtry a mapkou, který se na xs zlomí pod levý blok */}
                 <Box flex={1} minWidth={0}>
                     <EReceptFiltersPanel
                         dateFrom={common.dateFrom}
@@ -206,11 +201,30 @@ export function EReceptPage() {
                         }
                     />
 
+                    {!hasSelection && (
+                        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+                            Pro zobrazení dat v mapě okresů a časových grafech je
+                            potřeba vybrat alespoň jedno léčivo.
+                        </Alert>
+                    )}
+
                     {months.length > 1 && (
-                        <Box mt={3} display="flex" alignItems="center" gap={2} flexDirection={{ xs: 'column', sm: 'row' }}>
-                            <IconButton onClick={() => { setIsPlaying(p => !p); setSliderActive(true) }}>
+                        <Box
+                            mt={3}
+                            display="flex"
+                            alignItems="center"
+                            gap={2}
+                            flexDirection={{ xs: "column", sm: "row" }}
+                        >
+                            <IconButton
+                                onClick={() => {
+                                    setIsPlaying(p => !p)
+                                    setSliderActive(true)
+                                }}
+                            >
                                 {isPlaying ? <Pause /> : <PlayArrow />}
                             </IconButton>
+
                             <Slider
                                 min={0}
                                 max={months.length - 1}
@@ -223,19 +237,27 @@ export function EReceptPage() {
                                 valueLabelFormat={(i) => months[i]}
                                 sx={{ flex: 1, width: '100%' }}
                             />
-                            <Button size="small" onClick={() => setSliderActive(false)}>↺ Celé období</Button>
+
+                            <Button
+                                size="small"
+                                onClick={() => setSliderActive(false)}
+                            >
+                                ↺ Celé období
+                            </Button>
                         </Box>
                     )}
 
                     <Box mt={2}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
-                            <Typography
-                                variant="h6"
-                                sx={{ color: "#1f2b3d", fontWeight: 600, mb: 3 }}
-                            >
-                                Předepisování a výdej vybraných léčiv ({sliderActive
-                                ? months[monthIndex]
-                                : `${format(common.dateFrom!, "yyyy-MM")} až ${format(common.dateTo!, "yyyy-MM")}`})
+                            <Typography variant="h6" fontWeight={600} mb={2}>
+                                Předepisování a výdej vybraných léčiv (
+                                {sliderActive
+                                    ? months[monthIndex]
+                                    : `${format(common.dateFrom!, "yyyy-MM")} až ${format(
+                                        common.dateTo!,
+                                        "yyyy-MM"
+                                    )}`}
+                                )
                             </Typography>
 
                             <Box display="flex" flexWrap="wrap" gap={2}>
@@ -268,7 +290,6 @@ export function EReceptPage() {
                                     <SummaryTiles summary={summary} />
                                 </Box>
                             </Box>
-
                         </Paper>
                     </Box>
 

@@ -18,7 +18,7 @@ import {
     InputLabel,
     Typography
 } from "@mui/material"
-import { format } from "date-fns"
+import { format, eachMonthOfInterval, eachYearOfInterval } from "date-fns"
 import { EreceptFullTimeSeriesResponse } from "../services/ereceptService"
 import { TimeGranularity, TimeGranularityLabels } from "../types/TimeGranularity"
 import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../types/MedicinalUnitMode"
@@ -44,27 +44,61 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                                                dateFrom,
                                                                dateTo
                                                            }) => {
-    const chartData = useMemo(() => {
+    const { chartData, isPlaceholder } = useMemo(() => {
         if (!data || data.series.length === 0) {
-            return Array.from({ length: 12 }).map((_, i) => ({
-                name: format(new Date(2023, i, 1), timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM"),
-                Předepsané: 0,
-                Vydané: 0
-            }))
+            if (!dateFrom || !dateTo) {
+                return {
+                    chartData: [],
+                    isPlaceholder: true
+                }
+            }
+
+            const intervals =
+                timeGranularity === TimeGranularity.YEAR
+                    ? eachYearOfInterval({ start: dateFrom, end: dateTo })
+                    : eachMonthOfInterval({ start: dateFrom, end: dateTo })
+
+            return {
+                chartData: intervals.map(d => ({
+                    name: format(
+                        d,
+                        timeGranularity === TimeGranularity.YEAR
+                            ? "yyyy"
+                            : "yyyy-MM"
+                    ),
+                    Předepsané: 0,
+                    Vydané: 0
+                })),
+                isPlaceholder: true
+            }
         }
 
-        return data.series.map(item => ({
-            name: item.period,
-            Předepsané: item.prescribed,
-            Vydané: item.dispensed
-        }))
-    }, [data, timeGranularity])
+        return {
+            chartData: data.series.map(item => ({
+                name: item.period,
+                Předepsané: item.prescribed,
+                Vydané: item.dispensed
+            })),
+            isPlaceholder: false
+        }
+    }, [data, dateFrom, dateTo, timeGranularity])
 
     const highlightRange = useMemo(() => {
         if (!dateFrom || !dateTo) return null
-        const start = format(dateFrom, timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
-        const end = format(dateTo, timeGranularity === TimeGranularity.YEAR ? "yyyy" : "yyyy-MM")
-        return { start, end }
+        return {
+            start: format(
+                dateFrom,
+                timeGranularity === TimeGranularity.YEAR
+                    ? "yyyy"
+                    : "yyyy-MM"
+            ),
+            end: format(
+                dateTo,
+                timeGranularity === TimeGranularity.YEAR
+                    ? "yyyy"
+                    : "yyyy-MM"
+            )
+        }
     }, [dateFrom, dateTo, timeGranularity])
 
     const unitLabel = data ? MedicinalUnitModeUnits[data.medicinalUnitMode as MedicinalUnitMode] : ""
@@ -87,7 +121,7 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                     gap={2}
                     sx={{
                         width: { xs: '100%', sm: 'auto' },
-                        maxWidth: { sm: '500px' }, // max šířka pro filtry na velkých obrazovkách
+                        maxWidth: { sm: '500px' },
                         justifyContent: { sm: 'flex-end' }
                     }}
                 >
@@ -132,7 +166,11 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                         <Select
                             label="Granularita"
                             value={timeGranularity}
-                            onChange={(e) => onTimeGranularityChange(e.target.value as TimeGranularity)}
+                            onChange={(e) =>
+                                onTimeGranularityChange(
+                                    e.target.value as TimeGranularity
+                                )
+                            }
                         >
                             {Object.entries(TimeGranularityLabels).map(([value, label]) => (
                                 <MenuItem key={value} value={value}>
@@ -144,19 +182,22 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                 </Box>
             </Box>
 
-            <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                <Box sx={{ minWidth: '600px' }}>
+            <Box sx={{ width: "100%", overflowX: "auto" }}>
+                <Box sx={{ minWidth: "800px" }}>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={chartData}>
                             <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
                             <XAxis dataKey="name" />
                             <YAxis />
                             <Tooltip
-                                formatter={(value: number) => [`${value.toLocaleString("cs-CZ")} ${unitLabel}`]}
+                                formatter={(value: number) => [
+                                    `${value.toLocaleString("cs-CZ")} ${unitLabel}`
+                                ]}
                                 labelFormatter={(label) => `Období: ${label}`}
                             />
                             <Legend />
-                            {highlightRange && (
+
+                            {!isPlaceholder && highlightRange && (
                                 <ReferenceArea
                                     x1={highlightRange.start}
                                     x2={highlightRange.end}
@@ -165,21 +206,24 @@ export const PrescriptionDispenseChart: React.FC<Props> = ({
                                     fillOpacity={0.1}
                                 />
                             )}
+
                             <Line
                                 type="monotone"
                                 dataKey="Předepsané"
                                 stroke="#1976d2"
                                 strokeWidth={2}
-                                dot={{ r: 2 }}
+                                dot={!isPlaceholder}
                                 activeDot={{ r: 5 }}
+                                isAnimationActive={!isPlaceholder}
                             />
                             <Line
                                 type="monotone"
                                 dataKey="Vydané"
                                 stroke="#2e7d32"
                                 strokeWidth={2}
-                                dot={{ r: 2 }}
+                                dot={!isPlaceholder}
                                 activeDot={{ r: 5 }}
+                                isAnimationActive={!isPlaceholder}
                             />
                         </LineChart>
                     </ResponsiveContainer>

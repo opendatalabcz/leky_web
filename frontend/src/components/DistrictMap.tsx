@@ -17,6 +17,8 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
     const positiveColors = ["#D3E5FF", "#A4C8FF", "#76ABFF", "#478EFF", "#176AFF", "#0044CC"]
     const negativeColors = ["#FFD3D3", "#FFA4A4", "#FF7676", "#FF4747", "#FF1717", "#CC0000"]
 
+    const hasAnyData = Object.values(districtData).some(v => v !== 0)
+
     const positiveValues = Object.values(districtData).filter(v => v > 0)
     const negativeValues = Object.values(districtData).filter(v => v < 0).map(Math.abs)
 
@@ -25,7 +27,7 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
     if (filter === EReceptDataTypeAggregation.PRESCRIBED) {
         maxReference = positiveValues.length ? Math.max(...positiveValues) : 0
     } else if (filter === EReceptDataTypeAggregation.DISPENSED) {
-        maxReference = positiveValues.length ? Math.max(...positiveValues) : 0 // vydané jsou vždy kladné
+        maxReference = positiveValues.length ? Math.max(...positiveValues) : 0
     } else if (filter === EReceptDataTypeAggregation.DIFFERENCE) {
         const maxPositive = positiveValues.length ? Math.max(...positiveValues) : 0
         const maxNegative = negativeValues.length ? Math.max(...negativeValues) : 0
@@ -40,6 +42,17 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
         const code = (feature as any).nationalCode
         const value = code ? districtData[code] ?? 0 : 0
         const absValue = Math.abs(value)
+
+        if (!hasAnyData) {
+            return {
+                fillColor: "#f3f3f3",
+                weight: 2,
+                opacity: 1,
+                color: "#FFFFFF",
+                dashArray: "3",
+                fillOpacity: 0.9,
+            }
+        }
 
         let fillColor = "#FFFFFF"
 
@@ -81,7 +94,8 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
             })
 
             layer.on("mouseover", () => {
-                (layer as any).setStyle({
+                if (!hasAnyData) return
+                    ;(layer as any).setStyle({
                     fillOpacity: 0.9,
                     color: "yellow",
                 })
@@ -89,7 +103,7 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
 
             layer.on("mouseout", () => {
                 (layer as any).setStyle({
-                    fillOpacity: 0.7,
+                    fillOpacity: hasAnyData ? 0.7 : 0.9,
                     color: "white",
                 })
             })
