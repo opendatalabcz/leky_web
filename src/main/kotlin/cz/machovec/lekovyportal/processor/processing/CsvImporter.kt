@@ -104,10 +104,7 @@ class CsvImporter {
 
         val resultSequence = sequence {
             csvReader.use { csvReader ->
-                var rowNumber = 1
-
                 for (dataRow in csvReader) {
-                    rowNumber++
 
                     val logicalRow: CsvRow<E> = columnIndexMap.mapValues { (_, columnIndex) ->
                         dataRow.getOrNull(columnIndex)?.trim()

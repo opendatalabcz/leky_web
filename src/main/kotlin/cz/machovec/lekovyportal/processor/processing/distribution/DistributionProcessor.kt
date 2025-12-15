@@ -81,6 +81,10 @@ class DistributionProcessor(
             }
 
         } else if (msg.fileType == FileType.ZIP) {
+            require(msg.month == null) {
+                "ZIP dataset ${msg.datasetType} must not specify month, but month=${msg.month} was provided."
+            }
+
             if (msg.datasetType !in ZIP_SUPPORTED_DATASETS) {
                 logger.error { "DatasetType ${msg.datasetType} does not support ZIP processing." }
                 return

@@ -116,11 +116,6 @@ class EreceptProcessor(
         val processedMonths = mutableSetOf<Int>()
 
         sequence.forEach { row ->
-            // Monthly dataset -> process only specific month
-            if (msg.month != null && row.month != msg.month) {
-                return@forEach
-            }
-
             if (row.districtCode == PRAGUE_CODE) {
                 val key = aggregationKey(row)
                 pragueAggregate.merge(key, row) { oldVal, newVal ->
