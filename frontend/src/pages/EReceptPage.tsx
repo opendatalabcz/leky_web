@@ -261,7 +261,7 @@ export function EReceptPage() {
                     <Box mt={2}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
                             <Typography variant="h6" fontWeight={600} mb={2}>
-                                Předepisování a výdej vybraných léčiv (
+                                Předepisování a výdej vybraných léčiv podle okresů (
                                 {sliderActive
                                     ? months[monthIndex]
                                     : `${format(common.dateFrom!, "yyyy-MM")} až ${format(
@@ -269,6 +269,14 @@ export function EReceptPage() {
                                         "yyyy-MM"
                                     )}`}
                                 )
+                            </Typography>
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
+                            >
+                                Zobrazená data vycházejí z agregovaných údajů o předepsaných a vydaných léčivech ze systému eRecept. Hodnoty představují agregované objemy předepsaných nebo vydaných léčiv (v počtech balení nebo doporučených denních dávkách) v daném okrese za sledované období a nezahrnují léčiva vydaná mimo systém eRecept (např. volný prodej).
                             </Typography>
 
                             <Box display="flex" flexWrap="wrap" gap={2}>
@@ -308,6 +316,14 @@ export function EReceptPage() {
                         <Paper variant="outlined" sx={{ p: 2 }}>
                             <Typography variant="h6" fontWeight={600} mb={2}>
                                 Vývoj předepisování a výdeje v čase
+                            </Typography>
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
+                            >
+                                Graf zobrazuje časový vývoj agregovaných údajů o předepsaných a vydaných léčivech ze systému eRecept. Zobrazené hodnoty představují agregované objemy předepsaných nebo vydaných léčiv (v počtech balení nebo doporučených denních dávkách) v jednotlivých obdobích a nezahrnují léčiva vydaná mimo systém eRecept.
                             </Typography>
 
                             {fullTimeSeriesQuery.isLoading ? (

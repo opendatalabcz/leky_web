@@ -58,9 +58,7 @@ export function DistributionPage() {
             </Typography>
 
             <Typography variant="body1" color="text.secondary" mb={3}>
-                Sledujte distribuční tok léčiv od držitelů registrace přes distributory až k pacientům.
-                Vyberte si léčiva, která vás zajímají, nastavte časové období a vizualizujte cestu léčiv
-                napříč jednotlivými články distribučního řetězce.
+                Sledujte, jak se vybraná léčiva pohybují distribučním řetězcem od držitelů registrace přes distributory až k výdeji v lékárnách. Vyberte léčiva a časové období a prozkoumejte jejich tok mezi jednotlivými aktéry.
             </Typography>
 
             <Box
@@ -130,6 +128,14 @@ export function DistributionPage() {
                                 )
                             </Typography>
 
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
+                            >
+                                Zobrazená data vycházejí z agregovaných hlášení o pohybu léčiv mezi jednotlivými články distribučního řetězce. Diagram znázorňuje objemy hlášených pohybů léčiv mezi aktéry, nikoli stav zásob u jednotlivých subjektů.
+                            </Typography>
+
                             {sankeyQuery.isLoading ? (
                                 <Typography>Načítám data...</Typography>
                             ) : (
@@ -153,7 +159,15 @@ export function DistributionPage() {
                     <Box mt={6}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
                             <Typography variant="h6" fontWeight={600} mb={2}>
-                                Časový vývoj distribučních pohybů
+                                Vývoj distribučních toků v čase
+                            </Typography>
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
+                            >
+                                Graf zobrazuje časový vývoj agregovaných hlášených pohybů léčiv mezi jednotlivými aktéry distribučního řetězce. Zobrazené hodnoty představují logistické toky a nevyjadřují množství léčiv držených na skladech ani skutečnou spotřebu pacientů.
                             </Typography>
 
                             {timeSeriesQuery.isLoading ? (
