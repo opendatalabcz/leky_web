@@ -47,6 +47,9 @@ export function DistributionPage() {
             }
             : undefined
     )
+    const hasIgnored =
+        timeSeriesQuery.data &&
+        timeSeriesQuery.data.ignoredMedicineProducts.length > 0
 
     return (
         <Box>
@@ -105,8 +108,15 @@ export function DistributionPage() {
 
                     {!hasSelection && (
                         <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
-                            Pro zobrazení distribučních toků a časových řad je potřeba
-                            vybrat alespoň jedno léčivo.
+                            Vyberte alespoň jedno léčivo, aby bylo možné zobrazit
+                            graf distribučních toků a graf s vývojem v čase.
+                        </Alert>
+                    )}
+
+                    {hasSelection && hasIgnored && (
+                        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+                            Pozor! Některá vybraná léčiva nebyla do výpočtu zahrnuta,
+                            protože pro ně není definována doporučená denní dávka (DDD).
                         </Alert>
                     )}
 

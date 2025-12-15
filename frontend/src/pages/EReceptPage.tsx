@@ -116,6 +116,10 @@ export function EReceptPage() {
         } : undefined
     )
 
+    const hasIgnored =
+        fullTimeSeriesQuery.data &&
+        fullTimeSeriesQuery.data.ignoredMedicineProducts.length > 0
+
     useEffect(() => {
         if (!seriesQuery.data?.series?.length) return
         const all = new Set<string>()
@@ -203,8 +207,15 @@ export function EReceptPage() {
 
                     {!hasSelection && (
                         <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
-                            Pro zobrazení dat v mapě okresů a časových grafech je
-                            potřeba vybrat alespoň jedno léčivo.
+                            Vyberte alespoň jedno léčivo, aby bylo možné zobrazit data
+                            v mapě okresů a graf s vývojem v čase.
+                        </Alert>
+                    )}
+
+                    {hasSelection && hasIgnored && (
+                        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+                            Pozor! Některá vybraná léčiva nebyla do výpočtu zahrnuta,
+                            protože pro ně není definována doporučená denní dávka (DDD).
                         </Alert>
                     )}
 

@@ -7,7 +7,9 @@ import DistributionTimeSeriesResponse
 import cz.machovec.lekovyportal.api.calculations.DoseUnitConverterFactory
 import cz.machovec.lekovyportal.api.calculations.distribution.SankeyDiagramAssembler
 import cz.machovec.lekovyportal.api.calculations.distribution.TimeSeriesAssembler
+import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
+import cz.machovec.lekovyportal.core.domain.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.core.repository.distribution.*
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
 import org.springframework.stereotype.Service
@@ -28,8 +30,13 @@ class DistributionService(
 
     fun getSankeyDiagram(req: DistributionSankeyRequest): DistributionSankeyResponse {
 
-        // Step 1: Load products (by IDs + registration numbers) and build DDD lookup
-        val (included, ignored) = loadProducts(req.medicinalProductIds, req.registrationNumbers)
+        // Step 1: Load and filter medicinal products by DDD compatibility
+        val (included, ignored) = loadAndFilterProducts(
+            req.medicinalProductIds,
+            req.registrationNumbers,
+            req.medicinalUnitMode
+        )
+
         val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
         val productIds    = included.mapNotNull { it.id }
 
@@ -59,8 +66,13 @@ class DistributionService(
 
     fun getTimeSeries(req: DistributionTimeSeriesRequest): DistributionTimeSeriesResponse {
 
-        // Step 1: Load products and DDD lookup
-        val (included, ignored) = loadProducts(req.medicinalProductIds, req.registrationNumbers)
+        // Step 1: Load and filter medicinal products by DDD compatibility
+        val (included, ignored) = loadAndFilterProducts(
+            req.medicinalProductIds,
+            req.registrationNumbers,
+            req.medicinalUnitMode
+        )
+
         val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
         val productIds    = included.mapNotNull { it.id }
 
@@ -90,15 +102,24 @@ class DistributionService(
 
     /** PRIVATE UTILITIES **/
 
-    /** Loads products by IDs + registration numbers and returns Pair<included, ignored>. */
-    private fun loadProducts(ids: List<Long>, regNumbers: List<String>) =
-        run {
-            val byId  = if (ids.isNotEmpty()) medicinalProductRepo.findAllByIdIn(ids) else emptyList()
-            val byReg = if (regNumbers.isNotEmpty()) medicinalProductRepo.findAllByRegistrationNumberIn(regNumbers) else emptyList()
-            (byId + byReg).distinctBy { it.id }.partition { it.id != null }
-        }
+    private fun loadAndFilterProducts(
+        ids: List<Long>,
+        regNumbers: List<String>,
+        unitMode: MedicinalUnitMode
+    ): Pair<List<MpdMedicinalProduct>, List<MpdMedicinalProduct>> {
+        val byId  = if (ids.isNotEmpty()) medicinalProductRepo.findAllByIdIn(ids) else emptyList()
+        val byReg = if (regNumbers.isNotEmpty()) medicinalProductRepo.findAllByRegistrationNumberIn(regNumbers) else emptyList()
+        val all   = (byId + byReg).distinctBy { it.id }
 
-    /** Converts MPD entities to lightweight DTOs for the response payload. */
-    private fun List<cz.machovec.lekovyportal.core.domain.mpd.MpdMedicinalProduct>.toDto() =
+        return if (unitMode == MedicinalUnitMode.DAILY_DOSES) {
+            all.partition { prod ->
+                prod.dailyDosePackaging != null && prod.dailyDosePackaging > BigDecimal.ZERO
+            }
+        } else {
+            all to emptyList()
+        }
+    }
+
+    private fun List<MpdMedicinalProduct>.toDto() =
         map { MedicinalProductIdentificators(it.id!!, it.suklCode) }
 }
