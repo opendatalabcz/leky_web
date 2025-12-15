@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { Box, Button, Paper, Typography, Alert } from "@mui/material"
 import { useFilters } from "../components/FilterContext"
-import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel"
+import { DistributionFiltersPanel } from "../components/distribution/DistributionFiltersPanel"
 import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
@@ -12,7 +12,7 @@ import { useDistributionTimeSeries } from "../hooks/useDistributionTimeSeries"
 import { useDistributionSankeyDiagram } from "../hooks/useDistributionSankeyDiagram"
 import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
 import { TimeGranularity } from "../types/TimeGranularity"
-import { DistributionTimeSeriesChart } from "../components/DistributionTimeSeriesChart"
+import { DistributionTimeSeriesChart } from "../components/distribution/DistributionTimeSeriesChart"
 import { DISTRIBUTION_DATASETS } from "../types/DatasetType"
 
 export function DistributionPage() {

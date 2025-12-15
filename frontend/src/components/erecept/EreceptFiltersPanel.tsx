@@ -7,13 +7,13 @@ import {
     Select
 } from "@mui/material"
 import type { SelectChangeEvent } from "@mui/material/Select"
-import { YearMonthPicker } from "./YearMonthPicker"
-import { MedicinalUnitMode, MedicinalUnitModeLabels } from "../types/MedicinalUnitMode"
+import { YearMonthPicker } from "../YearMonthPicker"
+import { MedicinalUnitMode, MedicinalUnitModeLabels } from "../../types/MedicinalUnitMode"
 import {
     PopulationNormalisationMode,
     PopulationNormalisationModeLabels
-} from "../types/PopulationNormalisationMode"
-import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
+} from "../../types/PopulationNormalisationMode"
+import { EReceptDataTypeAggregation } from "../../types/EReceptDataTypeAggregation"
 
 type Props = {
     dateFrom: Date | null
@@ -31,7 +31,7 @@ type Props = {
     onChangeAggregationType: (val: EReceptDataTypeAggregation) => void
 }
 
-export const EReceptFiltersPanel: React.FC<Props> = ({
+export const EreceptFiltersPanel: React.FC<Props> = ({
                                                          dateFrom,
                                                          dateTo,
                                                          onChangeDateFrom,

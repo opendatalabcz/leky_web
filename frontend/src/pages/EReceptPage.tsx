@@ -11,18 +11,18 @@ import {
 import { PlayArrow, Pause } from "@mui/icons-material"
 import { format, addMonths, isBefore } from "date-fns"
 import { useFilters } from "../components/FilterContext"
-import { EReceptFiltersPanel } from "../components/EReceptFiltersPanel"
+import { EreceptFiltersPanel } from "../components/erecept/EreceptFiltersPanel"
 import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
-import DistrictMap from "../components/DistrictMap"
+import DistrictMap from "../components/erecept/DistrictMap"
 import { FeatureCollection } from "geojson"
 import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
-import { SummaryTiles } from "../components/SummaryTiles"
+import { SummaryTiles } from "../components/erecept/SummaryTiles"
 import { useEreceptAggregateByDistrict } from "../hooks/useEreceptAggregateByDistrict"
 import { useEreceptTimeSeriesByDistrict } from "../hooks/useEreceptTimeSeriesByDistrict"
 import { useEreceptPrepareAnimationData } from "../hooks/useEreceptPrepareAnimationData"
-import { PrescriptionDispenseChart } from "../components/PrescriptionDispenseChart"
+import { EreceptTimeSeriesChart } from "../components/erecept/EreceptTimeSeriesChart"
 import { useEreceptFullTimeSeries } from "../hooks/useEreceptFullTimeSeries"
 import { TimeGranularity } from "../types/TimeGranularity"
 import { ERECEPT_DATASETS } from "../types/DatasetType"
@@ -184,7 +184,7 @@ export function EReceptPage() {
                 </Box>
 
                 <Box flex={1} minWidth={0}>
-                    <EReceptFiltersPanel
+                    <EreceptFiltersPanel
                         dateFrom={common.dateFrom}
                         dateTo={common.dateTo}
                         onChangeDateFrom={(date) => setCommon({ ...common, dateFrom: date })}
@@ -302,7 +302,7 @@ export function EReceptPage() {
                             {fullTimeSeriesQuery.isLoading ? (
                                 <Typography>Načítám časovou řadu...</Typography>
                             ) : (
-                                <PrescriptionDispenseChart
+                                <EreceptTimeSeriesChart
                                     data={fullTimeSeriesQuery.data}
                                     selectedDistrict={selectedDistrict}
                                     onDistrictChange={setSelectedDistrict}

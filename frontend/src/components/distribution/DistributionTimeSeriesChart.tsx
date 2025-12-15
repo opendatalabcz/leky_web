@@ -12,8 +12,8 @@ import {
 } from "recharts"
 import { Box } from "@mui/material"
 import { format, eachMonthOfInterval } from "date-fns"
-import { DistributionTimeSeriesResponse } from "../services/distributionService"
-import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../types/MedicinalUnitMode"
+import { DistributionTimeSeriesResponse } from "../../services/distributionService"
+import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../../types/MedicinalUnitMode"
 
 type Props = {
     data: DistributionTimeSeriesResponse | undefined

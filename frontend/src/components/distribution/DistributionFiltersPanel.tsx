@@ -7,8 +7,8 @@ import {
     Select,
     SelectChangeEvent
 } from "@mui/material"
-import { YearMonthPicker } from "./YearMonthPicker"
-import { MedicinalUnitMode, MedicinalUnitModeLabels } from "../types/MedicinalUnitMode"
+import { YearMonthPicker } from "../YearMonthPicker"
+import { MedicinalUnitMode, MedicinalUnitModeLabels } from "../../types/MedicinalUnitMode"
 
 type Props = {
     dateFrom: Date | null

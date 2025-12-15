@@ -19,9 +19,9 @@ import {
     Typography
 } from "@mui/material"
 import { format, eachMonthOfInterval, eachYearOfInterval } from "date-fns"
-import { EreceptFullTimeSeriesResponse } from "../services/ereceptService"
-import { TimeGranularity, TimeGranularityLabels } from "../types/TimeGranularity"
-import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../types/MedicinalUnitMode"
+import { EreceptFullTimeSeriesResponse } from "../../services/ereceptService"
+import { TimeGranularity, TimeGranularityLabels } from "../../types/TimeGranularity"
+import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../../types/MedicinalUnitMode"
 
 type Props = {
     data: EreceptFullTimeSeriesResponse | undefined
@@ -34,7 +34,7 @@ type Props = {
     dateTo?: Date | null
 }
 
-export const PrescriptionDispenseChart: React.FC<Props> = ({
+export const EreceptTimeSeriesChart: React.FC<Props> = ({
                                                                data,
                                                                selectedDistrict,
                                                                onDistrictChange,

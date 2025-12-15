@@ -2,9 +2,9 @@ import React from "react"
 import { GeoJSON, GeoJSONProps, MapContainer } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import { Feature, FeatureCollection, Geometry } from "geojson"
-import { EReceptDataTypeAggregation } from "../types/EReceptDataTypeAggregation"
+import { EReceptDataTypeAggregation } from "../../types/EReceptDataTypeAggregation"
 import { Box, Typography } from "@mui/material"
-import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
+import { MedicinalUnitMode } from "../../types/MedicinalUnitMode"
 
 interface Props {
     geojsonData: FeatureCollection
