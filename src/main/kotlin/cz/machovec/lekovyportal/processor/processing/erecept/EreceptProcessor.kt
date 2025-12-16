@@ -54,40 +54,73 @@ class EreceptProcessor(
 
     @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
-        if (msg.fileType != FileType.ZIP) {
-            logger.warn { "Skipping non-ZIP file type: ${msg.fileType} for dataset ${msg.datasetType}" }
+
+        /* -------------------------------------------------
+         * STEP 0 – Basic message validation
+         * ------------------------------------------------- */
+
+        require(msg.fileType == FileType.ZIP) {
+            "eRecept datasets must be provided as ZIP (fileType=${msg.fileType})"
+        }
+
+        require(msg.datasetType in setOf(
+            DatasetType.ERECEPT_PRESCRIPTIONS,
+            DatasetType.ERECEPT_DISPENSES
+        )) {
+            "Unsupported datasetType for eRecept processor: ${msg.datasetType}"
+        }
+
+        /* -------------------------------------------------
+         * STEP 1 – Evaluator (BEFORE download)
+         * ------------------------------------------------- */
+
+        val canProcess = msg.month?.let {
+            datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, it)
+        } ?: datasetProcessingEvaluator.canProcessYear(msg.datasetType, msg.year)
+
+        if (!canProcess) {
+            logger.info {
+                "Dataset ${msg.datasetType} ${msg.year}-${msg.month ?: "*"} cannot be processed (evaluator)."
+            }
             return
         }
 
-        // Step 1 - Check if the dataset can be processed
-        if (!canProcessDataset(msg)) {
-            return
-        }
+        /* -------------------------------------------------
+         * STEP 2 – Download source file
+         * ------------------------------------------------- */
 
-        // Step 2 – Download the ZIP file from the remote source
         val zipBytes = downloader.downloadFile(URI(msg.fileUrl))
             ?: return logger.error { "Failed to download ZIP for ${msg.fileUrl}" }
 
         val districtMap = districtReferenceDataProvider.getDistrictMap()
 
-        // Step 3 - Stream ZIP file
+        /* -------------------------------------------------
+         * STEP 3 – Open ZIP & locate CSV
+         * ------------------------------------------------- */
+
         ByteArrayInputStream(zipBytes).use { byteStream ->
             ZipInputStream(byteStream).use { zipStream ->
 
-                // Step 4 - Find CSV file
-                generateSequence { zipStream.nextEntry }
+                val csvEntry = generateSequence { zipStream.nextEntry }
                     .firstOrNull { it.name.endsWith(".csv", ignoreCase = true) }
                     ?: run {
                         logger.error { "No CSV file found in ZIP for ${msg.fileUrl}" }
                         return
                     }
 
-                // Step 5 - Remove BOM
-                val bomInputStream = BOMInputStream.builder()
-                    .setInputStream(zipStream)
-                    .setInclude(false)
-                    .get()
-                val reader = BufferedReader(InputStreamReader(bomInputStream, CHARSET))
+                /* -------------------------------------------------
+                 * STEP 4 – Stream CSV, import & persist
+                 * ------------------------------------------------- */
+
+                val reader = BufferedReader(
+                    InputStreamReader(
+                        BOMInputStream.builder()
+                            .setInputStream(zipStream)
+                            .setInclude(false)
+                            .get(),
+                        CHARSET
+                    )
+                )
 
                 val importStats = MutableImportStats()
 
@@ -99,18 +132,33 @@ class EreceptProcessor(
                     importStats
                 )
 
-                val processedMonths = processStream(dataSequence, msg, districtMap)
+                val processedMonths = processStream(
+                    sequence = dataSequence,
+                    datasetType = msg.datasetType,
+                    year = msg.year,
+                    districtMap = districtMap
+                )
+
+                /* -------------------------------------------------
+                 * STEP 5 – Logging
+                 * ------------------------------------------------- */
 
                 logEreceptImport(msg.datasetType, msg.year, processedMonths, importStats)
             }
         }
     }
 
+    /* =================================================
+     * STEP 4 – Stream processing (month-level logic)
+     * ================================================= */
+
     private fun processStream(
         sequence: Sequence<EreceptRawData>,
-        msg: DatasetToProcessMessage,
+        datasetType: DatasetType,
+        year: Int,
         districtMap: Map<String, District>
     ): Set<Int> {
+
         val pragueAggregate = mutableMapOf<String, EreceptRawData>()
         val nonPragueBuffer = mutableListOf<EreceptRawData>()
         val processedMonths = mutableSetOf<Int>()
@@ -124,27 +172,31 @@ class EreceptProcessor(
             } else {
                 nonPragueBuffer.add(row)
                 if (nonPragueBuffer.size >= BATCH_SIZE) {
-                    flushBuffer(nonPragueBuffer, msg.datasetType, msg.year, districtMap, processedMonths)
+                    flushBuffer(nonPragueBuffer, datasetType, districtMap, processedMonths)
                     nonPragueBuffer.clear()
                 }
             }
         }
 
         if (nonPragueBuffer.isNotEmpty()) {
-            flushBuffer(nonPragueBuffer, msg.datasetType, msg.year, districtMap, processedMonths)
+            flushBuffer(nonPragueBuffer, datasetType, districtMap, processedMonths)
         }
 
         if (pragueAggregate.isNotEmpty()) {
             pragueAggregate.values.chunked(BATCH_SIZE).forEach { batch ->
-                flushBuffer(batch, msg.datasetType, msg.year, districtMap, processedMonths)
+                flushBuffer(batch, datasetType, districtMap, processedMonths)
             }
         }
+
+        /* -------------------------------------------------
+         * STEP 5 – Mark processed months
+         * ------------------------------------------------- */
 
         processedMonths.forEach { month ->
             processedDatasetRepository.save(
                 ProcessedDataset(
-                    datasetType = msg.datasetType,
-                    year = msg.year,
+                    datasetType = datasetType,
+                    year = year,
                     month = month
                 )
             )
@@ -156,49 +208,57 @@ class EreceptProcessor(
     private fun flushBuffer(
         buffer: Collection<EreceptRawData>,
         datasetType: DatasetType,
-        year: Int,
         districtMap: Map<String, District>,
         processedMonths: MutableSet<Int>
     ) {
         if (buffer.isEmpty()) return
 
-        val grouped = buffer.groupBy { it.month }
-
-        for ((month, rowsForMonth) in grouped) {
-            persist(rowsForMonth, datasetType, year, month, districtMap)
-            processedMonths.add(month)
+        buffer.groupBy { it.month }.forEach { (month, rows) ->
+            val persisted = persist(rows, datasetType, districtMap)
+            if (persisted) {
+                processedMonths.add(month)
+            }
         }
     }
 
-    private fun canProcessDataset(msg: DatasetToProcessMessage): Boolean {
-        return msg.month?.let {
-            datasetProcessingEvaluator.canProcessMonth(msg.datasetType, msg.year, it)
-        } ?: datasetProcessingEvaluator.canProcessYear(msg.datasetType, msg.year)
-    }
+    private fun persist(
+        records: List<EreceptRawData>,
+        datasetType: DatasetType,
+        districtMap: Map<String, District>
+    ): Boolean {
+        if (records.isEmpty()) return false
 
-    private fun persist(records: List<EreceptRawData>, datasetType: DatasetType, year: Int, month: Int, districtMap: Map<String, District>) {
-        if (records.isEmpty()) {
-            logger.info { "No records to persist for $datasetType in $year-$month" }
-            return
-        }
-
-        when (datasetType) {
+        return when (datasetType) {
             DatasetType.ERECEPT_DISPENSES -> {
-                val entities = records.mapNotNull { it.toDispenseEntity(mpdReferenceDataProvider, districtMap) }
-                dispenseRepository.batchInsert(entities)
+                val entities = records.mapNotNull {
+                    it.toDispenseEntity(mpdReferenceDataProvider, districtMap)
+                }
+                if (entities.isNotEmpty()) {
+                    dispenseRepository.batchInsert(entities)
+                    true
+                } else false
             }
+
             DatasetType.ERECEPT_PRESCRIPTIONS -> {
-                val entities = records.mapNotNull { it.toPrescriptionEntity(mpdReferenceDataProvider, districtMap) }
-                prescriptionRepository.batchInsert(entities)
+                val entities = records.mapNotNull {
+                    it.toPrescriptionEntity(mpdReferenceDataProvider, districtMap)
+                }
+                if (entities.isNotEmpty()) {
+                    prescriptionRepository.batchInsert(entities)
+                    true
+                } else false
             }
-            else -> logger.warn { "Unsupported datasetType: $datasetType" }
+
+            else -> error("Unsupported datasetType $datasetType")
         }
     }
 
     private fun aggregationKey(row: EreceptRawData): String =
         "${row.districtCode}-${row.year}-${row.month}-${row.suklCode}"
 
-    /** LOGGING **/
+    /* =================================================
+     * Logging
+     * ================================================= */
 
     private fun logEreceptImport(
         datasetType: DatasetType,
@@ -247,16 +307,9 @@ class EreceptProcessor(
 
     private fun formatScope(year: Int, months: Set<Int>): String =
         when {
-            months.isEmpty() ->
-                "$year (no data)"
-
-            months.size == 1 ->
-                "$year-${months.first()}"
-
-            months.size == 12 ->
-                "$year (all months)"
-
-            else ->
-                "$year months=${months.sorted().joinToString(",")}"
+            months.isEmpty() -> "$year (no data)"
+            months.size == 1 -> "$year-${months.first()}"
+            months.size == 12 -> "$year (all months)"
+            else -> "$year months=${months.sorted().joinToString(",")}"
         }
 }

@@ -62,137 +62,175 @@ class DistributionProcessor(
     @Transactional
     override fun processFile(msg: DatasetToProcessMessage) {
 
-        // Step 1 – Download file from the remote source
+        /* -------------------------------------------------
+         * STEP 0 – Basic message validation
+         * ------------------------------------------------- */
+
+        require(!(msg.fileType == FileType.ZIP && msg.month != null)) {
+            "ZIP dataset ${msg.datasetType} must not specify month (month=${msg.month})"
+        }
+
+        require(!(msg.fileType == FileType.CSV && msg.month == null)) {
+            "CSV dataset ${msg.datasetType} requires explicit month in message."
+        }
+
+        require(!(msg.fileType == FileType.ZIP && msg.datasetType !in ZIP_SUPPORTED_DATASETS)) {
+            "DatasetType ${msg.datasetType} does not support ZIP processing."
+        }
+
+        /* -------------------------------------------------
+         * STEP 1 – Download source file
+         * ------------------------------------------------- */
         val fileBytes = downloader.downloadFile(URI(msg.fileUrl))
             ?: return logger.error { "Download failed: ${msg.fileUrl}" }
 
-        // Step 2 – Decide according to file type
-        if (msg.fileType == FileType.CSV) {
-            if (msg.month == null) {
-                logger.error { "CSV dataset requires a specific month provided in the message." }
-                return
+        /* -------------------------------------------------
+         * STEP 2 – Dispatch by file type
+         * ------------------------------------------------- */
+        when (msg.fileType) {
+            FileType.CSV -> processCsvDataset(fileBytes, msg)
+            FileType.ZIP -> processZipDataset(fileBytes, msg)
+        }
+    }
+
+    /* =================================================
+     * CSV DATASET
+     * ================================================= */
+
+    private fun processCsvDataset(
+        fileBytes: ByteArray,
+        msg: DatasetToProcessMessage
+    ) {
+        val month = msg.month!!  // validated in STEP 0
+
+        ByteArrayInputStream(fileBytes).use { input ->
+            input.reader(CHARSET).use { reader ->
+                processSingleMonth(
+                    reader = reader,
+                    datasetType = msg.datasetType,
+                    year = msg.year,
+                    month = month
+                )
             }
+        }
+    }
 
-            // Step 3 - Stream CSV file
-            ByteArrayInputStream(fileBytes).use { inputStream ->
-                inputStream.reader(CHARSET).use { reader ->
-                    processSingleStream(reader, msg.datasetType, msg.year, msg.month)
-                }
-            }
+    /* =================================================
+     * ZIP DATASET (LEK13)
+     * ================================================= */
 
-        } else if (msg.fileType == FileType.ZIP) {
-            require(msg.month == null) {
-                "ZIP dataset ${msg.datasetType} must not specify month, but month=${msg.month} was provided."
-            }
+    private fun processZipDataset(
+        fileBytes: ByteArray,
+        msg: DatasetToProcessMessage
+    ) {
+        ByteArrayInputStream(fileBytes).use { byteStream ->
+            ZipInputStream(byteStream).use { zipStream ->
 
-            if (msg.datasetType !in ZIP_SUPPORTED_DATASETS) {
-                logger.error { "DatasetType ${msg.datasetType} does not support ZIP processing." }
-                return
-            }
+                var entry = zipStream.nextEntry
+                while (entry != null) {
 
-            // Step 3 - Stream ZIP file
-            ByteArrayInputStream(fileBytes).use { byteStream ->
-                ZipInputStream(byteStream).use { zipStream ->
+                    if (!entry.isDirectory) {
+                        val month = extractMonthFromFileName(entry.name)
 
-                    var entry = zipStream.nextEntry
-                    while (entry != null) {
-                        if (!entry.isDirectory) {
-                            val month = getMonthFromFileName(entry.name)
-
-                            if (month != null) {
-                                val noCloseReader = object : FilterReader(InputStreamReader(zipStream, CHARSET)) {
+                        if (month != null) {
+                            val reader = BufferedReader(
+                                object : FilterReader(InputStreamReader(zipStream, CHARSET)) {
                                     override fun close() {
-                                        // Do nothing - keep ZipInputStream open
+                                        // Prevent ZipInputStream from closing
                                     }
                                 }
-                                val bufferedReader = BufferedReader(noCloseReader)
-                                // IMPORTANT: processSingleStream MUST fully consume the reader,
-                                // otherwise ZipInputStream.nextEntry() will break.
-                                processSingleStream(bufferedReader, msg.datasetType, msg.year, month)
-                            }
+                            )
+
+                            processSingleMonth(
+                                reader = reader,
+                                datasetType = msg.datasetType,
+                                year = msg.year,
+                                month = month
+                            )
                         }
-                        entry = zipStream.nextEntry
                     }
+
+                    entry = zipStream.nextEntry
                 }
             }
         }
     }
 
-    private fun processSingleStream(
+    /* =================================================
+     * STEP 3 & 4 – Process single logical month
+     * STEP 5 - Mark dataset as processed
+     * ================================================= */
+
+    private fun processSingleMonth(
         reader: Reader,
         datasetType: DatasetType,
         year: Int,
         month: Int
     ) {
+        /* STEP 3 – Evaluator check */
         if (!datasetProcessingEvaluator.canProcessMonth(datasetType, year, month)) {
             return
         }
 
-        if (datasetType !in setOf(
-                DatasetType.DISTRIBUTIONS_FROM_MAHS,
-                DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS,
-                DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS,
-                DatasetType.DISTRIBUTIONS_FROM_PHARMACIES
-            )
-        ) {
-            logger.error { "Unsupported dataset type $datasetType" }
-            return
-        }
-
-        logger.info { "Processing stream for $datasetType $year-$month" }
+        logger.info { "Processing $datasetType $year-$month" }
 
         val importStats = MutableImportStats()
 
+        /* STEP 4 – Import & persist data */
         when (datasetType) {
+
             DatasetType.DISTRIBUTIONS_FROM_MAHS -> {
-                val sequence = importer.importStream(
+                val seq = importer.importStream(
                     reader,
                     DistMahCsvColumn.entries.map { it.toSpec() },
                     DistFromMahsRowMapper(refData),
                     CSV_DATA_SEPARATOR,
                     importStats
                 )
-                persistBatched(sequence, mahRepo::batchInsert)
+                persistBatched(seq, mahRepo::batchInsert)
             }
 
             DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS -> {
-                val sequence = importer.importStream(
+                val seq = importer.importStream(
                     reader,
                     DistDistributorCsvColumn.entries.map { it.toSpec() },
                     DistFromDistributorsRowMapper(refData),
                     CSV_DATA_SEPARATOR,
                     importStats
                 )
-                persistBatched(sequence, distRepo::batchInsert)
+                persistBatched(seq, distRepo::batchInsert)
             }
 
             DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS -> {
-                val sequence = importer.importStream(
+                val seq = importer.importStream(
                     reader,
                     DistDistributorExportCsvColumn.entries.map { it.toSpec() },
                     DistExportFromDistributorsRowMapper(refData),
                     CSV_DATA_SEPARATOR,
                     importStats
                 )
-                persistBatched(sequence, exportRepo::batchInsert)
+                persistBatched(seq, exportRepo::batchInsert)
             }
 
             DatasetType.DISTRIBUTIONS_FROM_PHARMACIES -> {
-                val sequence = importer.importStream(
+                val seq = importer.importStream(
                     reader,
                     DistPharmacyCsvColumn.entries.map { it.toSpec() },
                     DistFromPharmaciesRowMapper(refData),
                     CSV_DATA_SEPARATOR,
                     importStats
                 )
-                persistBatched(sequence, pharmacyRepo::batchInsert)
+                persistBatched(seq, pharmacyRepo::batchInsert)
             }
 
-            else -> error("Unsupported dataset type: $datasetType")
+            else -> error("Unsupported dataset type $datasetType")
         }
 
+        /* STEP 5 – Mark dataset as processed */
         if (importStats.successCount == 0L) {
-            logger.warn { "No successful rows for $datasetType $year-$month, dataset NOT marked as processed." }
+            logger.warn {
+                "No successful rows for $datasetType $year-$month – dataset NOT marked as processed."
+            }
             logDistributionImport(datasetType, year, month, importStats)
             return
         }
@@ -208,12 +246,16 @@ class DistributionProcessor(
         logDistributionImport(datasetType, year, month, importStats)
     }
 
-    private fun getMonthFromFileName(fileName: String): Int? {
-        return PHARMACY_CSV_FILENAME_MONTH_REGEX.matchEntire(fileName)
-            ?.groups?.get(1)?.value?.toIntOrNull()
-    }
+    /* =================================================
+     * Helpers
+     * ================================================= */
 
-    /** PERSIST HELPER **/
+    private fun extractMonthFromFileName(fileName: String): Int? =
+        PHARMACY_CSV_FILENAME_MONTH_REGEX
+            .matchEntire(fileName)
+            ?.groups?.get(1)?.value
+            ?.toIntOrNull()
+
     private fun <T> persistBatched(
         sequence: Sequence<T>,
         saveAction: (List<T>) -> Unit
@@ -233,7 +275,9 @@ class DistributionProcessor(
         }
     }
 
-    /** LOGGING **/
+    /* =================================================
+     * Logging
+     * ================================================= */
 
     private fun logDistributionImport(
         datasetType: DatasetType,

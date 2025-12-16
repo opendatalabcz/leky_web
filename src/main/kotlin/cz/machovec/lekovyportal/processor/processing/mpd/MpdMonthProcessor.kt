@@ -31,12 +31,21 @@ class MpdMonthProcessor(
         period: YearMonth,
         csvMap: Map<MpdDatasetType, ByteArray>
     ) {
-        val validFrom = getValidFrom(period, csvMap)
+
+        /* -------------------------------------------------
+         * STEP 4 – Import & persist MPD tables
+         * ------------------------------------------------- */
+
+        val validFrom = resolveValidFrom(period, csvMap)
 
         tablesProcessor.processTables(
             csvMap = csvMap,
             validFrom = validFrom
         )
+
+        /* -------------------------------------------------
+         * STEP 5 – Mark dataset as processed
+         * ------------------------------------------------- */
 
         processedDatasetRepository.save(
             ProcessedDataset(
@@ -47,10 +56,13 @@ class MpdMonthProcessor(
         )
 
         referenceDataProvider.clearCache()
-        logger.info { "Transaction finished for MPD ${period.year}-${period.monthValue}" }
+
+        logger.info {
+            "Transaction finished for MPD ${period.year}-${period.monthValue}"
+        }
     }
 
-    private fun getValidFrom(
+    private fun resolveValidFrom(
         period: YearMonth,
         csvMap: Map<MpdDatasetType, ByteArray>
     ): LocalDate =
