@@ -1,22 +1,28 @@
 import React, { useEffect, useState } from "react"
 import {
-    Box, Button, Typography, Paper, IconButton, Slider
+    Box,
+    Button,
+    Typography,
+    Paper,
+    IconButton,
+    Slider,
+    Alert
 } from "@mui/material"
 import { PlayArrow, Pause } from "@mui/icons-material"
 import { format, addMonths, isBefore } from "date-fns"
 import { useFilters } from "../components/FilterContext"
-import { EReceptFiltersPanel } from "../components/EReceptFiltersPanel"
+import { EreceptFiltersPanel } from "../components/erecept/EreceptFiltersPanel"
 import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
-import DistrictMap from "../components/DistrictMap"
+import DistrictMap from "../components/erecept/DistrictMap"
 import { FeatureCollection } from "geojson"
 import { useDrugCart } from "../components/drug-select-modal/DrugCartContext"
-import { SummaryTiles } from "../components/SummaryTiles"
+import { SummaryTiles } from "../components/erecept/SummaryTiles"
 import { useEreceptAggregateByDistrict } from "../hooks/useEreceptAggregateByDistrict"
 import { useEreceptTimeSeriesByDistrict } from "../hooks/useEreceptTimeSeriesByDistrict"
 import { useEreceptPrepareAnimationData } from "../hooks/useEreceptPrepareAnimationData"
-import { PrescriptionDispenseChart } from "../components/PrescriptionDispenseChart"
+import { EreceptTimeSeriesChart } from "../components/erecept/EreceptTimeSeriesChart"
 import { useEreceptFullTimeSeries } from "../hooks/useEreceptFullTimeSeries"
 import { TimeGranularity } from "../types/TimeGranularity"
 import { ERECEPT_DATASETS } from "../types/DatasetType"
@@ -24,10 +30,6 @@ import { ERECEPT_DATASETS } from "../types/DatasetType"
 interface DistrictFeatureProperties {
     nationalCode: string
     name: string
-}
-
-interface DistrictFeature extends GeoJSON.Feature {
-    properties: DistrictFeatureProperties
 }
 
 type DistrictFeatureCollection = GeoJSON.FeatureCollection
@@ -81,7 +83,7 @@ export function EReceptPage() {
         setMonthIndex(0)
     }, [common.dateFrom, common.dateTo])
 
-    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0;
+    const hasSelection = drugs.length > 0 || registrationNumbers.length > 0
     const params = hasSelection ? {
         dateFrom: format(common.dateFrom!, "yyyy-MM"),
         dateTo: format(common.dateTo!, "yyyy-MM"),
@@ -95,12 +97,7 @@ export function EReceptPage() {
     const aggregateQuery = useEreceptAggregateByDistrict(params)
     const seriesQuery = useEreceptTimeSeriesByDistrict(params)
 
-    const {
-        monthly,
-        aggregated,
-        monthlySummaries,
-        aggregatedSummary
-    } = useEreceptPrepareAnimationData(seriesQuery.data?.series ?? [])
+    const {monthly, monthlySummaries} = useEreceptPrepareAnimationData(seriesQuery.data?.series ?? [])
 
     const currentMonthStr = months[monthIndex]
     const monthValues = monthly.get(currentMonthStr) ?? {}
@@ -118,6 +115,10 @@ export function EReceptPage() {
             district: selectedDistrict
         } : undefined
     )
+
+    const hasIgnored =
+        fullTimeSeriesQuery.data &&
+        fullTimeSeriesQuery.data.ignoredMedicineProducts.length > 0
 
     useEffect(() => {
         if (!seriesQuery.data?.series?.length) return
@@ -154,6 +155,7 @@ export function EReceptPage() {
                 a to na základě dat ze systému eRecept. Vyberte léčiva, která vás zajímají,
                 nastavte časové období a způsob zobrazení – výsledky se promítnou do mapy okresů.
             </Typography>
+
             <Box
                 sx={{
                     display: 'flex',
@@ -175,9 +177,7 @@ export function EReceptPage() {
                                 backgroundColor: "#34558a",
                                 textTransform: "none",
                                 fontWeight: 600,
-                                "&:hover": {
-                                    backgroundColor: "#2c4773"
-                                }
+                                "&:hover": { backgroundColor: "#2c4773" }
                             }}
                         >
                             Vybrat léčiva
@@ -187,9 +187,8 @@ export function EReceptPage() {
                     </Paper>
                 </Box>
 
-                {/* Pravý blok s filtry a mapkou, který se na xs zlomí pod levý blok */}
                 <Box flex={1} minWidth={0}>
-                    <EReceptFiltersPanel
+                    <EreceptFiltersPanel
                         dateFrom={common.dateFrom}
                         dateTo={common.dateTo}
                         onChangeDateFrom={(date) => setCommon({ ...common, dateFrom: date })}
@@ -206,11 +205,37 @@ export function EReceptPage() {
                         }
                     />
 
+                    {!hasSelection && (
+                        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+                            Vyberte alespoň jedno léčivo, aby bylo možné zobrazit data
+                            v mapě okresů a graf s vývojem v čase.
+                        </Alert>
+                    )}
+
+                    {hasSelection && hasIgnored && (
+                        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+                            Pozor! Některá vybraná léčiva nebyla do výpočtu zahrnuta,
+                            protože pro ně není definována doporučená denní dávka (DDD).
+                        </Alert>
+                    )}
+
                     {months.length > 1 && (
-                        <Box mt={3} display="flex" alignItems="center" gap={2} flexDirection={{ xs: 'column', sm: 'row' }}>
-                            <IconButton onClick={() => { setIsPlaying(p => !p); setSliderActive(true) }}>
+                        <Box
+                            mt={3}
+                            display="flex"
+                            alignItems="center"
+                            gap={2}
+                            flexDirection={{ xs: "column", sm: "row" }}
+                        >
+                            <IconButton
+                                onClick={() => {
+                                    setIsPlaying(p => !p)
+                                    setSliderActive(true)
+                                }}
+                            >
                                 {isPlaying ? <Pause /> : <PlayArrow />}
                             </IconButton>
+
                             <Slider
                                 min={0}
                                 max={months.length - 1}
@@ -223,19 +248,35 @@ export function EReceptPage() {
                                 valueLabelFormat={(i) => months[i]}
                                 sx={{ flex: 1, width: '100%' }}
                             />
-                            <Button size="small" onClick={() => setSliderActive(false)}>↺ Celé období</Button>
+
+                            <Button
+                                size="small"
+                                onClick={() => setSliderActive(false)}
+                            >
+                                ↺ Celé období
+                            </Button>
                         </Box>
                     )}
 
                     <Box mt={2}>
                         <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="h6" fontWeight={600} mb={2}>
+                                Předepisování a výdej vybraných léčiv podle okresů (
+                                {sliderActive
+                                    ? months[monthIndex]
+                                    : `${format(common.dateFrom!, "yyyy-MM")} až ${format(
+                                        common.dateTo!,
+                                        "yyyy-MM"
+                                    )}`}
+                                )
+                            </Typography>
+
                             <Typography
-                                variant="h6"
-                                sx={{ color: "#1f2b3d", fontWeight: 600, mb: 3 }}
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
                             >
-                                Předepisování a výdej vybraných léčiv ({sliderActive
-                                ? months[monthIndex]
-                                : `${format(common.dateFrom!, "yyyy-MM")} až ${format(common.dateTo!, "yyyy-MM")}`})
+                                Zobrazená data vycházejí z agregovaných údajů o předepsaných a vydaných léčivech ze systému eRecept. Hodnoty představují agregované objemy předepsaných nebo vydaných léčiv (v počtech balení nebo doporučených denních dávkách) v daném okrese za sledované období a nezahrnují léčiva vydaná mimo systém eRecept (např. volný prodej).
                             </Typography>
 
                             <Box display="flex" flexWrap="wrap" gap={2}>
@@ -268,7 +309,6 @@ export function EReceptPage() {
                                     <SummaryTiles summary={summary} />
                                 </Box>
                             </Box>
-
                         </Paper>
                     </Box>
 
@@ -278,10 +318,18 @@ export function EReceptPage() {
                                 Vývoj předepisování a výdeje v čase
                             </Typography>
 
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
+                            >
+                                Graf zobrazuje časový vývoj agregovaných údajů o předepsaných a vydaných léčivech ze systému eRecept. Zobrazené hodnoty představují agregované objemy předepsaných nebo vydaných léčiv (v počtech balení nebo doporučených denních dávkách) v jednotlivých obdobích a nezahrnují léčiva vydaná mimo systém eRecept.
+                            </Typography>
+
                             {fullTimeSeriesQuery.isLoading ? (
                                 <Typography>Načítám časovou řadu...</Typography>
                             ) : (
-                                <PrescriptionDispenseChart
+                                <EreceptTimeSeriesChart
                                     data={fullTimeSeriesQuery.data}
                                     selectedDistrict={selectedDistrict}
                                     onDistrictChange={setSelectedDistrict}

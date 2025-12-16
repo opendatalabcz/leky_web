@@ -1,9 +1,9 @@
 import React from "react";
-import { Sankey, sankeyCenter, SankeyNode, SankeyLink } from "@visx/sankey";
+import { Sankey, sankeyCenter, SankeyNode } from "@visx/sankey";
 import { Group } from "@visx/group";
 import { scaleOrdinal } from "d3-scale";
 import { MedicinalUnitMode, MedicinalUnitModeUnits } from "../../types/MedicinalUnitMode";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 
 type NodeDatum = { id: string; label: string };
 type LinkDatum = { source: string; target: string; value: number };
@@ -21,26 +21,41 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                             medicinalUnitMode,
                                                             height = 300
                                                         }) => {
-    if (!nodes || nodes.length === 0 || !links || links.length === 0) {
-        return (
-            <Box sx={{ width: '100%', textAlign: 'center', p: 2 }}>
-                <Typography variant="body1" color="textSecondary">
-                    Žádná data k zobrazení.
-                </Typography>
-            </Box>
-        );
-    }
+
+    const SKELETON_NODES: NodeDatum[] = [
+        { id: "mah", label: "Registrátor" },
+        { id: "dist", label: "Distributor" },
+        { id: "pharmacy", label: "Lékárna" },
+        { id: "prescription", label: "Výdej na předpis" },
+        { id: "vet", label: "Veterinární lékař" },
+    ];
+
+    const SKELETON_LINKS: LinkDatum[] = [
+        { source: "mah", target: "dist", value: 50 },
+        { source: "dist", target: "pharmacy", value: 40 },
+        { source: "pharmacy", target: "prescription", value: 30 },
+        { source: "dist", target: "vet", value: 2 },
+    ];
+
+    const hasRealData = nodes && nodes.length > 0 && links && links.length > 0;
+
+    const graphNodes = hasRealData ? nodes : SKELETON_NODES;
+    const graphLinks = hasRealData ? links : SKELETON_LINKS;
+    const isSkeleton = !hasRealData;
 
     const color = scaleOrdinal<string, string>()
-        .domain(nodes.map(n => n.label))
-        .range(["#34558a", "#4f6da2", "#6c88b8", "#8aa2cb", "#abc", "#ddd"]);
+        .domain(graphNodes.map(n => n.label))
+        .range(
+            isSkeleton
+                ? ["#e0e0e0"]
+                : ["#34558a", "#4f6da2", "#6c88b8", "#8aa2cb", "#abc", "#ddd"]
+        );
 
     const unitWord = MedicinalUnitModeUnits[medicinalUnitMode];
 
-    const graph = { nodes, links };
+    const graph = { nodes: graphNodes, links: graphLinks };
 
-    // Dynamically increase height based on number of nodes to avoid compression
-    const dynamicHeight = Math.max(height, nodes.length * 40);
+    const dynamicHeight = Math.max(height, graphNodes.length * 40);
 
     return (
         <Box sx={{ width: '100%', overflowX: 'auto' }}>
@@ -82,19 +97,31 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                     const midX = (sourceX + targetX) / 2;
                                     const midY = (sourceY + targetY) / 2;
 
+                                    const linkText = `${sourceLabel} → ${targetLabel}: ${link.value} ${unitWord}`;
+
+                                    const isThinSkeletonLink =
+                                        isSkeleton && rawWidth <= MIN_WIDTH;
+
                                     return (
                                         <g key={`link-${i}`}>
                                             <path
                                                 d={pathD}
                                                 fill="none"
-                                                stroke={color(targetLabel)}
+                                                stroke={isSkeleton ? "#b0b0b0" : color(targetLabel)}
                                                 strokeWidth={strokeWidth}
-                                                strokeOpacity={0.35}
+                                                strokeOpacity={isSkeleton ? 0.15 : 0.35}
                                             >
-                                                <title>{`${sourceLabel} → ${targetLabel}: ${link.value} ${unitWord}`}</title>
+                                                {!isSkeleton && (
+                                                    <title>{linkText}</title>
+                                                )}
+                                                {isThinSkeletonLink && (
+                                                    <title>
+                                                        {`${sourceLabel} → ${targetLabel}\nNízký objem – hodnota zobrazena po najetí`}
+                                                    </title>
+                                                )}
                                             </path>
 
-                                            {strokeWidth > 64 && (
+                                            {!isSkeleton && strokeWidth > 64 && (
                                                 <text
                                                     x={midX}
                                                     y={midY}
@@ -104,7 +131,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                     fill="#555"
                                                     pointerEvents="none"
                                                 >
-                                                    {`${sourceLabel} → ${targetLabel}: ${link.value} ${unitWord}`}
+                                                    {linkText}
                                                 </text>
                                             )}
                                         </g>
@@ -125,7 +152,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                                                 y={y0}
                                                 width={x1 - x0}
                                                 height={y1 - y0}
-                                                fill={color(label)}
+                                                fill={isSkeleton ? "#e0e0e0" : color(label)}
                                                 rx={4}
                                             />
                                             <text

@@ -1,7 +1,7 @@
 import React, { useState } from "react"
-import { Box, Button, Paper, Typography } from "@mui/material"
+import { Box, Button, Paper, Typography, Alert } from "@mui/material"
 import { useFilters } from "../components/FilterContext"
-import { DistributionFiltersPanel } from "../components/DistributionFiltersPanel"
+import { DistributionFiltersPanel } from "../components/distribution/DistributionFiltersPanel"
 import { DrugSelectorModal } from "../components/drug-select-modal/DrugSelectorModal"
 import { SelectedMedicinalProductSummary } from "../components/SelectedMedicinalProductSummary"
 import { DataStatusFooter } from "../components/DataStatusFooter"
@@ -12,13 +12,14 @@ import { useDistributionTimeSeries } from "../hooks/useDistributionTimeSeries"
 import { useDistributionSankeyDiagram } from "../hooks/useDistributionSankeyDiagram"
 import { MedicinalUnitMode } from "../types/MedicinalUnitMode"
 import { TimeGranularity } from "../types/TimeGranularity"
-import { DistributionTimeSeriesChart } from "../components/DistributionTimeSeriesChart"
+import { DistributionTimeSeriesChart } from "../components/distribution/DistributionTimeSeriesChart"
 import { DISTRIBUTION_DATASETS } from "../types/DatasetType"
 
 export function DistributionPage() {
     const { common, setCommon } = useFilters()
-    const [isModalOpen, setIsModalOpen] = useState(false)
     const { drugs, registrationNumbers } = useDrugCart()
+
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
     const hasSelection = drugs.length > 0 || registrationNumbers.length > 0
 
@@ -46,19 +47,31 @@ export function DistributionPage() {
             }
             : undefined
     )
+    const hasIgnored =
+        timeSeriesQuery.data &&
+        timeSeriesQuery.data.ignoredMedicineProducts.length > 0
 
     return (
         <Box>
             <Typography variant="h5" gutterBottom>
                 Distribuční tok léčiv
             </Typography>
+
             <Typography variant="body1" color="text.secondary" mb={3}>
-                Sledujte distribuční tok léčiv od držitelů registrace přes distributory až k pacientům.
-                Vyberte si léčiva, která vás zajímají, nastavte časové období a vizualizujte cestu léčiv napříč jednotlivými články distribučního řetězce.
+                Sledujte, jak se vybraná léčiva pohybují distribučním řetězcem od držitelů registrace přes distributory až k výdeji v lékárnách. Vyberte léčiva a časové období a prozkoumejte jejich tok mezi jednotlivými aktéry.
             </Typography>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, '@media (min-width:1000px)': { flexDirection: 'row' } }}>
-                <Box width={{ xs: '100%', md: 300 }} flexShrink={0}>
+            <Box
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                    "@media (min-width:1000px)": {
+                        flexDirection: "row"
+                    }
+                }}
+            >
+                <Box width={{ xs: "100%", md: 300 }} flexShrink={0}>
                     <Paper variant="outlined" sx={{ p: 2 }}>
                         <Button
                             variant="contained"
@@ -69,9 +82,7 @@ export function DistributionPage() {
                                 backgroundColor: "#34558a",
                                 textTransform: "none",
                                 fontWeight: 600,
-                                "&:hover": {
-                                    backgroundColor: "#2c4773"
-                                }
+                                "&:hover": { backgroundColor: "#2c4773" }
                             }}
                         >
                             Vybrat léčiva
@@ -93,48 +104,83 @@ export function DistributionPage() {
                         }
                     />
 
-                    <Box mt={6}>
-                        {sankeyQuery.isLoading ? (
-                            <Typography>Načítám data...</Typography>
-                        ) : sankeyQuery.data ? (
-                            <>
-                                <Paper variant="outlined" sx={{ p: 2, mb: 4 }}>
-                                    <Typography variant="h6" fontWeight={600} mb={2}>
-                                        Distribuční tok vybraných léčiv mezi aktéry ({format(common.dateFrom!, "yyyy-MM")} až {format(common.dateTo!, "yyyy-MM")})
-                                    </Typography>
+                    {!hasSelection && (
+                        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+                            Vyberte alespoň jedno léčivo, aby bylo možné zobrazit
+                            graf distribučních toků a graf s vývojem v čase.
+                        </Alert>
+                    )}
 
-                                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                                        <Box sx={{ minWidth: '600px' }}>
-                                            <SankeyChart
-                                                nodes={sankeyQuery.data.nodes}
-                                                links={sankeyQuery.data.links}
-                                                medicinalUnitMode={sankeyQuery.data.medicinalUnitMode as MedicinalUnitMode}
-                                                height={300}
-                                            />
-                                        </Box>
-                                    </Box>
-                                </Paper>
+                    {hasSelection && hasIgnored && (
+                        <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
+                            Pozor! Některá vybraná léčiva nebyla do výpočtu zahrnuta,
+                            protože pro ně není definována doporučená denní dávka (DDD).
+                        </Alert>
+                    )}
 
-                                <Paper variant="outlined" sx={{ p: 2 }}>
-                                    <Typography variant="h6" fontWeight={600} mb={2}>
-                                        Časový vývoj distribučních pohybů
-                                    </Typography>
-
-                                    <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                                        <Box sx={{ minWidth: '600px' }}>
-                                            <DistributionTimeSeriesChart
-                                                data={timeSeriesQuery.data}
-                                                medicinalUnitMode={timeSeriesQuery.data?.medicinalUnitMode as MedicinalUnitMode}
-                                            />
-                                        </Box>
-                                    </Box>
-                                </Paper>
-                            </>
-                        ) : (
-                            <Typography color="text.secondary">
-                                Vyberte léčiva a časové období.
+                    <Box mt={2}>
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="h6" fontWeight={600} mb={2}>
+                                Distribuční tok vybraných léčiv mezi aktéry (
+                                {common.dateFrom && common.dateTo
+                                    ? `${format(common.dateFrom, "yyyy-MM")} až ${format(common.dateTo, "yyyy-MM")}`
+                                    : "nezvolené období"}
+                                )
                             </Typography>
-                        )}
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
+                            >
+                                Zobrazená data vycházejí z agregovaných hlášení o pohybu léčiv mezi jednotlivými články distribučního řetězce. Diagram znázorňuje objemy hlášených pohybů léčiv mezi aktéry, nikoli stav zásob u jednotlivých subjektů.
+                            </Typography>
+
+                            {sankeyQuery.isLoading ? (
+                                <Typography>Načítám data...</Typography>
+                            ) : (
+                                <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                                    <Box sx={{ minWidth: '600px' }}>
+                                        <SankeyChart
+                                            nodes={sankeyQuery.data?.nodes ?? []}
+                                            links={sankeyQuery.data?.links ?? []}
+                                            medicinalUnitMode={
+                                                (sankeyQuery.data?.medicinalUnitMode ??
+                                                    common.medicinalUnitMode) as MedicinalUnitMode
+                                            }
+                                            height={300}
+                                        />
+                                    </Box>
+                                </Box>
+                            )}
+                        </Paper>
+                    </Box>
+
+                    <Box mt={6}>
+                        <Paper variant="outlined" sx={{ p: 2 }}>
+                            <Typography variant="h6" fontWeight={600} mb={2}>
+                                Vývoj distribučních toků v čase
+                            </Typography>
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 2 }}
+                            >
+                                Graf zobrazuje časový vývoj agregovaných hlášených pohybů léčiv mezi jednotlivými aktéry distribučního řetězce. Zobrazené hodnoty představují logistické toky a nevyjadřují množství léčiv držených na skladech ani skutečnou spotřebu pacientů.
+                            </Typography>
+
+                            {timeSeriesQuery.isLoading ? (
+                                <Typography>Načítám časovou řadu...</Typography>
+                            ) : (
+                                <DistributionTimeSeriesChart
+                                    data={timeSeriesQuery.data}
+                                    medicinalUnitMode={common.medicinalUnitMode as MedicinalUnitMode}
+                                    dateFrom={common.dateFrom}
+                                    dateTo={common.dateTo}
+                                />
+                            )}
+                        </Paper>
                     </Box>
                 </Box>
             </Box>

@@ -81,7 +81,7 @@ export const DrugSearchSection: React.FC<Props> = ({
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 2,
+                gap: 1,
                 width: '100%',
                 boxSizing: 'border-box',
                 p: { xs: 1, sm: 2 }

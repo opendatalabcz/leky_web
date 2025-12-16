@@ -29,8 +29,8 @@ export const DrugFilters: React.FC<Props> = ({
             display="flex"
             flexWrap="wrap"
             gap={2}
-            mt={2}
-            mb={3}
+            mt={0.5}
+            mb={2}
         >
         {/* --- full-text --- */}
             <Box flex={{ xs: "1 1 100%", sm: "1 1 300px" }} minWidth={200} maxWidth={400}>
