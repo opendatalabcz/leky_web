@@ -47,7 +47,7 @@ services:
       RABBIT_PORT: ${RABBIT_PORT}
       RABBIT_USER: ${RABBIT_USER}
       RABBIT_PASSWORD: ${RABBIT_PASSWORD}
-      JAVA_TOOL_OPTIONS: "-Xmx1200M -XX:+UseG1GC -XX:+UseStringDeduplication"
+      JAVA_TOOL_OPTIONS: "-Xmx1500M -XX:+UseG1GC -XX:+UseStringDeduplication"
     depends_on:
       - db
       - rabbitmq
@@ -56,7 +56,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1900M
+          memory: 2100M
 
   frontend:
     container_name: leky-frontend
