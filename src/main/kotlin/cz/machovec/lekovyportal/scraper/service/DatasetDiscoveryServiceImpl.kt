@@ -38,12 +38,10 @@ class DatasetDiscoveryServiceImpl(
                     pattern.regex.matches(candidateFileName)
                 } ?: return@forEach
 
-                val fileName = candidateFileName
-
                 val discoveredDataset = if (matchedPattern.datasetType == DatasetType.MEDICINAL_PRODUCT_DATABASE) {
-                    resolveMpdDatasetInfo(fileName, url, matchedPattern)
+                    resolveMpdDatasetInfo(candidateFileName, url, matchedPattern)
                 } else {
-                    resolveDatasetInfo(fileName, url, matchedPattern)
+                    resolveDatasetInfo(candidateFileName, url, matchedPattern)
                 } ?: return@forEach
 
                 if (shouldProcess(discoveredDataset, now)) {
@@ -126,12 +124,11 @@ class DatasetDiscoveryServiceImpl(
         )
     }
 
-
     private fun shouldProcess(discoveredDataset: DiscoveredDataset, now: LocalDate): Boolean {
         // Case 1 - Monthly dataset: verify if specific (year, month) was already processed
-        if (discoveredDataset.month != null) {
+        discoveredDataset.month?.let { month ->
             return !processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
-                discoveredDataset.datasetType, discoveredDataset.year, discoveredDataset.month
+                discoveredDataset.datasetType, discoveredDataset.year, month
             )
         }
 
@@ -146,10 +143,26 @@ class DatasetDiscoveryServiceImpl(
         val latestExpectedMonthInYear = when {
             discoveredDataset.year < now.year -> 12
             discoveredDataset.year == now.year && isEreceptDataset -> now.monthValue - 1
-            else -> return false // future dataset or non-eRecept yearly dataset in current year
+            else -> return false
         }
 
-        return (1..latestExpectedMonthInYear).any { month ->
+        val startMonth = when {
+            discoveredDataset.datasetType == DatasetType.DISTRIBUTIONS_FROM_PHARMACIES &&
+                    discoveredDataset.year == 2020 -> 5
+
+            discoveredDataset.datasetType == DatasetType.DISTRIBUTIONS_FROM_MAHS &&
+                    discoveredDataset.year == 2020 -> 5
+
+            discoveredDataset.datasetType == DatasetType.DISTRIBUTIONS_FROM_DISTRIBUTORS &&
+                    discoveredDataset.year == 2020 -> 5
+
+            discoveredDataset.datasetType == DatasetType.DISTRIBUTIONS_EXPORT_FROM_DISTRIBUTORS &&
+                    discoveredDataset.year == 2020 -> 5
+
+            else -> 1
+        }
+
+        return (startMonth..latestExpectedMonthInYear).any { month ->
             !processedDatasetRepository.existsByDatasetTypeAndYearAndMonth(
                 discoveredDataset.datasetType, discoveredDataset.year, month
             )

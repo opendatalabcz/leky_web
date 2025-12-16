@@ -1,0 +1,30 @@
+package cz.machovec.lekovyportal.core.repository.distribution
+
+import cz.machovec.lekovyportal.core.domain.distribution.DistFromDistributors
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
+
+@Repository
+class DistFromDistributorsRepositoryImpl(
+    private val jdbcTemplate: JdbcTemplate
+) : DistFromDistributorsRepositoryCustom {
+
+    @Transactional
+    override fun batchInsert(records: List<DistFromDistributors>, batchSize: Int) {
+        val sql = """
+            INSERT INTO dist_from_distributors
+            (year, month, medicinal_product_id, purchaser_type, movement_type, package_count)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """.trimIndent()
+
+        jdbcTemplate.batchUpdate(sql, records, batchSize) { ps, record ->
+            ps.setInt(1, record.year)
+            ps.setInt(2, record.month)
+            ps.setLong(3, record.medicinalProduct.id!!)
+            ps.setString(4, record.purchaserType.name)
+            ps.setString(5, record.movementType.name)
+            ps.setBigDecimal(6, record.packageCount)
+        }
+    }
+}

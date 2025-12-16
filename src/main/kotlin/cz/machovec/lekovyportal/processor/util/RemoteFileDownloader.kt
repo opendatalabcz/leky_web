@@ -2,6 +2,7 @@ package cz.machovec.lekovyportal.processor.util
 
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
+import java.io.InputStream
 import java.net.URI
 
 @Component
@@ -20,4 +21,7 @@ class RemoteFileDownloader {
             log.error(it) { "Failed to download file from $uri" }
         }.getOrNull()
     }
+
+    fun openStream(uri: URI): InputStream =
+        uri.toURL().openStream()
 }

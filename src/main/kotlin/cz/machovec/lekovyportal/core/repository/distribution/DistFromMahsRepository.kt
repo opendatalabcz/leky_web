@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
-interface DistFromMahsRepository : JpaRepository<DistFromMahs, Long> {
+interface DistFromMahsRepository : JpaRepository<DistFromMahs, Long>, DistFromMahsRepositoryCustom {
 
     @Query("""
         SELECT new cz.machovec.lekovyportal.core.dto.distribution.AggregateMahProductMovementCountDto(
