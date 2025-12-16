@@ -75,14 +75,16 @@ export const DrugSearchModeSwitch: React.FC<Props> = ({ searchMode, onChange }) 
                             title={
                                 <>
                                     <strong>Registrační číslo</strong> označuje léčivý přípravek jako celek
-                                    (v jedné síle a lékové formě, např. „Paralen 500 mg tablety“).<br /><br />
+                                    (v jedné síle a lékové formě, např. „Paralen 500 mg tablety“).
+                                    <br /><br />
 
-                                    Různé varianty balení tohoto léku
-                                    (např. odlišné velikosti balení nebo jiné provedení balení)
-                                    jsou v tomto režimu <strong>sloučeny dohromady</strong>.<br /><br />
+                                    Různé varianty balení tohoto léčivého přípravku
+                                    (např. balení s 10 nebo 20 tabletami, případně odlišné provedení balení)
+                                    jsou v tomto režimu <strong>sloučeny dohromady</strong>.
+                                    <br /><br />
 
                                     Zvolte tuto možnost, pokud vás zajímá léčivý přípravek obecně
-                                    bez rozlišení jednotlivých balení.
+                                    bez rozlišení jednotlivých variant balení.
                                 </>
                             }
                         >
@@ -104,12 +106,15 @@ export const DrugSearchModeSwitch: React.FC<Props> = ({ searchMode, onChange }) 
                             title={
                                 <>
                                     <strong>Kód SÚKL</strong> označuje konkrétní variantu balení
-                                    léčivého přípravku.<br /><br />
+                                    léčivého přípravku.
+                                    <br /><br />
 
                                     Každá varianta balení má vlastní kód SÚKL
-                                    (např. jiná velikost balení nebo jiné provedení balení).<br /><br />
+                                    (např. balení s 10 tabletami a balení s 20 tabletami
+                                    mají odlišné kódy SÚKL).
+                                    <br /><br />
 
-                                    Zvolte tuto možnost, pokud vás zajímají jednotlivá balení
+                                    Zvolte tuto možnost, pokud vás zajímá konkrétní varianta balení
                                     léčivého přípravku samostatně.
                                 </>
                             }
