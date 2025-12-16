@@ -26,7 +26,7 @@ class MedicinalProductController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductResponse> {
-        logger.info { "Searching medicinal products with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, page=$page, size=$size" }
+        logger.trace { "Searching medicinal products with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, page=$page, size=$size" }
 
         return medicinalProductService.search(atcGroupId, substanceId, query, page, size)
     }
@@ -39,7 +39,7 @@ class MedicinalProductController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "5") size: Int
     ): PagedResponse<MedicinalProductGroupedByRegNumberResponse> {
-        logger.info { "Searching medicinal products grouped by registration number with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, page=$page, size=$size" }
+        logger.trace { "Searching medicinal products grouped by registration number with params: atcGroupId=$atcGroupId, substanceId=$substanceId, query=$query, page=$page, size=$size" }
 
         return medicinalProductService.searchGroupedByRegNumber(atcGroupId, substanceId, query, page, size)
     }
