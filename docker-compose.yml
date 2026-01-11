@@ -2,51 +2,49 @@ version: '3.8'
 
 services:
   db:
-    container_name: leky-db
     image: postgres:15
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
     deploy:
       resources:
         limits:
           memory: 800M
+    restart: unless-stopped
 
   rabbitmq:
-    container_name: leky-rabbitmq
     image: rabbitmq:management
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:15672:15672"
     networks:
       - app-network
     deploy:
       resources:
         limits:
           memory: 200M
+    restart: unless-stopped
 
   backend:
-    container_name: leky-backend
     build:
       context: .
       dockerfile: Dockerfile
     image: leky-backend:latest
     environment:
-      DB_URL: ${DB_URL}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      RABBIT_HOST: ${RABBIT_HOST}
-      RABBIT_PORT: ${RABBIT_PORT}
-      RABBIT_USER: ${RABBIT_USER}
-      RABBIT_PASSWORD: ${RABBIT_PASSWORD}
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: "5672"
+      RABBIT_USER: ${RABBITMQ_USER}
+      RABBIT_PASSWORD: ${RABBITMQ_PASSWORD}
       JAVA_TOOL_OPTIONS: "-Xmx1500M -XX:+UseG1GC -XX:+UseStringDeduplication"
     depends_on:
       - db
@@ -57,9 +55,9 @@ services:
       resources:
         limits:
           memory: 2100M
+    restart: unless-stopped
 
   frontend:
-    container_name: leky-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -73,8 +71,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          memory: 200M
+    restart: unless-stopped
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  postgres_data:
