@@ -45,6 +45,7 @@ services:
       RABBIT_PORT: "5672"
       RABBIT_USER: ${RABBITMQ_USER}
       RABBIT_PASSWORD: ${RABBITMQ_PASSWORD}
+      ALLOWED_ORIGINS: "https://lecivavdatech.cz,https://www.lecivavdatech.cz,https://lecivavdatech.opendatalab.cz,https://www.lecivavdatech.opendatalab.cz,http://localhost:8081"
       JAVA_TOOL_OPTIONS: "-Xmx1500M -XX:+UseG1GC -XX:+UseStringDeduplication"
     depends_on:
       - db

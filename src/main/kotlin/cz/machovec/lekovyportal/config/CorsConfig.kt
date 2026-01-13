@@ -1,5 +1,6 @@
 package cz.machovec.lekovyportal.config
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.servlet.config.annotation.CorsRegistry
@@ -7,12 +8,18 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
 class CorsConfig {
+
+    @Value("\${ALLOWED_ORIGINS:http://localhost:3000}")
+    private lateinit var allowedOrigins: String
+
     @Bean
     fun corsConfigurer(): WebMvcConfigurer {
         return object : WebMvcConfigurer {
+            val originsArray = allowedOrigins.split(",").toTypedArray()
+
             override fun addCorsMappings(registry: CorsRegistry) {
                 registry.addMapping("/**")
-                    .allowedOrigins("http://localhost:3000")
+                    .allowedOrigins(*originsArray)
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
             }
