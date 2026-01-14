@@ -7,6 +7,7 @@ import cz.machovec.lekovyportal.core.domain.mpd.MpdSubstance
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.persistence.criteria.CriteriaBuilder
+import jakarta.persistence.criteria.JoinType
 import jakarta.persistence.criteria.Predicate
 import jakarta.persistence.criteria.Root
 import org.springframework.data.domain.Page
@@ -26,9 +27,11 @@ class MpdMedicinalProductRepositoryImpl(
         pageable: Pageable
     ): Page<MpdMedicinalProduct> {
         val cb = em.criteriaBuilder
-
         val cq = cb.createQuery(MpdMedicinalProduct::class.java)
         val root = cq.from(MpdMedicinalProduct::class.java)
+
+        root.fetch<MpdMedicinalProduct, MpdAtcGroup>("atcGroup", JoinType.LEFT)
+
         val predicates = buildPredicates(cb, root, atcGroupId, substanceId, query)
         cq.select(root).where(*predicates.toTypedArray()).distinct(true)
 
@@ -68,14 +71,16 @@ class MpdMedicinalProductRepositoryImpl(
         }
 
         if (!query.isNullOrBlank()) {
-            val like = "%${query.lowercase()}%"
+            val normalizedQuery = query.uppercase()
+            val containsPattern = "%$normalizedQuery%"
+            val startsWithPattern = "$normalizedQuery%"
+
             predicates += cb.or(
-                cb.like(cb.lower(root.get("name")), like),
-                cb.like(cb.lower(root.get("registrationNumber")), like),
-                cb.like(cb.lower(root.get("suklCode")), like)
+                cb.like(cb.upper(root.get("name")), containsPattern),
+                cb.like(cb.upper(root.get("registrationNumber")), startsWithPattern),
+                cb.like(cb.upper(root.get("suklCode")), startsWithPattern)
             )
         }
-
         return predicates
     }
 }
