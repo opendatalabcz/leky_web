@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     DataGrid,
     GridColDef,
@@ -7,7 +8,6 @@ import {
 } from '@mui/x-data-grid';
 import { Box, Button } from '@mui/material';
 import { MedicinalProductFilterValues } from '../../types/MedicinalProductFilterValues';
-import { useDrugCart } from './DrugCartContext';
 
 export type Drug = {
     id: number;
@@ -46,59 +46,43 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
                                                          onSelectionUpdate,
                                                      }) => {
     const pageSize = 5;
-
-    const [data, setData] = useState<Drug[]>([]);
-    const [currentPage, setCurrentPage] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
-    const [loading, setLoading] = useState(false);
-    const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
-
-    const { addSuklId } = useDrugCart();
+    const [currentPage, setCurrentPage] = React.useState(0);
 
     useEffect(() => setCurrentPage(0), [filtersVersion]);
 
-    useEffect(() => {
-        if (!triggerSearch) return;
+    const { data, isFetching, isLoading } = useQuery<PagedResponse<Drug>>({
+        queryKey: ['medicinal-products-search', filters, currentPage],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (filters.atcGroupId) params.append('atcGroupId', filters.atcGroupId.toString());
+            if (filters.substanceId) params.append('substanceId', filters.substanceId.toString());
+            if (filters.medicinalProductQuery) params.append('query', filters.medicinalProductQuery);
+            if (filters.period) params.append('period', filters.period);
+            params.append('searchMode', filters.searchMode);
+            params.append('page', currentPage.toString());
+            params.append('size', pageSize.toString());
 
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const params = new URLSearchParams();
-                if (filters.atcGroupId) params.append('atcGroupId', filters.atcGroupId.toString());
-                if (filters.substanceId) params.append('substanceId', filters.substanceId.toString());
-                if (filters.medicinalProductQuery) params.append('query', filters.medicinalProductQuery);
-                if (filters.period) params.append('period', filters.period);
-                params.append('searchMode', filters.searchMode);
-                params.append('page', currentPage.toString());
-                params.append('size', pageSize.toString());
+            const res = await fetch(`/api/medicinal-products?${params.toString()}`);
+            if (!res.ok) throw new Error("Nepodařilo se načíst data z API");
 
-                const res = await fetch(`/api/medicinal-products?${params.toString()}`);
-                const json: PagedResponse<Drug> = await res.json();
-
-                setData(json.content);
-                setTotalElements(json.totalElements);
-            } catch (e) {
-                console.error('Chyba při načítání dat:', e);
-            } finally {
-                setLoading(false);
-                onSearchComplete();
-            }
-        };
-
-        fetchData();
-    }, [triggerSearch, filters, currentPage, onSearchComplete]);
+            const result = await res.json();
+            onSearchComplete();
+            return result;
+        },
+        enabled: triggerSearch || currentPage > 0,
+        staleTime: 10000,
+    });
 
     const handleSelectionChange = useCallback(
         (model: GridRowSelectionModel) => {
-            setSelectionModel(model);
             onSelectionUpdate?.(model.length, model as number[]);
         },
         [onSelectionUpdate]
     );
 
     const columns: GridColDef<Drug>[] = [
-        { field: 'suklCode', headerName: 'SÚKL kód', minWidth: 150,},
-        { field: 'name', headerName: 'Název', minWidth: 200,},
+        { field: 'suklCode', headerName: 'SÚKL kód', minWidth: 150 },
+        { field: 'name', headerName: 'Název', minWidth: 200 },
         {
             field: 'supplementaryInformation',
             headerName: 'Doplněk',
@@ -135,24 +119,26 @@ export const DrugTableBySuklCode: React.FC<Props> = ({
     ];
 
     return (
-        <DataGrid
-            autoHeight
-            rows={data}
-            columns={columns}
-            rowCount={totalElements}
-            pageSizeOptions={[pageSize]}
-            paginationModel={{ page: currentPage, pageSize }}
-            paginationMode="server"
-            checkboxSelection
-            disableRowSelectionOnClick
-            onRowSelectionModelChange={handleSelectionChange}
-            loading={loading}
-            onPaginationModelChange={({ page }) => {
-                setCurrentPage(page);
-                setTriggerSearch(true);
-            }}
-            getRowId={(row) => row.id}
-            disableColumnMenu
-        />
+        <Box sx={{ width: '100%' }}>
+            <DataGrid
+                autoHeight
+                rows={data?.content || []}
+                columns={columns}
+                rowCount={data?.totalElements || 0}
+                pageSizeOptions={[pageSize]}
+                paginationModel={{ page: currentPage, pageSize }}
+                paginationMode="server"
+                checkboxSelection
+                disableRowSelectionOnClick
+                onRowSelectionModelChange={handleSelectionChange}
+                loading={isLoading || isFetching}
+                onPaginationModelChange={({ page }) => {
+                    setCurrentPage(page);
+                    setTriggerSearch(true);
+                }}
+                getRowId={(row) => row.id}
+                disableColumnMenu
+            />
+        </Box>
     );
 };

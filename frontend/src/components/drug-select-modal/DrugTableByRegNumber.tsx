@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     DataGrid,
     GridColDef,
@@ -7,7 +8,6 @@ import {
 } from '@mui/x-data-grid';
 import { Box, Button } from '@mui/material';
 import { MedicinalProductFilterValues } from '../../types/MedicinalProductFilterValues';
-import { useDrugCart } from './DrugCartContext';
 
 export type GroupedDrug = {
     registrationNumber: string;
@@ -47,50 +47,34 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
                                                           onSelectionUpdate,
                                                       }) => {
     const pageSize = 5;
-
-    const [data, setData] = useState<GroupedDrug[]>([]);
-    const [currentPage, setCurrentPage] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
-    const [loading, setLoading] = useState(false);
-    const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([]);
-
-    const { addRegistrationNumber } = useDrugCart();
+    const [currentPage, setCurrentPage] = React.useState(0);
 
     useEffect(() => setCurrentPage(0), [filtersVersion]);
 
-    useEffect(() => {
-        if (!triggerSearch) return;
+    const { data, isFetching, isLoading } = useQuery<PagedResponse<GroupedDrug>>({
+        queryKey: ['grouped-medicinal-products-search', filters, currentPage],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (filters.atcGroupId) params.append('atcGroupId', filters.atcGroupId.toString());
+            if (filters.substanceId) params.append('substanceId', filters.substanceId.toString());
+            if (filters.medicinalProductQuery) params.append('query', filters.medicinalProductQuery);
+            if (filters.period) params.append('period', filters.period);
+            params.append('page', currentPage.toString());
+            params.append('size', pageSize.toString());
 
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const params = new URLSearchParams();
-                if (filters.atcGroupId) params.append('atcGroupId', filters.atcGroupId.toString());
-                if (filters.substanceId) params.append('substanceId', filters.substanceId.toString());
-                if (filters.medicinalProductQuery) params.append('query', filters.medicinalProductQuery);
-                if (filters.period) params.append('period', filters.period);
-                params.append('page', currentPage.toString());
-                params.append('size', pageSize.toString());
+            const res = await fetch(`/api/medicinal-products/grouped-by-reg-number?${params.toString()}`);
+            if (!res.ok) throw new Error("Chyba při komunikaci se serverem");
 
-                const res = await fetch(`/api/medicinal-products/grouped-by-reg-number?${params.toString()}`);
-                const json: PagedResponse<GroupedDrug> = await res.json();
-
-                setData(json.content);
-                setTotalElements(json.totalElements);
-            } catch (e) {
-                console.error('Chyba při načítání:', e);
-            } finally {
-                setLoading(false);
-                onSearchComplete();
-            }
-        };
-
-        fetchData();
-    }, [triggerSearch, filters, currentPage, onSearchComplete]);
+            const result = await res.json();
+            onSearchComplete();
+            return result;
+        },
+        enabled: triggerSearch || currentPage > 0,
+        staleTime: 10000,
+    });
 
     const handleSelectionChange = useCallback(
         (model: GridRowSelectionModel) => {
-            setSelectionModel(model);
             onSelectionUpdate?.(model.length, model as string[]);
         },
         [onSelectionUpdate]
@@ -162,19 +146,19 @@ export const DrugTableByRegNumber: React.FC<Props> = ({
     ];
 
     return (
-        <Box>
+        <Box sx={{ width: '100%' }}>
             <DataGrid
                 autoHeight
-                rows={data}
+                rows={data?.content || []}
                 columns={columns}
-                rowCount={totalElements}
+                rowCount={data?.totalElements || 0}
                 pageSizeOptions={[pageSize]}
                 paginationModel={{ page: currentPage, pageSize }}
                 paginationMode="server"
                 checkboxSelection
                 disableRowSelectionOnClick
                 onRowSelectionModelChange={handleSelectionChange}
-                loading={loading}
+                loading={isLoading || isFetching}
                 onPaginationModelChange={({ page }) => {
                     setCurrentPage(page);
                     setTriggerSearch(true);

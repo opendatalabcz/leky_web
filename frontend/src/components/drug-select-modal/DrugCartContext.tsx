@@ -1,6 +1,5 @@
-// DrugCartContext.tsx
-
 import React, { createContext, useContext, useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Drug } from "./DrugTableBySuklCode"
 import { GroupedDrug } from "./DrugTableByRegNumber"
 
@@ -22,10 +21,6 @@ export const DrugCartProvider = ({ children }: { children: React.ReactNode }) =>
   const [suklIds, setSuklIds] = useState<number[]>([])
   const [registrationNumbers, setRegistrationNumbers] = useState<string[]>([])
 
-  const [drugs, setDrugs] = useState<Drug[]>([])
-  const [groupedDrugs, setGroupedDrugs] = useState<GroupedDrug[]>([])
-
-  // sync from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("drug-cart")
     if (stored) {
@@ -41,32 +36,29 @@ export const DrugCartProvider = ({ children }: { children: React.ReactNode }) =>
   }, [suklIds, registrationNumbers])
 
   // fetch detailed drugs info
-  useEffect(() => {
-    if (suklIds.length === 0) {
-      setDrugs([])
-      return
-    }
+  const { data: drugs = [] } = useQuery<Drug[]>({
+    queryKey: ['drugs-by-ids', suklIds],
+    queryFn: async () => {
+      const res = await fetch(`/api/medicinal-products/by-ids?${suklIds.map(id => `ids=${id}`).join("&")}`)
+      if (!res.ok) throw new Error("Failed to fetch drugs")
+      return res.json()
+    },
+    enabled: suklIds.length > 0,
+    staleTime: 60000
+  })
 
-    fetch(`/api/medicinal-products/by-ids?${suklIds.map(id => `ids=${id}`).join("&")}`)
-      .then(res => res.json())
-      .then(setDrugs)
-      .catch(console.error)
-  }, [suklIds])
-
-  useEffect(() => {
-    if (registrationNumbers.length === 0) {
-      setGroupedDrugs([])
-      return
-    }
-
-    const params = new URLSearchParams()
-    registrationNumbers.forEach(reg => params.append("regNumbers", reg))
-
-    fetch(`/api/medicinal-products/grouped-by-reg-numbers?${params.toString()}`)
-      .then(res => res.json())
-      .then(setGroupedDrugs)
-      .catch(console.error)
-  }, [registrationNumbers])
+  const { data: groupedDrugs = [] } = useQuery<GroupedDrug[]>({
+    queryKey: ['drugs-by-regs', registrationNumbers],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      registrationNumbers.forEach(reg => params.append("regNumbers", reg))
+      const res = await fetch(`/api/medicinal-products/grouped-by-reg-numbers?${params.toString()}`)
+      if (!res.ok) throw new Error("Failed to fetch grouped drugs")
+      return res.json()
+    },
+    enabled: registrationNumbers.length > 0,
+    staleTime: 60000
+  })
 
   const addSuklId = (id: number) => {
     setSuklIds(prev => (prev.includes(id) ? prev : [...prev, id]))
@@ -85,27 +77,27 @@ export const DrugCartProvider = ({ children }: { children: React.ReactNode }) =>
   }
 
   const clearCart = () => {
-    setSuklIds([]);
-    setRegistrationNumbers([]);
-    localStorage.removeItem("drug-cart");
+    setSuklIds([])
+    setRegistrationNumbers([])
+    localStorage.removeItem("drug-cart")
   }
 
   return (
-    <DrugCartContext.Provider
-      value={{
-        suklIds,
-        registrationNumbers,
-        drugs,
-        groupedDrugs,
-        addSuklId,
-        removeSuklId,
-        addRegistrationNumber,
-        removeRegistrationNumber,
-        clearCart
-      }}
-    >
-      {children}
-    </DrugCartContext.Provider>
+      <DrugCartContext.Provider
+          value={{
+            suklIds,
+            registrationNumbers,
+            drugs,
+            groupedDrugs,
+            addSuklId,
+            removeSuklId,
+            addRegistrationNumber,
+            removeRegistrationNumber,
+            clearCart
+          }}
+      >
+        {children}
+      </DrugCartContext.Provider>
   )
 }
 
