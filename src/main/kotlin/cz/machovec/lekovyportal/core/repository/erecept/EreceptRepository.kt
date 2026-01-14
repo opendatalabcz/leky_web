@@ -20,6 +20,7 @@ interface EreceptRepository {
     ): List<EreceptTimeSeriesDistrictDto>
 
     fun getFullTimeSeriesRows(
-        medicinalProductIds: List<Long>
+        medicinalProductIds: List<Long>,
+        districtCode: String?
     ): List<EreceptFullTimeSeriesDto>
 }

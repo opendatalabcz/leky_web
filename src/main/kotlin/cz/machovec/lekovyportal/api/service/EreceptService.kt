@@ -221,8 +221,9 @@ class EreceptService(
 
             mainSqlTime = measureTimeMillis {
                 raw = ereceptRepository.getFullTimeSeriesRows(
-                    medicinalProductIds = included.mapNotNull { it.id }
-                ).filter { request.district == null || it.districtCode == request.district }
+                    medicinalProductIds = included.mapNotNull { it.id },
+                    districtCode = request.district
+                )
             }
 
             transformationTime = measureTimeMillis {
