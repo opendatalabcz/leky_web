@@ -8,68 +8,85 @@ Repozitář obsahuje frontend a backend aplikace Lekový Portál, připravené p
 
 ---
 
-## Spuštění projektu
+## Návod k nasazení
 
 ### 1) Vytvoř `.env` soubor
-V kořenovém adresáři projektu vytvoř soubor `.env` s následujícím obsahem:
+V kořenovém adresáři vytvořte soubor .env (podle vzoru .env.example) a vyplňte přístupové údaje.
 
 ```env
-# PostgreSQL
 POSTGRES_DB=lekovy_portal
-POSTGRES_USER=lekovy_portal_postgres_user
-POSTGRES_PASSWORD=superSilneHesloPostgres!!!
+POSTGRES_USER=lekovy_portal_user
+POSTGRES_PASSWORD=zvolte_silne_heslo
 
-# RabbitMQ
-RABBITMQ_USER=lekovy_portal_rabbit_user
-RABBITMQ_PASSWORD=superSilneHesloRabbit!!!
+RABBITMQ_USER=rabbit_user
+RABBITMQ_PASSWORD=zvolte_silne_heslo
 ```
-
-Konkrétní hodnoty hesel je samozřejmě potřeba přepsat.
 
 ---
 
-### 2) Postav a spusť kontejnery
+### 2. Konfigurace vnějšího Nginxu a CORS
+V `docker-compose.yml` je frontend standardně bindován na `127.0.0.1:8081:80`.
+
+### Nastavení vnějšího Nginxu:
+Pro funkční přístup přes doménu vložte do konfigurace vnějšího Nginxu na hostitelském serveru následující blok:
+
+```nginx
+  location / {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    
+    proxy_read_timeout 300;
+    proxy_connect_timeout 60;
+    proxy_send_timeout 300;
+    
+    client_max_body_size 100M;
+}
+```
+
+### Kontrola povolených domén (CORS):
+Backend je v docker-compose.yml přednastaven pro domény lecivavdatech.cz a lecivavdatech.opendatalab.cz (proměnná ALLOWED_ORIGINS).
+Pokud budete aplikaci nasazovat na jinou subdoménu, doplňte ji do tohoto seznamu v docker-compose.yml před spuštěním.
+
+---
+
+### 3) Spuštění aplikace
+Pro správnou aplikaci paměťových limitů a načtení konfigurace použijte tento příkaz:
+
 ```bash
 docker compose --compatibility --env-file .env up -d --build
 ```
 
----
-
-### 3) Zkontroluj běžící služby
-```bash
-docker compose ps
-```
-
-- Frontend (lokálně): http://localhost
-- Frontend (na serveru): http://<server-ip> nebo http://<domena>
+Aplikace je poté dostupná:
+* Lokálně (vývoj): http://localhost:8081
+* Produkce (přes doménu): http://<server-ip> nebo http://<domena> (Standardní porty 80/443 jsou vnějším Nginxem mapovány na vnitřní port 8081)
+  * Např. https://lecivavdatech.opendatalab.cz
 
 ---
 
-## Zastavení služeb
+### 4) Správa kontejnerů
+
+#### Zastavení služeb
 ```bash
 docker compose down
 ```
 
----
-
-## Práce s databází (zachování vs. smazání dat)
-
-### Běžný deploy / update aplikace (data zůstanou zachována)
+#### Aktualizace (přenasazení)
 ```bash
 docker compose --compatibility --env-file .env up -d --build
 ```
 
-### Kompletní reset databáze (smazání všech dat)
+#### Kompletní přenasazení, včetně smazání dat
 ```bash
 docker compose down -v
 docker compose --compatibility --env-file .env up -d --build
 ```
 
-> Volba `-v` smaže Docker volumes (včetně dat PostgreSQL).
-
 ---
 
-## RabbitMQ Management UI (volitelné)
+### 5) RabbitMQ Management UI (volitelné)
 
 RabbitMQ Management UI je z bezpečnostních důvodů bindnuté pouze na `127.0.0.1:15672`.
 
@@ -84,7 +101,7 @@ Poté otevři v prohlížeči:
 
 Přihlašovací údaje jsou stejné jako v `.env` souboru.
 
----
+----------------------------
 
 ## Poznámka k paměťovým limitům
 Projekt používá paměťové limity definované v `deploy.resources.limits`.
