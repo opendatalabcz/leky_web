@@ -71,15 +71,17 @@ class MpdMedicinalProductRepositoryImpl(
         }
 
         if (!query.isNullOrBlank()) {
-            val normalizedQuery = query.uppercase()
-            val containsPattern = "%$normalizedQuery%"
-            val startsWithPattern = "$normalizedQuery%"
-
-            predicates += cb.or(
-                cb.like(cb.upper(root.get("name")), containsPattern),
-                cb.like(cb.upper(root.get("registrationNumber")), startsWithPattern),
-                cb.like(cb.upper(root.get("suklCode")), startsWithPattern)
+            val unifiedSearchExpr = cb.function("lower", String::class.java,
+                cb.function("concat", String::class.java,
+                    root.get<String>("name"),
+                    cb.literal(" "),
+                    root.get<String>("suklCode"),
+                    cb.literal(" "),
+                    root.get<String>("registrationNumber")
+                )
             )
+
+            predicates += cb.like(unifiedSearchExpr, "%${query.lowercase()}%")
         }
         return predicates
     }

@@ -29,7 +29,7 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
             whereClauses += "EXISTS (SELECT 1 FROM mpd_medicinal_product_substance mps WHERE mps.medicinal_product_id = mp.id AND mps.substance_id = :substanceId)"
         }
         if (!query.isNullOrBlank()) {
-            whereClauses += "(mp.registration_number ILIKE :startsWithQuery OR mp.name ILIKE :containsQuery)"
+            whereClauses += "LOWER(mp.name || ' ' || mp.sukl_code || ' ' || mp.registration_number) LIKE :searchQuery"
         }
 
         val whereSql = whereClauses.joinToString(" AND ")
@@ -54,8 +54,7 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
         atcGroupId?.let { selectQuery.setParameter("atcGroupId", it) }
         substanceId?.let { selectQuery.setParameter("substanceId", it) }
         if (!query.isNullOrBlank()) {
-            selectQuery.setParameter("startsWithQuery", "$query%")
-            selectQuery.setParameter("containsQuery", "%$query%")
+            selectQuery.setParameter("searchQuery", "%${query.lowercase()}%")
         }
 
         val resultList = selectQuery.resultList.map { row ->
@@ -82,8 +81,7 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
         atcGroupId?.let { countQuery.setParameter("atcGroupId", it) }
         substanceId?.let { countQuery.setParameter("substanceId", it) }
         if (!query.isNullOrBlank()) {
-            countQuery.setParameter("startsWithQuery", "$query%")
-            countQuery.setParameter("containsQuery", "%$query%")
+            countQuery.setParameter("searchQuery", "%${query.lowercase()}%")
         }
 
         val totalCount = (countQuery.singleResult as Number).toLong()
@@ -134,5 +132,4 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
 
         return results
     }
-
 }
