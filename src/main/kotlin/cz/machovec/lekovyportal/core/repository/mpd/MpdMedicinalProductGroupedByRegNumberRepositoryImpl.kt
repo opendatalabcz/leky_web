@@ -20,49 +20,43 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
         query: String?,
         pageable: Pageable
     ): Page<MpdMedicinalProductGroupedByRegNumberDto> {
-        val whereClauses = mutableListOf<String>("1=1")
+        val whereClauses = mutableListOf("mp.registration_number IS NOT NULL AND mp.registration_number <> ''")
 
         if (atcGroupId != null) {
-            whereClauses += ":atcGroupId = ANY(atc_group_ids)"
+            whereClauses += "mp.atc_group_id = :atcGroupId"
         }
         if (substanceId != null) {
-            whereClauses += ":substanceId = ANY(substance_ids)"
+            whereClauses += "EXISTS (SELECT 1 FROM mpd_medicinal_product_substance mps WHERE mps.medicinal_product_id = mp.id AND mps.substance_id = :substanceId)"
         }
         if (!query.isNullOrBlank()) {
-            whereClauses += """
-            (
-                LOWER(registration_number) LIKE :query
-                OR EXISTS (
-                    SELECT 1 FROM unnest(names) AS name WHERE LOWER(name) LIKE :query
-                )
-            )
-        """.trimIndent()
+            whereClauses += "(mp.registration_number ILIKE :startsWithQuery OR mp.name ILIKE :containsQuery)"
         }
 
         val whereSql = whereClauses.joinToString(" AND ")
 
         val selectSql = """
-        SELECT 
-            registration_number,
-            sukl_codes,
-            names,
-            strengths,
-            dosage_form_ids,
-            administration_route_ids,
-            atc_group_ids,
-            substance_ids
-        FROM v_medicinal_product_grouped_by_reg_number
-        WHERE $whereSql
-        ORDER BY registration_number
-        LIMIT :limit OFFSET :offset
-    """.trimIndent()
+            WITH filtered_regs AS (
+                SELECT DISTINCT mp.registration_number 
+                FROM mpd_medicinal_product mp
+                WHERE $whereSql
+                ORDER BY mp.registration_number
+                LIMIT :limit OFFSET :offset
+            )
+            SELECT v.* FROM v_medicinal_product_grouped_by_reg_number v
+            JOIN filtered_regs f ON v.registration_number = f.registration_number
+            ORDER BY v.registration_number
+        """.trimIndent()
 
         val selectQuery = em.createNativeQuery(selectSql, Tuple::class.java)
         selectQuery.setParameter("limit", pageable.pageSize)
         selectQuery.setParameter("offset", pageable.offset)
-        if (atcGroupId != null) selectQuery.setParameter("atcGroupId", atcGroupId)
-        if (substanceId != null) selectQuery.setParameter("substanceId", substanceId)
-        if (!query.isNullOrBlank()) selectQuery.setParameter("query", "%${query.lowercase()}%")
+
+        atcGroupId?.let { selectQuery.setParameter("atcGroupId", it) }
+        substanceId?.let { selectQuery.setParameter("substanceId", it) }
+        if (!query.isNullOrBlank()) {
+            selectQuery.setParameter("startsWithQuery", "$query%")
+            selectQuery.setParameter("containsQuery", "%$query%")
+        }
 
         val resultList = selectQuery.resultList.map { row ->
             row as Tuple
@@ -74,20 +68,24 @@ class MpdMedicinalProductGroupedByRegNumberRepositoryImpl(
                 dosageFormIds = (row.get("dosage_form_ids") as Array<*>).filterIsInstance<Long>(),
                 administrationRouteIds = (row.get("administration_route_ids") as Array<*>).filterIsInstance<Long>(),
                 atcGroupIds = (row.get("atc_group_ids") as Array<*>).filterIsInstance<Long>(),
-                substanceIds = (row.get("substance_ids") as Array<*>).filterIsInstance<Long>() // 🆕
+                substanceIds = (row.get("substance_ids") as Array<*>).filterIsInstance<Long>()
             )
         }
 
         val countSql = """
-            SELECT COUNT(*) 
-            FROM v_medicinal_product_grouped_by_reg_number 
+            SELECT COUNT(DISTINCT mp.registration_number) 
+            FROM mpd_medicinal_product mp
             WHERE $whereSql
         """.trimIndent()
 
         val countQuery = em.createNativeQuery(countSql)
-        if (atcGroupId != null) countQuery.setParameter("atcGroupId", atcGroupId)
-        if (substanceId != null) countQuery.setParameter("substanceId", substanceId)
-        if (!query.isNullOrBlank()) countQuery.setParameter("query", "%${query.lowercase()}%")
+        atcGroupId?.let { countQuery.setParameter("atcGroupId", it) }
+        substanceId?.let { countQuery.setParameter("substanceId", it) }
+        if (!query.isNullOrBlank()) {
+            countQuery.setParameter("startsWithQuery", "$query%")
+            countQuery.setParameter("containsQuery", "%$query%")
+        }
+
         val totalCount = (countQuery.singleResult as Number).toLong()
 
         return PageImpl(resultList, pageable, totalCount)
