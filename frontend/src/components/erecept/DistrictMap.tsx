@@ -1,5 +1,5 @@
 import React from "react"
-import { GeoJSON, GeoJSONProps, MapContainer } from "react-leaflet"
+import { GeoJSON, MapContainer } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import { Feature, FeatureCollection, Geometry } from "geojson"
 import { EReceptDataTypeAggregation } from "../../types/EReceptDataTypeAggregation"
@@ -38,8 +38,8 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
     const stepSize = maxReference / numSteps
     const grades = Array.from({ length: numSteps }, (_, i) => Math.round(i * stepSize))
 
-    const geoJsonStyle: GeoJSONProps["style"] = (feature) => {
-        const code = (feature as any).nationalCode
+    const geoJsonStyle: any = (feature: any) => {
+        const code = feature.nationalCode
         const value = code ? districtData[code] ?? 0 : 0
         const absValue = Math.abs(value)
 
@@ -88,7 +88,18 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
         const value = code ? districtData[code] ?? 0 : 0
 
         if ((layer as any).bindTooltip) {
-            (layer as any).bindTooltip(`${name}: ${value}`, {
+            let tooltipContent = `${name}: ${value}`
+            if (filter === EReceptDataTypeAggregation.DIFFERENCE) {
+                if (value > 0) {
+                    tooltipContent = `${name}: ${value} více předepsaných`
+                } else if (value < 0) {
+                    tooltipContent = `${name}: ${Math.abs(value)} více vydaných`
+                } else {
+                    tooltipContent = `${name}: vyrovnaný stav`
+                }
+            }
+
+            (layer as any).bindTooltip(tooltipContent, {
                 direction: "top",
                 permanent: false,
             })
@@ -114,7 +125,7 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
         <Box sx={{ width: '100%', overflowX: 'auto' }}>
             <Box sx={{ minWidth: '800px', height: '420px', position: 'relative' }}>
                 <MapContainer
-                    center={[49.75, 16]}
+                    center={[49.75, 15.5]}
                     zoom={7}
                     style={{ width: '100%', height: '100%' }}
                     zoomControl={false}
@@ -148,7 +159,9 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
                     </Typography>
                     {(filter === EReceptDataTypeAggregation.PRESCRIBED || filter === EReceptDataTypeAggregation.DIFFERENCE) && (
                         <Box>
-                            <Typography variant="caption" fontWeight={600}>Předepsáno (modře)</Typography>
+                            <Typography variant="caption" fontWeight={600}>
+                                {filter === EReceptDataTypeAggregation.DIFFERENCE ? 'Více předepsaných' : 'Předepsáno'}
+                            </Typography>
                             {grades.map((grade, i) => (
                                 <Box key={`pos-${i}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                                     <Box sx={{ width: 18, height: 18, backgroundColor: positiveColors[i], border: '1px solid #999', mr: 1 }} />
@@ -158,8 +171,10 @@ export default function DistrictMap({ geojsonData, districtData, filter, medicin
                         </Box>
                     )}
                     {(filter === EReceptDataTypeAggregation.DISPENSED || filter === EReceptDataTypeAggregation.DIFFERENCE) && (
-                        <Box mt={1}>
-                            <Typography variant="caption" fontWeight={600}>Vydáno (červeně)</Typography>
+                        <Box mt={filter === EReceptDataTypeAggregation.DIFFERENCE ? 1 : 0}>
+                            <Typography variant="caption" fontWeight={600}>
+                                {filter === EReceptDataTypeAggregation.DIFFERENCE ? 'Více vydaných' : 'Vydáno'}
+                            </Typography>
                             {grades.map((grade, i) => (
                                 <Box key={`neg-${i}`} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                                     <Box sx={{ width: 18, height: 18, backgroundColor: negativeColors[i], border: '1px solid #999', mr: 1 }} />
