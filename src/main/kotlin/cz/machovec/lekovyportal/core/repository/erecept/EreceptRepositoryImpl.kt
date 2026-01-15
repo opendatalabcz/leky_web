@@ -22,53 +22,51 @@ class EreceptRepositoryImpl : EreceptRepository {
     ): List<EreceptAggregatedDistrictDto> {
         if (medicinalProductIds.isEmpty()) return emptyList()
 
-        val fromYearMonth = dateFrom?.let { it.year * 100 + it.monthValue }
-        val toYearMonth = dateTo?.let { it.year * 100 + it.monthValue }
+        val fromYear = dateFrom!!.year
+        val fromMonth = dateFrom.monthValue
+        val toYear = dateTo!!.year
+        val toMonth = dateTo.monthValue
 
-        val sql = buildString {
-            append("""
-                SELECT 
-                    d.code AS district_code,
-                    c.medicinal_product_id,
-                    SUM(c.prescribed_quantity) AS prescribed,
-                    SUM(c.dispensed_quantity) AS dispensed,
-                    d.population
-                FROM (
-                    SELECT district_code, medicinal_product_id, SUM(quantity) AS prescribed_quantity, 0 AS dispensed_quantity
-                    FROM erecept_prescription
-                    WHERE medicinal_product_id IN (:medicinalProductIds)
-            """.trimIndent())
-
-            if (fromYearMonth != null && toYearMonth != null) {
-                append(" AND (year * 100 + month) BETWEEN :fromYearMonth AND :toYearMonth ")
-            }
-
-            append("""
-                    GROUP BY district_code, medicinal_product_id
-                    UNION ALL
-                    SELECT district_code, medicinal_product_id, 0 AS prescribed_quantity, SUM(quantity) AS dispensed_quantity
-                    FROM erecept_dispense
-                    WHERE medicinal_product_id IN (:medicinalProductIds)
-            """.trimIndent())
-
-            if (fromYearMonth != null && toYearMonth != null) {
-                append(" AND (year * 100 + month) BETWEEN :fromYearMonth AND :toYearMonth ")
-            }
-
-            append("""
-                    GROUP BY district_code, medicinal_product_id
-                ) AS c
-                JOIN district d ON d.code = c.district_code
-                GROUP BY d.code, c.medicinal_product_id, d.population
-            """.trimIndent())
-        }
+        val sql = """
+            SELECT 
+                d.code AS district_code,
+                c.medicinal_product_id,
+                SUM(c.prescribed_quantity) AS prescribed,
+                SUM(c.dispensed_quantity) AS dispensed,
+                d.population
+            FROM (
+                SELECT district_code, medicinal_product_id, SUM(quantity) AS prescribed_quantity, 0 AS dispensed_quantity
+                FROM erecept_prescription
+                WHERE medicinal_product_id IN (:medicinalProductIds)
+                  AND (
+                    (year > :fromYear OR (year = :fromYear AND month >= :fromMonth))
+                    AND 
+                    (year < :toYear OR (year = :toYear AND month <= :toMonth))
+                  )
+                GROUP BY district_code, medicinal_product_id
+                
+                UNION ALL
+                
+                SELECT district_code, medicinal_product_id, 0 AS prescribed_quantity, SUM(quantity) AS dispensed_quantity
+                FROM erecept_dispense
+                WHERE medicinal_product_id IN (:medicinalProductIds)
+                  AND (
+                    (year > :fromYear OR (year = :fromYear AND month >= :fromMonth))
+                    AND 
+                    (year < :toYear OR (year = :toYear AND month <= :toMonth))
+                  )
+                GROUP BY district_code, medicinal_product_id
+            ) AS c
+            JOIN district d ON d.code = c.district_code
+            GROUP BY d.code, c.medicinal_product_id, d.population
+    """.trimIndent()
 
         val query = em.createNativeQuery(sql)
         query.setParameter("medicinalProductIds", medicinalProductIds)
-        if (fromYearMonth != null && toYearMonth != null) {
-            query.setParameter("fromYearMonth", fromYearMonth)
-            query.setParameter("toYearMonth", toYearMonth)
-        }
+        query.setParameter("fromYear", fromYear)
+        query.setParameter("fromMonth", fromMonth)
+        query.setParameter("toYear", toYear)
+        query.setParameter("toMonth", toMonth)
 
         @Suppress("UNCHECKED_CAST")
         val results = query.resultList as List<Array<Any>>
@@ -91,41 +89,53 @@ class EreceptRepositoryImpl : EreceptRepository {
     ): List<EreceptTimeSeriesDistrictDto> {
         if (medicinalProductIds.isEmpty()) return emptyList()
 
-        val fromYearMonth = dateFrom.year * 100 + dateFrom.monthValue
-        val toYearMonth = dateTo.year * 100 + dateTo.monthValue
+        val fromYear = dateFrom.year
+        val fromMonth = dateFrom.monthValue
+        val toYear = dateTo.year
+        val toMonth = dateTo.monthValue
 
         val sql = """
-            SELECT 
-                combined.year,
-                combined.month,
-                combined.district_code,
-                combined.medicinal_product_id,
-                SUM(combined.prescribed_quantity) AS prescribed,
-                SUM(combined.dispensed_quantity)  AS dispensed,
-                d.population
-            FROM (
-                SELECT p.year, p.month, p.district_code, p.medicinal_product_id, SUM(p.quantity) AS prescribed_quantity, 0 AS dispensed_quantity
-                FROM erecept_prescription p
-                WHERE p.medicinal_product_id IN (:medicinalProductIds)
-                  AND (p.year * 100 + p.month) BETWEEN :fromYearMonth AND :toYearMonth
-                GROUP BY p.year, p.month, p.district_code, p.medicinal_product_id
+        SELECT 
+            combined.year,
+            combined.month,
+            combined.district_code,
+            combined.medicinal_product_id,
+            SUM(combined.prescribed_quantity) AS prescribed,
+            SUM(combined.dispensed_quantity)  AS dispensed,
+            d.population
+        FROM (
+            SELECT p.year, p.month, p.district_code, p.medicinal_product_id, SUM(p.quantity) AS prescribed_quantity, 0 AS dispensed_quantity
+            FROM erecept_prescription p
+            WHERE p.medicinal_product_id IN (:medicinalProductIds)
+              AND (
+                (p.year > :fromYear OR (p.year = :fromYear AND p.month >= :fromMonth))
+                AND 
+                (p.year < :toYear OR (p.year = :toYear AND p.month <= :toMonth))
+              )
+            GROUP BY p.year, p.month, p.district_code, p.medicinal_product_id
 
-                UNION ALL
+            UNION ALL
 
-                SELECT d.year, d.month, d.district_code, d.medicinal_product_id, 0 AS prescribed_quantity, SUM(d.quantity) AS dispensed_quantity
-                FROM erecept_dispense d
-                WHERE d.medicinal_product_id IN (:medicinalProductIds)
-                  AND (d.year * 100 + d.month) BETWEEN :fromYearMonth AND :toYearMonth
-                GROUP BY d.year, d.month, d.district_code, d.medicinal_product_id
-            ) combined
-            JOIN district d ON d.code = combined.district_code
-            GROUP BY combined.year, combined.month, combined.district_code, combined.medicinal_product_id, d.population
-        """.trimIndent()
+            SELECT d.year, d.month, d.district_code, d.medicinal_product_id, 0 AS prescribed_quantity, SUM(d.quantity) AS dispensed_quantity
+            FROM erecept_dispense d
+            WHERE d.medicinal_product_id IN (:medicinalProductIds)
+              AND (
+                (d.year > :fromYear OR (d.year = :fromYear AND d.month >= :fromMonth))
+                AND 
+                (d.year < :toYear OR (d.year = :toYear AND d.month <= :toMonth))
+              )
+            GROUP BY d.year, d.month, d.district_code, d.medicinal_product_id
+        ) combined
+        JOIN district d ON d.code = combined.district_code
+        GROUP BY combined.year, combined.month, combined.district_code, combined.medicinal_product_id, d.population
+    """.trimIndent()
 
         val query = em.createNativeQuery(sql)
         query.setParameter("medicinalProductIds", medicinalProductIds)
-        query.setParameter("fromYearMonth", fromYearMonth)
-        query.setParameter("toYearMonth", toYearMonth)
+        query.setParameter("fromYear", fromYear)
+        query.setParameter("fromMonth", fromMonth)
+        query.setParameter("toYear", toYear)
+        query.setParameter("toMonth", toMonth)
 
         @Suppress("UNCHECKED_CAST")
         val rows = query.resultList as List<Array<Any>>
@@ -143,35 +153,59 @@ class EreceptRepositoryImpl : EreceptRepository {
         }
     }
 
-    override fun getFullTimeSeriesRows(medicinalProductIds: List<Long>): List<EreceptFullTimeSeriesDto> {
+    override fun getFullTimeSeriesRows(
+        medicinalProductIds: List<Long>,
+        districtCode: String?
+    ): List<EreceptFullTimeSeriesDto> {
         if (medicinalProductIds.isEmpty()) return emptyList()
 
-        val sql = """
+        val sql = buildString {
+            append("""
             SELECT 
-                year,
-                month,
-                district_code,
-                medicinal_product_id,
-                SUM(prescribed_quantity) AS prescribed,
-                SUM(dispensed_quantity) AS dispensed
+                combined.year,
+                combined.month,
+                combined.district_code,
+                combined.medicinal_product_id,
+                SUM(combined.prescribed_quantity) AS prescribed,
+                SUM(combined.dispensed_quantity) AS dispensed
             FROM (
-                SELECT year, month, district_code, medicinal_product_id, SUM(quantity) AS prescribed_quantity, 0 AS dispensed_quantity
+                SELECT year, month, district_code, medicinal_product_id, 
+                       SUM(quantity) AS prescribed_quantity, 0 AS dispensed_quantity
                 FROM erecept_prescription
                 WHERE medicinal_product_id IN (:medicinalProductIds)
+        """.trimIndent())
+
+            if (districtCode != null) {
+                append(" AND district_code = :districtCode ")
+            }
+
+            append("""
                 GROUP BY year, month, district_code, medicinal_product_id
-
+                
                 UNION ALL
-
-                SELECT year, month, district_code, medicinal_product_id, 0 AS prescribed_quantity, SUM(quantity) AS dispensed_quantity
+                
+                SELECT year, month, district_code, medicinal_product_id, 
+                       0 AS prescribed_quantity, SUM(quantity) AS dispensed_quantity
                 FROM erecept_dispense
                 WHERE medicinal_product_id IN (:medicinalProductIds)
+        """.trimIndent())
+
+            if (districtCode != null) {
+                append(" AND district_code = :districtCode ")
+            }
+
+            append("""
                 GROUP BY year, month, district_code, medicinal_product_id
             ) AS combined
-            GROUP BY year, month, district_code, medicinal_product_id
-        """.trimIndent()
+            GROUP BY combined.year, combined.month, combined.district_code, combined.medicinal_product_id
+        """.trimIndent())
+        }
 
         val query = em.createNativeQuery(sql)
         query.setParameter("medicinalProductIds", medicinalProductIds)
+        if (districtCode != null) {
+            query.setParameter("districtCode", districtCode)
+        }
 
         @Suppress("UNCHECKED_CAST")
         val results = query.resultList as List<Array<Any>>

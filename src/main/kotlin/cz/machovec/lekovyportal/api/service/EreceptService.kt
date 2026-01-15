@@ -7,6 +7,7 @@ import EreceptFullTimeSeriesResponse
 import EreceptFullTimeSeriesEntry
 import EreceptTimeSeriesByDistrictRequest
 import EreceptTimeSeriesByDistrictResponse
+import SummaryValues
 import TimeSeriesMonthDistrictValues
 import cz.machovec.lekovyportal.api.calculations.DistrictAggregator
 import cz.machovec.lekovyportal.api.calculations.SummaryCalculator
@@ -14,12 +15,19 @@ import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.api.model.enums.TimeGranularity
 import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.core.domain.mpd.MpdMedicinalProduct
+import cz.machovec.lekovyportal.core.dto.erecept.EreceptAggregatedDistrictDto
+import cz.machovec.lekovyportal.core.dto.erecept.EreceptFullTimeSeriesDto
+import cz.machovec.lekovyportal.core.dto.erecept.EreceptTimeSeriesDistrictDto
 import cz.machovec.lekovyportal.core.repository.erecept.*
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
+import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import kotlin.system.measureTimeMillis
+
+private val logger = KotlinLogging.logger {}
 
 @Service
 class EreceptService(
@@ -36,35 +44,69 @@ class EreceptService(
     fun getAggregatedByDistrict(
         request: EreceptAggregateByDistrictRequest
     ): EreceptAggregateByDistrictResponse {
+        var included: List<MpdMedicinalProduct>
+        var ignored: List<MpdMedicinalProduct>
+        var rows: List<EreceptAggregatedDistrictDto>
+        var districtValues: Map<String, Int>
+        var summary: SummaryValues
 
-        // Step 1: Load and filter medicinal products by DDD compatibility
-        val (included, ignored) = loadAndFilterProducts(
-            request.medicinalProductIds,
-            request.registrationNumbers,
-            request.medicinalUnitMode
-        )
-        val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
+        val productFetchTime: Long
+        val mainSqlTime: Long
+        val aggregationTime: Long
+        val summaryTime: Long
 
-        // Step 2: Query aggregated data per district
-        val rows = ereceptRepository.getAggregatedByDistrictRows(
-            medicinalProductIds = included.mapNotNull { it.id },
-            dateFrom = request.dateFrom?.let { YearMonth.parse(it, ymFormatter) },
-            dateTo = request.dateTo?.let { YearMonth.parse(it, ymFormatter) }
-        )
+        val totalTime = measureTimeMillis {
+            // Step 1: Load and filter medicinal products
+            productFetchTime = measureTimeMillis {
+                val products = loadAndFilterProducts(
+                    request.medicinalProductIds,
+                    request.registrationNumbers,
+                    request.medicinalUnitMode
+                )
+                included = products.first
+                ignored = products.second
+            }
 
-        // Step 3: Aggregate district values using dedicated aggregator
-        val districtValues = districtAggregator.aggregate(
-            rows = rows,
-            aggType = request.aggregationType,
-            unitMode = request.medicinalUnitMode,
-            normMode = request.normalisationMode,
-            dddPerProduct = dddPerProduct
-        )
+            // Step 2: Query aggregated data per district
+            mainSqlTime = measureTimeMillis {
+                rows = ereceptRepository.getAggregatedByDistrictRows(
+                    medicinalProductIds = included.mapNotNull { it.id },
+                    dateFrom = request.dateFrom?.let { YearMonth.parse(it, ymFormatter) },
+                    dateTo = request.dateTo?.let { YearMonth.parse(it, ymFormatter) }
+                )
+            }
 
-        // Step 4: Calculate summary values
-        val summary = summaryCalculator.fromDistrictRows(rows)
+            val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
 
-        // Step 5: Build and return response DTO
+            // Step 3: Aggregate district values
+            aggregationTime = measureTimeMillis {
+                districtValues = districtAggregator.aggregate(
+                    rows = rows,
+                    aggType = request.aggregationType,
+                    unitMode = request.medicinalUnitMode,
+                    normMode = request.normalisationMode,
+                    dddPerProduct = dddPerProduct
+                )
+            }
+
+            // Step 4: Calculate summary values
+            summaryTime = measureTimeMillis {
+                summary = summaryCalculator.fromDistrictRows(rows)
+            }
+        }
+
+        logger.info {
+            """
+            PERFORMANCE [getAggregatedByDistrict]:
+            - Total: ${totalTime}ms
+            - Step 1 (Products Fetch): ${productFetchTime}ms
+            - Step 2 (Main SQL Query): ${mainSqlTime}ms
+            - Step 3 (Kotlin Aggregation): ${aggregationTime}ms
+            - Step 4 (Summary Calc): ${summaryTime}ms
+            - Rows: ${rows.size}
+            """.trimIndent()
+        }
+
         return EreceptAggregateByDistrictResponse(
             aggregationType = request.aggregationType,
             medicinalUnitMode = request.medicinalUnitMode,
@@ -81,42 +123,67 @@ class EreceptService(
     fun getTimeSeriesByDistrict(
         request: EreceptTimeSeriesByDistrictRequest
     ): EreceptTimeSeriesByDistrictResponse {
+        var included: List<MpdMedicinalProduct>
+        var ignored: List<MpdMedicinalProduct>
+        var raw: List<EreceptTimeSeriesDistrictDto>
+        var series: List<TimeSeriesMonthDistrictValues>
 
-        // Step 1: Load and filter medicinal products
-        val (included, ignored) = loadAndFilterProducts(
-            request.medicinalProductIds,
-            request.registrationNumbers,
-            request.medicinalUnitMode
-        )
-        val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
+        val productFetchTime: Long
+        val mainSqlTime: Long
+        val aggregationTime: Long
 
-        // Step 2: Query monthly aggregated data per district
-        val raw = ereceptRepository.getTimeSeriesByDistrictRows(
-            medicinalProductIds = included.mapNotNull { it.id },
-            dateFrom = YearMonth.parse(request.dateFrom, ymFormatter),
-            dateTo = YearMonth.parse(request.dateTo, ymFormatter)
-        )
+        val totalTime = measureTimeMillis {
+            productFetchTime = measureTimeMillis {
+                val products = loadAndFilterProducts(
+                    request.medicinalProductIds,
+                    request.registrationNumbers,
+                    request.medicinalUnitMode
+                )
+                included = products.first
+                ignored = products.second
+            }
 
-        // Step 3: Group data by month and aggregate per district
-        val rowsByMonth = raw.groupBy { "%04d-%02d".format(it.year, it.month) }
+            mainSqlTime = measureTimeMillis {
+                raw = ereceptRepository.getTimeSeriesByDistrictRows(
+                    medicinalProductIds = included.mapNotNull { it.id },
+                    dateFrom = YearMonth.parse(request.dateFrom, ymFormatter),
+                    dateTo = YearMonth.parse(request.dateTo, ymFormatter)
+                )
+            }
 
-        val series = rowsByMonth.toSortedMap().map { (period, rowsForMonth) ->
-            val districtMap = districtAggregator.aggregateMonthly(
-                rows = rowsForMonth,
-                aggType = request.aggregationType,
-                unitMode = request.medicinalUnitMode,
-                normMode = request.normalisationMode,
-                dddPerProduct = dddPerProduct
-            )
+            aggregationTime = measureTimeMillis {
+                val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
+                val rowsByMonth = raw.groupBy { "%04d-%02d".format(it.year, it.month) }
 
-            TimeSeriesMonthDistrictValues(
-                month = period,
-                districtValues = districtMap,
-                summary = summaryCalculator.fromMonthlyRows(rowsForMonth)
-            )
+                series = rowsByMonth.toSortedMap().map { (period, rowsForMonth) ->
+                    val districtMap = districtAggregator.aggregateMonthly(
+                        rows = rowsForMonth,
+                        aggType = request.aggregationType,
+                        unitMode = request.medicinalUnitMode,
+                        normMode = request.normalisationMode,
+                        dddPerProduct = dddPerProduct
+                    )
+
+                    TimeSeriesMonthDistrictValues(
+                        month = period,
+                        districtValues = districtMap,
+                        summary = summaryCalculator.fromMonthlyRows(rowsForMonth)
+                    )
+                }
+            }
         }
 
-        // Step 4: Build and return response DTO
+        logger.info {
+            """
+            PERFORMANCE [getTimeSeriesByDistrict]:
+            - Total: ${totalTime}ms
+            - Step 1 (Products Fetch): ${productFetchTime}ms
+            - Step 2 (Main SQL Query): ${mainSqlTime}ms
+            - Step 3 (Kotlin Group & Agg): ${aggregationTime}ms
+            - Raw rows: ${raw.size}
+            """.trimIndent()
+        }
+
         return EreceptTimeSeriesByDistrictResponse(
             aggregationType = request.aggregationType,
             medicinalUnitMode = request.medicinalUnitMode,
@@ -132,45 +199,70 @@ class EreceptService(
     fun getFullTimeSeries(
         request: EreceptFullTimeSeriesRequest
     ): EreceptFullTimeSeriesResponse {
+        var included: List<MpdMedicinalProduct>
+        var ignored: List<MpdMedicinalProduct>
+        var raw: List<EreceptFullTimeSeriesDto>
+        var series: List<EreceptFullTimeSeriesEntry>
 
-        // Step 1: Load and filter medicinal products
-        val (included, ignored) = loadAndFilterProducts(
-            request.medicinalProductIds,
-            request.registrationNumbers,
-            request.medicinalUnitMode
-        )
-        val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
+        val productFetchTime: Long
+        val mainSqlTime: Long
+        val transformationTime: Long
 
-        // Step 2: Query full monthly data, optionally filter by district
-        val raw = ereceptRepository.getFullTimeSeriesRows(
-            medicinalProductIds = included.mapNotNull { it.id }
-        ).filter { request.district == null || it.districtCode == request.district }
+        val totalTime = measureTimeMillis {
+            productFetchTime = measureTimeMillis {
+                val products = loadAndFilterProducts(
+                    request.medicinalProductIds,
+                    request.registrationNumbers,
+                    request.medicinalUnitMode
+                )
+                included = products.first
+                ignored = products.second
+            }
 
-        // Step 3: Convert package counts to requested unit mode
-        val monthly = raw.map {
-            val prescribed = districtAggregator.convertValue(it.medicinalProductId, it.prescribed, request.medicinalUnitMode, dddPerProduct)
-            val dispensed = districtAggregator.convertValue(it.medicinalProductId, it.dispensed, request.medicinalUnitMode, dddPerProduct)
-            it.copy(prescribed = prescribed, dispensed = dispensed)
+            mainSqlTime = measureTimeMillis {
+                raw = ereceptRepository.getFullTimeSeriesRows(
+                    medicinalProductIds = included.mapNotNull { it.id },
+                    districtCode = request.district
+                )
+            }
+
+            transformationTime = measureTimeMillis {
+                val dddPerProduct = included.associate { it.id!! to (it.dailyDosePackaging ?: BigDecimal.ZERO) }
+                val monthly = raw.map {
+                    val prescribed = districtAggregator.convertValue(it.medicinalProductId, it.prescribed, request.medicinalUnitMode, dddPerProduct)
+                    val dispensed = districtAggregator.convertValue(it.medicinalProductId, it.dispensed, request.medicinalUnitMode, dddPerProduct)
+                    it.copy(prescribed = prescribed, dispensed = dispensed)
+                }
+
+                val grouped = when (request.timeGranularity) {
+                    TimeGranularity.MONTH -> monthly.groupBy { "%04d-%02d".format(it.year, it.month) }
+                    TimeGranularity.YEAR -> monthly.groupBy { it.year.toString() }
+                }
+
+                series = grouped.toSortedMap().map { (period, rows) ->
+                    val prescribed = rows.sumOf { it.prescribed }.toInt()
+                    val dispensed = rows.sumOf { it.dispensed }.toInt()
+                    EreceptFullTimeSeriesEntry(
+                        period = period,
+                        prescribed = prescribed,
+                        dispensed = dispensed,
+                        difference = prescribed - dispensed
+                    )
+                }
+            }
         }
 
-        // Step 4: Group data by requested time granularity
-        val grouped = when (request.timeGranularity) {
-            TimeGranularity.MONTH -> monthly.groupBy { "%04d-%02d".format(it.year, it.month) }
-            TimeGranularity.YEAR -> monthly.groupBy { it.year.toString() }
+        logger.info {
+            """
+            PERFORMANCE [getFullTimeSeries]:
+            - Total: ${totalTime}ms
+            - Step 1 (Products Fetch): ${productFetchTime}ms
+            - Step 2 (Main SQL Query): ${mainSqlTime}ms
+            - Step 3 (Kotlin Group & Trans): ${transformationTime}ms
+            - Raw rows: ${raw.size}
+            """.trimIndent()
         }
 
-        val series = grouped.toSortedMap().map { (period, rows) ->
-            val prescribed = rows.sumOf { it.prescribed }.toInt()
-            val dispensed = rows.sumOf { it.dispensed }.toInt()
-            EreceptFullTimeSeriesEntry(
-                period = period,
-                prescribed = prescribed,
-                dispensed = dispensed,
-                difference = prescribed - dispensed
-            )
-        }
-
-        // Step 5: Build and return response DTO
         return EreceptFullTimeSeriesResponse(
             medicinalUnitMode = request.medicinalUnitMode,
             normalisationMode = request.normalisationMode,
