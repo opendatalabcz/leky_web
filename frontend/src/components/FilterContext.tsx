@@ -42,7 +42,7 @@ const defaultCommon: CommonFilters = {
 }
 
 const defaultPrescriptionDispense: PrescriptionDispenseFilters = {
-    aggregationType: EReceptDataTypeAggregation.PRESCRIBED,
+    aggregationType: EReceptDataTypeAggregation.DIFFERENCE,
     normalisationMode: PopulationNormalisationMode.PER_100000_CAPITA,
 }
 

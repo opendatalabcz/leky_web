@@ -16,13 +16,10 @@ import cz.machovec.lekovyportal.api.model.mpd.MedicinalProductIdentificators
 import cz.machovec.lekovyportal.core.domain.mpd.MpdMedicinalProduct
 import cz.machovec.lekovyportal.core.repository.erecept.EreceptRepository
 import cz.machovec.lekovyportal.core.repository.mpd.MpdMedicinalProductRepository
-import mu.KotlinLogging
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-
-private val logger = KotlinLogging.logger {}
 
 @Service
 class EreceptService(
@@ -65,7 +62,11 @@ class EreceptService(
         )
 
         // Step 4: Calculate summary values
-        val summary = summaryCalculator.fromDistrictRows(rows)
+        val summary = summaryCalculator.fromDistrictRows(
+            rows = rows,
+            unitMode = request.medicinalUnitMode,
+            dddPerProduct = dddPerProduct
+        )
 
         return EreceptAggregateByDistrictResponse(
             aggregationType = request.aggregationType,
@@ -113,7 +114,11 @@ class EreceptService(
             TimeSeriesMonthDistrictValues(
                 month = period,
                 districtValues = districtMap,
-                summary = summaryCalculator.fromMonthlyRows(rowsForMonth)
+                summary = summaryCalculator.fromMonthlyRows(
+                    rows = rowsForMonth,
+                    unitMode = request.medicinalUnitMode,
+                    dddPerProduct = dddPerProduct
+                )
             )
         }
 
