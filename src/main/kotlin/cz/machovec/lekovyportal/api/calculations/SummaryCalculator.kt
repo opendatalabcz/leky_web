@@ -1,6 +1,7 @@
 package cz.machovec.lekovyportal.api.calculations
 
 import SummaryValues
+import cz.machovec.lekovyportal.api.model.enums.MedicinalUnitMode
 import cz.machovec.lekovyportal.core.dto.erecept.EreceptAggregatedDistrictDto
 import cz.machovec.lekovyportal.core.dto.erecept.EreceptTimeSeriesDistrictDto
 import org.springframework.stereotype.Component
@@ -8,19 +9,35 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 @Component
-class SummaryCalculator {
+class SummaryCalculator(
+    private val converterFactory: DoseUnitConverterFactory
+) {
 
-    fun fromDistrictRows(rows: List<EreceptAggregatedDistrictDto>): SummaryValues =
-        build(
-            rows.sumOf { it.prescribed },
-            rows.sumOf { it.dispensed }
-        )
+    fun fromDistrictRows(
+        rows: List<EreceptAggregatedDistrictDto>,
+        unitMode: MedicinalUnitMode,
+        dddPerProduct: Map<Long, BigDecimal>
+    ): SummaryValues {
+        val converter = converterFactory.of(unitMode)
 
-    fun fromMonthlyRows(rows: List<EreceptTimeSeriesDistrictDto>): SummaryValues =
-        build(
-            rows.sumOf { it.prescribed },
-            rows.sumOf { it.dispensed }
+        return build(
+            rows.sumOf { converter.convert(it.medicinalProductId, it.prescribed, dddPerProduct) },
+            rows.sumOf { converter.convert(it.medicinalProductId, it.dispensed, dddPerProduct) }
         )
+    }
+
+    fun fromMonthlyRows(
+        rows: List<EreceptTimeSeriesDistrictDto>,
+        unitMode: MedicinalUnitMode,
+        dddPerProduct: Map<Long, BigDecimal>
+    ): SummaryValues {
+        val converter = converterFactory.of(unitMode)
+
+        return build(
+            rows.sumOf { converter.convert(it.medicinalProductId, it.prescribed, dddPerProduct) },
+            rows.sumOf { converter.convert(it.medicinalProductId, it.dispensed, dddPerProduct) }
+        )
+    }
 
     private fun build(prescribed: BigDecimal, dispensed: BigDecimal): SummaryValues {
         val diff = prescribed - dispensed
@@ -41,4 +58,3 @@ class SummaryCalculator {
         return SummaryValues(prescribedInt, dispensedInt, diffInt, pct)
     }
 }
-
