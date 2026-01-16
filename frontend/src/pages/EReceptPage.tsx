@@ -306,6 +306,14 @@ export function EReceptPage() {
                                         boxSizing: 'border-box'
                                     }}
                                 >
+                                    <Box sx={{ mb: 2, px: 1 }}>
+                                        <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                                            Souhrnné statistiky (ČR celkem)
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            Absolutní počty za zvolené období.
+                                        </Typography>
+                                    </Box>
                                     <SummaryTiles summary={summary} />
                                 </Box>
                             </Box>
