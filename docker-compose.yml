@@ -22,7 +22,7 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: rabbitmq_server consumer_timeout 7200000
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbitmq_server consumer_timeout 7200000"
     ports:
       - "127.0.0.1:15672:15672"
     networks:
@@ -51,6 +51,8 @@ services:
     depends_on:
       - db
       - rabbitmq
+    ports:
+      - "127.0.0.1:5101:8080"
     networks:
       - app-network
     deploy:
@@ -65,7 +67,7 @@ services:
       dockerfile: Dockerfile
     image: leky-frontend:latest
     ports:
-      - "127.0.0.1:8081:80"
+      - "127.0.0.1:5100:80"
     networks:
       - app-network
     depends_on:

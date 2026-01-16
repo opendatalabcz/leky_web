@@ -25,14 +25,14 @@ RABBITMQ_PASSWORD=zvolte_silne_heslo
 ---
 
 ### 2. Konfigurace vnějšího Nginxu a CORS
-V `docker-compose.yml` je frontend standardně bindován na `127.0.0.1:8081:80`.
+V `docker-compose.yml` je frontend standardně bindován na `127.0.0.1:5100:80`.
 
 ### Nastavení vnějšího Nginxu:
 Pro funkční přístup přes doménu vložte do konfigurace vnějšího Nginxu na hostitelském serveru následující blok:
 
 ```nginx
   location / {
-    proxy_pass http://127.0.0.1:8081;
+    proxy_pass http://127.0.0.1:5100; # Směřuje na frontend kontejner
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -60,8 +60,8 @@ docker compose --compatibility --env-file .env up -d --build
 ```
 
 Aplikace je poté dostupná:
-* Lokálně (vývoj): http://localhost:8081
-* Produkce (přes doménu): http://<server-ip> nebo http://<domena> (Standardní porty 80/443 jsou vnějším Nginxem mapovány na vnitřní port 8081)
+* Lokálně (vývoj): http://localhost:5100
+* Produkce (přes doménu): http://<server-ip> nebo http://<domena> (Standardní porty 80/443 jsou vnějším Nginxem mapovány na vnitřní port 5100)
   * Např. https://lecivavdatech.opendatalab.cz
 
 ---
